@@ -20,13 +20,16 @@ class Simulation(object):
 
     def do_stuff():
 		....
+        
+def helper_function(...):
+    ...
 ```
 
 
 So that simple simulation test and execution scripts can be written in a **separate file**, i.e.
 
 ```python
-import Simulation
+from object_definitions import Simulation, helper_function
 
 def test_function(*params):
 	sim = Simulation(*params)
