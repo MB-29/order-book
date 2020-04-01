@@ -1,0 +1,27 @@
+#Ignore the following
+*.aux
+*.fdb_latexmk
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.toc
+data 
+build
+*.png
+*.ps
+*.pdf
+*.cmake
+*.exe
+*.o
+*.make
+*.bin
+*.prof
+*.ps                                                                           
+CMakeFiles
+CMakeCache.txt
+MakeFile
+*.zip
+*.npy
+*.ipynb
+*.pyc
