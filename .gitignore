@@ -8,7 +8,6 @@
 *.toc
 data 
 build
-*.png
 *.ps
 *.pdf
 *.cmake
