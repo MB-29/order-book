@@ -1,8 +1,8 @@
-# Get started
+# Run a simulation
 
 ## Requirements
 * Python 3
-* Modules numpy and matpolotlib
+* Modules numpy and matplotlib
 
 ## Structure of the code
 

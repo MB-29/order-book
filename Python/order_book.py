@@ -18,22 +18,21 @@ class OrderBook:
             nu {float} -- Cancellation rate
 
         Keyword Arguments:
-            meta_order_intensity {int} -- Metaorder trading intensity at current time
-            lower_bound {int} -- Price interval lower bound
-            upper_bound {int} -- Price interval upper bound
+            mt {float} -- Metaorder trading intensity at current time
+            lower_bound {float} -- Price interval lower bound
+            upper_bound {float} -- Price interval upper bound
             resolution {int} -- Number of subintervals
         """
 
+        # Structural constants
         self.dt = dt
-
-        # Space (prices)
         self.dx = (upper_bound - lower_bound)/float(resolution)
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.X = np.linspace(lower_bound, upper_bound, num=resolution)
         self.N = resolution
 
-        # Model parameters
+        # Model constants
         self.D = D
         self.nu = nu
         self.lambd = lambd
@@ -70,13 +69,11 @@ class OrderBook:
         self.price = (self.best_ask + self.best_bid)/2
 
     def execute_metaorder(self):
-        """ Execute at current time the quantity dq = mt * dt at the best price which depends on the sing of mt.
+        """ Execute at current time the quantity dq = mt * dt at the best price which depends on the sign of mt.
         If mt > 0, then the metaorder is a buy and hence ask orders are executed, first at price best_ask.
         If mt < 0, then the metaorder is a sell and hence bid orders are executed, first at price best_bid.
         Depending on the liquidity, the price is then shifted 
 
-        Note:
-        Rather than calling update_best_ask/bid, incrementing best_ask/bid_index mihgt be faster
         """
 
         dq = self.mt * self.dt
@@ -87,7 +84,8 @@ class OrderBook:
                 if dq > liquidity:
                     dq -= liquidity
                     self.density[self.best_ask_index] = 0
-                    self.best_ask_index = min(self.N-1, self.best_ask_index + 1)
+                    self.best_ask_index = min(
+                        self.N-1, self.best_ask_index + 1)
                 else:
                     dq = 0
                     self.density[self.best_ask_index] += dq
@@ -101,7 +99,6 @@ class OrderBook:
                 else:
                     dq = 0
                     self.density[self.best_bid_index] += dq
-        
 
     def stationary_density(self, x):
         y = x-self.price
@@ -113,9 +110,6 @@ class OrderBook:
     def timestep(self):
         """
         Step forward
-
-        Note:
-        best_bid and best_ask prices are update both after diffusion numerical scheme iteration and during metaorder execution
         """
 
         self.update_prices()
@@ -124,4 +118,3 @@ class OrderBook:
         # Update density values with one iteration of the numerical scheme
         self.density = theta_scheme_iteration(
             self.density, self.dx, self.dt, self.D, self.L)
-
