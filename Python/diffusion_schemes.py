@@ -18,7 +18,7 @@ def theta_scheme_iteration(values, dx, dt, D, L, theta=1):
         theta belongs to [0,1] and is 1 by default (fully implicit scheme)
     """
 
-    # Finite difference parameter
+    # Finite difference adimensional constant
     alpha = D * dt/(dx*dx)
 
     N = len(values)

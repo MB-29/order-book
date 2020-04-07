@@ -16,7 +16,8 @@ class Simulation:
         # Time evolution
         self.Nt = Nt
         self.prices = np.zeros(Nt)
-        self.time_interval, self.tstep = np.linspace(0, T, num=Nt, retstep=True)
+        self.time_interval, self.tstep = np.linspace(
+            0, T, num=Nt, retstep=True)
         self.n_start = Nt//5
         self.n_end = 2 * Nt//3
         self.t_start = self.n_start * self.tstep
@@ -27,6 +28,7 @@ class Simulation:
         # Theoretical constants
         self.A_low = m0/(self.J*np.sqrt(np.pi))
         self.A_high = np.sqrt(2*m0/self.J)
+        self.participation_rate = self.m0/self.J
 
         # Plot
         self.plot = plot
@@ -56,31 +58,38 @@ class Simulation:
                 plt.pause(0.001)
                 plt.cla()
 
-    def compute_growth_MSE(self, ord=2):
+            self.peak_value = self.prices[self.n_end]
+
+    def compute_growth_mean_error(self, ord=2):
         self.growth_mean_error = np.linalg.norm(
-            self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.sqrt(self.n_end- self.n_start)
+            self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.power(self.n_end - self.n_start, 1/ord)
         return self.growth_mean_error
 
     def plot_vs_time(self, symlog=True):
 
         ax = plt.gca()
 
-        plt.plot(self.time_interval-self.t_start, self.prices, label='price evolution')
+        # Curves
+
+        plt.plot(self.time_interval-self.t_start,
+                 self.prices, label='price evolution')
         plt.plot(self.time_interval[self.n_start:self.n_end]-self.t_start,
-         self.growth_th, label='theoretical impact', lw=1, color='green')
+                 self.growth_th, label='theoretical impact', lw=1, color='green')
+
+        # Scale
 
         if symlog:
-            plt.yscale('symlog', linthreshy = 1e-1)
-            plt.xscale('symlog', linthreshx = self.tstep)
+            plt.yscale('symlog', linthreshy=1e-1)
+            plt.xscale('symlog', linthreshx=self.tstep)
 
         # Titles
 
         title = r'd$t={{{dt}}}$, $\lambda={{{lambd}}}$, $\nu={{{nu}}}$, $D={{{D}}}$'.format(
             **self.book_parameters)
-        text = r'$m_0={{{0}}}$, $J={{{1}}}$'.format(self.m0, round(self.J, 2))
+        text = r'$m_0={{{0}}}$, $J={{{1}}}$'.format(round(self.m0, 2), round(self.J, 2))
 
         plt.legend(loc='lower right')
         plt.title(title)
-        plt.text(0.01,0.92,text, transform=ax.transAxes)
+        plt.text(0.01, 0.92, text, transform=ax.transAxes)
 
         plt.show()

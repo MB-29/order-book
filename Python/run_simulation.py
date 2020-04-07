@@ -11,7 +11,7 @@ Nt = 100
 # Model parameters
 book_parameters = {
     'dt': T/float(Nt),
-    'lambd': 1e-1,
+    'lambd': 1,
     'nu': 1e-2,
     'D': 1,
     'Nx': 500
