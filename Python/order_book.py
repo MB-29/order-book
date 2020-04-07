@@ -38,7 +38,7 @@ class OrderBook:
         self.lambd = lambd
         self.J = lambd * np.sqrt(D/float(nu))
         self.gamma = np.sqrt(nu/float(D))
-        self.L = self.J/float(D)
+        self.L = lambd * np.sqrt(1/float(nu*D))
         self.mt = mt
 
         # Density function, which is solved
@@ -102,7 +102,7 @@ class OrderBook:
 
     def stationary_density(self, x):
         y = x-self.price
-        return -np.sign(y) * (self.lambd/float(self.nu)) * (1-np.exp(-abs(y)*self.gamma))
+        return - np.sign(y) * (self.lambd/float(self.nu)) * (1-np.exp(-abs(y)*self.gamma))
 
     def initial_density(self, x):
         return -x**3
