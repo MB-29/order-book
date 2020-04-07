@@ -109,7 +109,7 @@ class OrderBook:
         return - np.sign(y) * (self.lambd/float(self.nu)) * (1-np.exp(-abs(y)*self.gamma))
 
     def initial_density(self, x):
-        return -x**3
+        return -self.L * x
 
     def timestep(self):
         """

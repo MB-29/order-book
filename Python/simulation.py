@@ -6,7 +6,7 @@ from order_book import OrderBook
 
 class Simulation:
 
-    def __init__(self, book_parameters, T, Nt, m0, plot=False):
+    def __init__(self, book_parameters, T, Nt, m0, n_start=None, n_end=None, plot=False):
 
         # Order book
         self.book_parameters = book_parameters
@@ -18,8 +18,8 @@ class Simulation:
         self.prices = np.zeros(Nt)
         self.time_interval, self.tstep = np.linspace(
             0, T, num=Nt, retstep=True)
-        self.n_start = Nt//5
-        self.n_end = 2 * Nt//3
+        self.n_start = Nt//5 if not n_start else n_start
+        self.n_end = 2 * Nt//3 if not n_end else n_end
         self.t_start = self.n_start * self.tstep
 
         # Metaorder
@@ -33,7 +33,7 @@ class Simulation:
         # Plot
         self.plot = plot
 
-    def run(self):
+    def run(self, animation=False):
 
         self.growth_th = self.A_low * \
             np.sqrt(self.book.D *
@@ -44,21 +44,24 @@ class Simulation:
             # Update metaorder intensity
             mt = self.m0 if (n >= self.n_start and n <= self.n_end) else 0
 
-            self.book.mt = 1
             self.book.mt = mt
             self.book.timestep()
             self.prices[n] = self.book.price
 
-            if self.plot:
+            if animation:
                 ymin, ymax = -1, 1
                 plt.ylim((ymin, ymax))
                 plt.plot(self.book.X, self.book.density,
                          label='order density', linewidth=1)
+                plt.vlines(self.book.price, -1, 1, label='price', color='red', linewidth=1)
+                plt.hlines(0, -1, 1, color='black', linewidth=0.5, linestyle='dashed')
+
                 plt.legend()
-                plt.pause(0.001)
+                plt.pause(1)
                 plt.cla()
 
-            self.peak_value = self.prices[self.n_end]
+        self.peak_value = self.prices[self.n_end]
+        
 
     def compute_growth_mean_error(self, ord=2):
         self.growth_mean_error = np.linalg.norm(
