@@ -1,66 +1,86 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 from order_book import OrderBook
 
-# Model parameters
-T = 1
-Nt = 20
-dt = T/float(Nt)
-lambd = 1
-nu = 1e-2
-D = 1
-J = lambd * np.sqrt(D/float(nu))
-book = OrderBook(dt, D=D, lambd=lambd, nu=nu, resolution=100)
 
-# Price timeseries
-prices = np.zeros(Nt)
-time_interval = np.linspace(0, T, num=Nt)
+class Simulation:
 
-# Metaorder intensity
-m0 = 5
-n_start, n_end = Nt//5, 2*Nt//3
-A_low = m0/(J*np.sqrt(np.pi))
-A_high = np.sqrt(2*m0/J)
+    def __init__(self, book_parameters, T, Nt, m0, plot=False):
 
-# Simulation
-for n in range(Nt):
+        # Order book
+        self.book_parameters = book_parameters
+        self.book = OrderBook(**book_parameters)
+        self.J = self.book.J
 
-    # Plot evolution
-    ymin, ymax = -1, 1
-    plt.ylim((ymin, ymax))
-    plt.plot(book.X, book.density, label='order density', linewidth=1)
-    plt.title(f'iteration {n}')
+        # Time evolution
+        self.Nt = Nt
+        self.prices = np.zeros(Nt)
+        self.time_interval, self.tstep = np.linspace(0, T, num=Nt, retstep=True)
+        self.n_start = Nt//5
+        self.n_end = 2 * Nt//3
+        self.t_start = self.n_start * self.tstep
 
-    # Display best_ask/bid prices
-    plt.vlines(book.price, ymin, ymax, label='price', color='red', linewidth=1)
-    plt.hlines(0, -1, 1, color='black', linewidth=0.5, linestyle='dashed')
-    plt.vlines(book.best_ask, ymin, ymax, label='best ask', color='blue')
-    plt.vlines(book.best_bid, ymin, ymax, label='best bid', color='yellow')
-    plt.vlines(0, 0, m0*dt/book.dx, label='traded quantity', color='cyan')
+        # Metaorder
+        self.m0 = m0
 
-    plt.legend()
-    plt.pause(0.001)
+        # Theoretical constants
+        self.A_low = m0/(self.J*np.sqrt(np.pi))
+        self.A_high = np.sqrt(2*m0/self.J)
 
-    # Add a metaorder
-    book.mt = m0 if (n >= n_start and n <= n_end) else 0
-    book.timestep()
-    plt.cla()
+        # Plot
+        self.plot = plot
 
-    prices[n] = book.price
+    def run(self):
 
-plt.close()
+        self.growth_th = self.A_low * \
+            np.sqrt(self.book.D *
+                    self.time_interval[0:self.n_end-self.n_start])
 
-p_th = A_low*np.sqrt(D*time_interval[0:n_end-n_start])
-plt.plot(time_interval[n_start:n_end],
-         p_th, label='Theoretical impact', lw=1, color='green')
+        for n in range(self.Nt):
 
+            # Update metaorder intensity
+            mt = self.m0 if (n >= self.n_start and n <= self.n_end) else 0
 
-# Plot price evoution
-# plt.title(r'Price evolution with $\textrm{dt} = {{{}}}$'.format(dt))
-# plt.title(r'd$t={{{0}}}$, $\lambda={{{1}}}$, $\nu={{{2}}}$, $D={{{3}}}$'.format(
-#     dt, lambd, nu, D))
-plt.title(r'$m_0={{{0}}}$, $J={{{1}}}$'.format(m0, round(J, 2)))
-plt.plot(time_interval, prices, label='price evolution')
-plt.legend()
-plt.show()
+            self.book.mt = 1
+            self.book.mt = mt
+            self.book.timestep()
+            self.prices[n] = self.book.price
+
+            if self.plot:
+                ymin, ymax = -1, 1
+                plt.ylim((ymin, ymax))
+                plt.plot(self.book.X, self.book.density,
+                         label='order density', linewidth=1)
+                plt.legend()
+                plt.pause(0.001)
+                plt.cla()
+
+    def compute_growth_MSE(self, ord=2):
+        self.growth_mean_error = np.linalg.norm(
+            self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.sqrt(self.n_end- self.n_start)
+        return self.growth_mean_error
+
+    def plot_vs_time(self, symlog=True):
+
+        ax = plt.gca()
+
+        plt.plot(self.time_interval-self.t_start, self.prices, label='price evolution')
+        plt.plot(self.time_interval[self.n_start:self.n_end]-self.t_start,
+         self.growth_th, label='theoretical impact', lw=1, color='green')
+
+        if symlog:
+            plt.yscale('symlog', linthreshy = 1e-1)
+            plt.xscale('symlog', linthreshx = self.tstep)
+
+        # Titles
+
+        title = r'd$t={{{dt}}}$, $\lambda={{{lambd}}}$, $\nu={{{nu}}}$, $D={{{D}}}$'.format(
+            **self.book_parameters)
+        text = r'$m_0={{{0}}}$, $J={{{1}}}$'.format(self.m0, round(self.J, 2))
+
+        plt.legend(loc='lower right')
+        plt.title(title)
+        plt.text(0.01,0.92,text, transform=ax.transAxes)
+
+        plt.show()
