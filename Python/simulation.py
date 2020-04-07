@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 from order_book import OrderBook
 
@@ -53,6 +53,7 @@ class Simulation:
                 plt.ylim((ymin, ymax))
                 plt.plot(self.book.X, self.book.density,
                          label='order density', linewidth=1)
+
                 plt.vlines(self.book.price, -1, 1, label='price',
                            color='red', linewidth=1)
                 plt.hlines(0, -1, 1, color='black',
@@ -84,12 +85,14 @@ class Simulation:
         thresh_y = np.max(np.abs(self.prices)) * 1e-1
         if symlog:
             plt.yscale('symlog', linthreshy=thresh_y)
+
             plt.xscale('symlog', linthreshx=self.tstep)
 
         # Titles
 
         title = r'd$t={{{dt}}}$, $\lambda={{{lambd}}}$, $\nu={{{nu}}}$, $D={{{D}}}$'.format(
             **self.book_parameters)
+
         text = r'$m_0={{{0}}}$, $J={{{1}}}$'.format(
             round(self.m0, 2), round(self.J, 2))
 

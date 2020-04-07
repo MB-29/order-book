@@ -15,7 +15,7 @@ book_parameters = {
     'nu': 1e-2,
     'D': 1,
     'Nx': 1000
-    }
+}
 
 # Metaorder
 m0 = 1
