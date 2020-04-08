@@ -116,12 +116,11 @@ class OrderBook:
         Step forward
         """
 
-        self.update_prices()
         self.execute_metaorder()
-
         # Update density values with one iteration of the numerical scheme
         self.density = theta_scheme_iteration(
             self.density, self.dx, self.dt, self.D, self.L)
+        self.update_prices()
 
     def __str__(self):
         parameters_string = f'D= {self.D}\nlambda = {self.lambd}\nnu={self.nu}\ndt= {self.dt}'
