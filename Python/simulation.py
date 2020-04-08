@@ -18,9 +18,11 @@ class Simulation:
         self.prices = np.zeros(Nt)
         self.time_interval, self.tstep = np.linspace(
             0, T, num=Nt, retstep=True)
-        self.n_start = Nt//5 if not n_start else n_start
-        self.n_end = 2 * Nt//3 if not n_end else n_end
+        self.n_start = Nt//10 if not n_start else n_start
+        self.n_end = Nt//2 if not n_end else n_end
         self.t_start = self.n_start * self.tstep
+        self.t_end = self.n_end * self.tstep
+        self.time_interval_shifted = self.time_interval-self.t_start
 
         # Metaorder
         self.m0 = m0
@@ -37,7 +39,7 @@ class Simulation:
 
         self.growth_th = self.A_low * \
             np.sqrt(self.book.D *
-                    self.time_interval[0:self.n_end-self.n_start])
+                    self.time_interval_shifted[self.n_start:self.n_end])
 
         for n in range(self.Nt):
 
@@ -68,31 +70,42 @@ class Simulation:
             self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.power(self.n_end - self.n_start, 1/ord)
         return self.growth_mean_error
 
-    def plot_vs_time(self, symlog=True):
-
-        ax = plt.gca()
+    def plot_price(self, ax, symlog=False):
 
         # Curves
-
-        plt.plot(self.time_interval-self.t_start,
+        ax.plot(self.time_interval_shifted,
                  self.prices, label='price evolution')
-        plt.plot(self.time_interval[self.n_start:self.n_end]-self.t_start,
+        ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
                  self.growth_th, label='theoretical impact', lw=1, color='green')
 
         # Scale
-
         if symlog:
-            plt.yscale('symlog', linthreshy=1e-1)
-            plt.xscale('symlog', linthreshx=self.tstep)
+            ax.set_yscale('symlog', linthreshy=1e-1)
+            ax.set_xscale('symlog', linthreshx=self.tstep)
 
-        # Titles
 
-        title = r'd$t={{{dt}}}$, $\lambda={{{lambd}}}$, $\nu={{{nu}}}$, $D={{{D}}}$'.format(
-            **self.book_parameters)
-        text = r'$m_0={{{0}}}$, $J={{{1}}}$'.format(round(self.m0, 2), round(self.J, 2))
+        ax.legend(loc='lower right')
+        ax.set_title('Price evolution')
 
-        plt.legend(loc='lower right')
-        plt.title(title)
-        plt.text(0.01, 0.92, text, transform=ax.transAxes)
+        return ax
 
-        plt.show()
+    def plot_err(self, ax, relative=False, symlog=False):
+
+        self.growth_error = abs(self.prices[self.n_start:self.n_end] - self.growth_th)
+        if relative :
+            self.growth_error = self.growth_error/self.growth_th
+
+        # Curves
+        label = 'relative error' if relative else 'absolute error' 
+        ax.plot(self.time_interval_shifted[self.n_start: self.n_end],
+                 self.growth_error, label=label)
+
+        # Scale
+        if symlog:
+            ax.set_yscale('symlog', linthreshy=1e-1)
+            ax.set_xscale('symlog', linthreshx=self.tstep)
+
+        ax.legend(loc='lower right')
+        ax.set_title('Error')
+
+        return ax

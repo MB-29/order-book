@@ -23,4 +23,5 @@ m0 = 1
 # Run
 simulation = Simulation(book_parameters, T, Nt, m0)
 simulation.run()
-simulation.plot_vs_time()
+simulation.plot_price(plt.gca())
+plt.show()
