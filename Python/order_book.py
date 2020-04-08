@@ -41,13 +41,13 @@ class OrderBook:
         self.L = lambd * np.sqrt(1/float(nu*D))
         self.mt = mt
 
+        # Set prices
+        self.price = (lower_bound + upper_bound)/2
+        self.best_bid_index = Nx//2
+        self.best_ask_index = Nx//2 + 1
+
         # Density function, which is solved
         self.density = self.initial_density(self.X)
-
-        # Set prices
-        self.best_ask_index = self.Nx-1
-        self.best_bid_index = 0
-        self.update_prices()
 
     def update_best_ask(self):
         ask_indices = np.where(self.density < 0)[0]
@@ -109,7 +109,7 @@ class OrderBook:
         return - np.sign(y) * (self.lambd/float(self.nu)) * (1-np.exp(-abs(y)*self.gamma))
 
     def initial_density(self, x):
-        return -self.L * x
+        return -self.L * (x-self.price)
 
     def timestep(self):
         """
