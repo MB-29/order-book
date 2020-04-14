@@ -1,4 +1,4 @@
-# Run a simulation
+# Linear Latent Order Book simulation
 
 ## Requirements
 * Python 3
@@ -11,6 +11,10 @@ A simulation is represented by an instance of class `Simulation` from `simulatio
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 A script setting parameters, running and plotting a simulation is provided in `run_simulation.py`.
 
+Plots can be performed with `simulation.plot_...` methods.
+
+Display an animation of the order book and of the price evolution using `simulation.run_simulation()` method. 
+
 
 ## Run a simulation
 Set parameters in `run_simulation.py` then run
@@ -19,6 +23,7 @@ Set parameters in `run_simulation.py` then run
 cd Python
 python run_simulation.py
 ```
+
 ## Output
 
 ![Density profile](demo/density.png)

@@ -29,6 +29,7 @@ class OrderBook:
         self.dx = (upper_bound - lower_bound)/float(Nx)
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.price_range = (upper_bound - lower_bound)/2
         self.X = np.linspace(lower_bound, upper_bound, num=Nx)
         self.Nx = Nx
 
