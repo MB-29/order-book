@@ -8,14 +8,13 @@ from diffusion_schemes import theta_scheme_iteration
 
 class OrderBook:
 
-    def __init__(self, dt, D, lambd, nu, mt=0, lower_bound=-1, upper_bound=1, Nx=100, diffusion_scheme='implicit'):
+    def __init__(self, dt, D, L, mt=0, lower_bound=-1, upper_bound=1, Nx=100, diffusion_scheme='implicit'):
         """
 
         Arguments:
             dt {float} -- Time subinterval
             D {float} -- Diffusion constant
-            lambd {float} -- Deposition rate
-            nu {float} -- Cancellation rate
+            L {float} -- Latent liquidity
 
         Keyword Arguments:
             mt {float} -- Metaorder trading intensity at current time
@@ -35,11 +34,8 @@ class OrderBook:
 
         # Model constants
         self.D = D
-        self.nu = nu
-        self.lambd = lambd
-        self.J = lambd * np.sqrt(D/float(nu))
-        self.gamma = np.sqrt(nu/float(D))
-        self.L = lambd * np.sqrt(1/float(nu*D))
+        self.L = L
+        self.J = D * L
         self.mt = mt
 
         # Set prices
@@ -105,9 +101,6 @@ class OrderBook:
                     dq = 0
                     self.density[self.best_bid_index] += dq
 
-    def stationary_density(self, x):
-        y = x-self.price
-        return - np.sign(y) * (self.lambd/float(self.nu)) * (1-np.exp(-abs(y)*self.gamma))
 
     def initial_density(self, x):
         return -self.L * (x-self.price)
@@ -124,5 +117,5 @@ class OrderBook:
         self.update_prices()
 
     def __str__(self):
-        parameters_string = f'D= {self.D}\nlambda = {self.lambd}\nnu={self.nu}\ndt= {self.dt}'
+        parameters_string = f'D= {self.D}\nL = {self.L}\ndt= {self.dt}'
         return f'Order book with following parameters\n{parameters_string}'

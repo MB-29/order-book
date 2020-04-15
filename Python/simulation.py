@@ -40,37 +40,23 @@ class Simulation:
         self.compute_theoretical_growth()
 
         # Plot
-        self.plot = plot
+        self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$x={{{2}}}$, $\beta ={{{3}}}$'.format(
+            round(self.m0, 2), round(self.J, 2),  round(self.book.dx, 5), round(self.beta, 2))
 
-    def run(self, animation=False):
+    def run(self, animation=False, fig=plt.gcf()):
+
+        if animation:
+            self.run_animation(fig)
+            return
 
         for n in range(self.Nt):
 
             # Update metaorder intensity
             mt = self.m0 if (n >= self.n_start and n <= self.n_end) else 0
 
+            self.prices[n] = self.book.price
             self.book.mt = mt
             self.book.timestep()
-            self.prices[n] = self.book.price
-
-            if animation:
-                plt.title(
-                    f'iteration {n}, mt = {mt}, price = {self.book.price}')
-                ymin, ymax = -self.infinity_density, self.infinity_density
-                plt.ylim((ymin, ymax))
-                plt.xlim((-0.1, 0.1))
-                plt.plot(self.book.X, self.book.density,
-                         label='order density', linewidth=1)
-                plt.vlines(self.book.price, -self.infinity_density, self.infinity_density, label='price',
-                           color='red', linewidth=1)
-                plt.hlines(0, self.book.lower_bound, self.book.upper_bound, color='black',
-                           linewidth=0.5, linestyle='dashed')
-
-                plt.legend()
-                plt.pause(0.001)
-                plt.cla()
-
-        print('Simulation completed')
 
     def compute_theoretical_growth(self):
         self.growth_th_low = self.prices[self.n_start-1] + self.A_low * \
@@ -79,16 +65,18 @@ class Simulation:
         self.growth_th_high = self.prices[self.n_start-1] + self.A_high * \
             np.sqrt(self.book.D *
                     self.time_interval_shifted[self.n_start:self.n_end])
-        self.growth_th = self.growth_th_high if self.m0 > self.J else self.growth_th_low
+        self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
 
     def compute_growth_mean_error(self, ord=2):
         self.growth_mean_error = np.linalg.norm(
             self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.power(self.n_end - self.n_start, 1/ord)
         return self.growth_mean_error
 
+    # ================== PLOTS ==================
+
     def plot_price(self, ax, symlog=False, low=False, high=False):
 
-        # Curves
+        # Lines
         ax.plot(self.time_interval_shifted,
                 self.prices, label='price evolution')
         if low:
@@ -129,34 +117,43 @@ class Simulation:
 
         return ax
 
+    # ================== ANIMATION ==================
+
     def set_animation(self, fig):
         self.density_ax = fig.add_subplot(1, 2, 1)
         self.price_ax = fig.add_subplot(1, 2, 2)
         self.density_line, = self.density_ax.plot([], [], label='Density')
         self.price_line, = self.price_ax.plot([], [], label='Price')
 
-        self.density_text = self.price_ax.text(0.02, 0.95, '', transform=self.density_ax.transAxes)
-        self.price_text = self.price_ax.text(0.02, 0.95, '', transform=self.price_ax.transAxes)
-    
+        self.density_text = self.price_ax.text(
+            0.02, 0.95, '', transform=self.density_ax.transAxes)
+        self.price_text = self.price_ax.text(
+            0.02, 0.95, '', transform=self.price_ax.transAxes)
+        fig.suptitle(self.parameters_string)
+
     def init_animation(self):
+
+        # Axis
         y_min, y_max = -self.density_shift_th, self.density_shift_th
         x_min, x_max = -self.price_shift_th, self.price_shift_th
 
-        self.density_line.set_data([], [])
-        self.density_ax.set_xlim((x_min, x_max))
+        self.density_ax.set_xlim((1.5*x_min, 1.5*x_max))
         self.density_ax.set_ylim((y_min, y_max))
 
         self.price_ax.set_xlim((0, self.T))
         self.price_ax.set_ylim((x_min, x_max))
 
+        # Lines
+        self.density_line.set_data([], [])
+        self.price_line.set_data([], [])
         self.density_ax.hlines(0, self.book.lower_bound, self.book.upper_bound, color='black',
-                           linewidth=0.5, linestyle='dashed')
-        self.density_ax.hlines(0, y_min,y_max, color='black',
-                           linewidth=0.5, linestyle='dashed')
+                               linewidth=0.5, linestyle='dashed')
+        self.density_ax.hlines(0, y_min, y_max, color='black',
+                               linewidth=0.5, linestyle='dashed')
 
         self.price_ax.hlines(0, 0, self.T, color='black',
-                           linewidth=0.5, linestyle='dashed')
-
+                             linewidth=0.5, linestyle='dashed')
+        # Text
         self.density_text.set_text('Density')
         self.price_text.set_text('Market price')
         return self.density_line, self.price_line
@@ -170,7 +167,8 @@ class Simulation:
 
         self.density_line.set_data(self.book.X, self.book.density)
         self.density_line.set_data(self.book.X, self.book.density)
-        self.price_line.set_data(self.time_interval_shifted[:n+1], self.prices[:n+1])
+        self.price_line.set_data(
+            self.time_interval_shifted[:n+1], self.prices[:n+1])
         return self.density_line, self.price_line
 
     def run_animation(self, fig):

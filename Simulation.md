@@ -13,7 +13,7 @@ A script setting parameters, running and plotting a simulation is provided in `r
 
 Plots can be performed with `simulation.plot_...` methods.
 
-Display an animation of the order book and of the price evolution using `simulation.run_simulation()` method. 
+Display an animation of the order book and of the price evolution using `simulation.run(animation=True)`. 
 
 
 ## Run a simulation
