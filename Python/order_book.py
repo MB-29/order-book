@@ -70,7 +70,6 @@ class OrderBook:
         If mt > 0, then the metaorder is a buy and hence ask orders are executed, first at price best_ask.
         If mt < 0, then the metaorder is a sell and hence bid orders are executed, first at price best_bid.
         Depending on the liquidity, the price is then shifted.
-
         """
 
         dq = self.mt * self.dt
@@ -82,7 +81,7 @@ class OrderBook:
                     dq -= liquidity
                     self.density[self.best_ask_index] = 0
                     self.best_ask_index = min(
-                       self.Nx-1, self.best_ask_index + 1)
+                        self.Nx-1, self.best_ask_index + 1)
                     if self.best_ask_index == self.Nx-1:
                         raise ValueError('Market lacks ask liquidity')
                 else:
@@ -100,7 +99,6 @@ class OrderBook:
                 else:
                     dq = 0
                     self.density[self.best_bid_index] += dq
-
 
     def initial_density(self, x):
         return -self.L * (x-self.price)

@@ -44,6 +44,12 @@ class Simulation:
             round(self.m0, 2), round(self.J, 2),  round(self.book.dx, 5), round(self.beta, 2))
 
     def run(self, animation=False, fig=plt.gcf()):
+        """Run the Nt steps of the simulation
+        
+        Keyword Arguments:
+            animation {bool} -- Set to True to display an animation
+            fig {pyplot figure} -- The figure the animation is displayed in
+        """
 
         if animation:
             self.run_animation(fig)
@@ -119,10 +125,24 @@ class Simulation:
 
     # ================== ANIMATION ==================
 
+    def run_animation(self, fig):
+        """[summary]
+
+        Arguments:
+            fig {pyplot figure} -- The figure the animation is displayed in
+        """
+        self.set_animation(fig)
+        self.animation = FuncAnimation(
+            fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
+        plt.show()
+
     def set_animation(self, fig):
+        """Create subplot axes, lines and texts
+        """
         self.density_ax = fig.add_subplot(1, 2, 1)
         self.price_ax = fig.add_subplot(1, 2, 2)
         self.density_line, = self.density_ax.plot([], [], label='Density')
+        self.price_axis, = self.density_ax.plot([], [], label='Price', color='red', ls='dashed', lw=1)
         self.price_line, = self.price_ax.plot([], [], label='Price')
 
         self.density_text = self.price_ax.text(
@@ -132,6 +152,8 @@ class Simulation:
         fig.suptitle(self.parameters_string)
 
     def init_animation(self):
+        """Init function called by FuncAnimation
+        """
 
         # Axis
         y_min, y_max = -self.density_shift_th, self.density_shift_th
@@ -159,20 +181,19 @@ class Simulation:
         return self.density_line, self.price_line
 
     def update_animation(self, n):
+        """Update function called by FuncAnimation
+        """
+
+        y_min, y_max = -self.density_shift_th, self.density_shift_th
+
         mt = self.m0 if (n >= self.n_start and n <= self.n_end) else 0
 
+        self.prices[n] = self.book.price
         self.book.mt = mt
         self.book.timestep()
-        self.prices[n] = self.book.price
 
         self.density_line.set_data(self.book.X, self.book.density)
-        self.density_line.set_data(self.book.X, self.book.density)
+        self.price_axis.set_data([self.book.price, self.book.price], [y_min, y_max])
         self.price_line.set_data(
             self.time_interval_shifted[:n+1], self.prices[:n+1])
-        return self.density_line, self.price_line
-
-    def run_animation(self, fig):
-        self.set_animation(fig)
-        self.animation = FuncAnimation(
-            fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
-        plt.show()
+        return self.density_line, self.price_axis, self.price_line
