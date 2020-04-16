@@ -8,6 +8,8 @@ from diffusion_schemes import theta_scheme_iteration
 
 class OrderBook:
 
+    volume_resolution = 1e-4
+
     def __init__(self, dt, D, L, mt=0, lower_bound=-1, upper_bound=1, Nx=100, diffusion_scheme='implicit'):
         """
 
@@ -47,23 +49,24 @@ class OrderBook:
         self.density = self.initial_density(self.X)
 
     def update_best_ask(self):
-        ask_indices = np.where(self.density < 0)[0]
+        ask_indices = np.where(self.density * self.dx < - OrderBook.volume_resolution )[0]
         self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
         self.best_ask = self.X[self.best_ask_index]
 
     def update_best_bid(self):
-        bid_indices = np.where(self.density > 0)[0]
+        bid_indices = np.where(self.density * self.dx > OrderBook.volume_resolution)[0]
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
         self.best_bid = self.X[self.best_bid_index]
 
     def update_prices(self):
         """ Update best ask, best bid and market price
         """
-        self.best_ask = self.density[self.best_ask_index]
-        self.best_bid = self.density[self.best_bid_index]
         self.update_best_ask()
         self.update_best_bid()
-        self.price = (self.best_ask + self.best_bid)/2
+        self.price = (- self.best_ask * self.best_ask_density + self.best_bid *
+                      self.best_bid_density)/(-self.best_ask_density + self.best_bid_density)
+        print(f'ask  = {self.best_ask}, bid density = {self.best_bid}')
+        print(f'ask density = {-self.best_ask_density}, bid density = {self.best_bid_density}')
 
     def execute_metaorder(self):
         """ Execute at current time the quantity dq = mt * dt at the best price which depends on the sign of mt.
@@ -74,19 +77,21 @@ class OrderBook:
 
         dq = self.mt * self.dt
         if dq > 0:
+            # print(self.best_ask_density/self.best_ask)
             # liquidity > 0 is the absolute available volume at the best ask price
             while dq > 0:
                 liquidity = -self.density[self.best_ask_index] * self.dx
                 if dq > liquidity:
-                    dq -= liquidity
                     self.density[self.best_ask_index] = 0
                     self.best_ask_index = min(
                         self.Nx-1, self.best_ask_index + 1)
+                    dq -= liquidity
                     if self.best_ask_index == self.Nx-1:
                         raise ValueError('Market lacks ask liquidity')
                 else:
-                    dq = 0
                     self.density[self.best_ask_index] += dq
+                    dq = 0
+
         else:
             while dq < 0:
                 liquidity = self.density[self.best_bid_index] * self.dx
@@ -97,8 +102,12 @@ class OrderBook:
                     if self.best_ask_index == 0:
                         raise ValueError('Market lacks bid liquidity')
                 else:
-                    dq = 0
                     self.density[self.best_bid_index] += dq
+                    dq = 0
+        
+        self.best_ask_density = self.density[self.best_ask_index]
+        self.best_bid_density = self.density[self.best_bid_index-1]
+
 
     def initial_density(self, x):
         return -self.L * (x-self.price)
@@ -109,9 +118,11 @@ class OrderBook:
         """
 
         self.execute_metaorder()
+        # print(f'before p = {self.density[self.best_ask_index-1]}, q = {self.density[self.best_ask_index]}')
         # Update density values with one iteration of the numerical scheme
         self.density = theta_scheme_iteration(
             self.density, self.dx, self.dt, self.D, self.L)
+        # print(f'after p = {self.density[self.best_ask_index-1]}')
         self.update_prices()
 
     def __str__(self):

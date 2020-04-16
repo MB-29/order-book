@@ -20,9 +20,7 @@ def theta_scheme_iteration(values, dx, dt, D, L, theta=1):
 
     # Finite difference adimensional constant
     alpha = D * dt/(dx*dx)
-
     N = len(values)
-
     # Compute the scheme iteration matrix with a sparse representation (see documentation)
     main_diagonal = np.full(N, -2*alpha)
     secondary_diagonal = np.full(N-1, alpha)
@@ -40,7 +38,7 @@ def theta_scheme_iteration(values, dx, dt, D, L, theta=1):
     explicit_diagonals = [1+(1-theta) * main_diagonal,
                           (1-theta)*secondary_diagonal, (1-theta)*secondary_diagonal]
 
-    implicit_matrix = diags(implicit_diagonals, [0, 1, -1]).toarray()
+    implicit_matrix = diags(implicit_diagonals, [0, 1, -1], format='csr')
     explicit_matrix = diags(explicit_diagonals, [0, 1, -1]).toarray()
 
     return spsolve(implicit_matrix, explicit_matrix.dot(values) + boundary_terms)

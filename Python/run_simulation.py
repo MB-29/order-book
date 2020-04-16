@@ -11,18 +11,18 @@ Nt = 50
 # Model parameters
 book_parameters = {
     'dt': T/float(Nt),
-    'D': 1,
+    'D': 0.01,
     'L' : 1,
-    'Nx': 2000,
-    'lower_bound': -100,
-    'upper_bound': 100
+    'Nx': 10000,
+    'lower_bound': -50,
+    'upper_bound': 50
     }
 
 # Metaorder
-m0 = 100
+m0 = 10
 
 # Run
 simulation = Simulation(book_parameters, T, Nt, m0)
 simulation.run(animation=True)
-simulation.plot_price(plt.gca())
+simulation.plot_price(plt.gca(), high=True)
 plt.show()

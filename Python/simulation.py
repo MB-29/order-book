@@ -20,7 +20,7 @@ class Simulation:
         self.prices = np.zeros(Nt)
         self.time_interval, self.tstep = np.linspace(
             0, T, num=Nt, retstep=True)
-        self.n_start = Nt//10 if not n_start else n_start
+        self.n_start = Nt//10+1 if not n_start else n_start
         self.n_end = 9*Nt//10 if not n_end else n_end
         self.t_start = self.n_start * self.tstep
         self.t_end = self.n_end * self.tstep
@@ -28,20 +28,19 @@ class Simulation:
 
         # Metaorder
         self.m0 = m0
-        self.beta = np.sqrt(2*m0*T/self.book.D*self.J)/self.book.price_range
+        self.beta = np.sqrt(2*m0*T/self.book.L)/self.book.price_range
 
         # Theoretical values
         self.infinity_density = self.book.L * self.book.upper_bound
         self.price_shift_th = np.sqrt(m0*T/self.book.L)
         self.density_shift_th = np.sqrt(m0*T*self.book.L)  # price_shift_th * L
-        self.A_low = m0/(self.J*np.sqrt(np.pi))
-        self.A_high = np.sqrt(2*m0/self.J)
-        self.participation_rate = self.m0/self.J
+        self.A_low = m0/(self.book.L*np.sqrt(self.book.D * np.pi))
+        self.A_high = np.sqrt(2)*np.sqrt(m0/self.book.L)
         self.compute_theoretical_growth()
 
         # Plot
         self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$x={{{2}}}$, $\beta ={{{3}}}$'.format(
-            round(self.m0, 2), round(self.J, 2),  round(self.book.dx, 5), round(self.beta, 2))
+            round(self.m0, 2), round(self.J, 4),  round(self.book.dx, 5), round(self.beta, 2))
 
     def run(self, animation=False, fig=plt.gcf()):
         """Run the Nt steps of the simulation
@@ -66,10 +65,10 @@ class Simulation:
 
     def compute_theoretical_growth(self):
         self.growth_th_low = self.prices[self.n_start-1] + self.A_low * \
-            np.sqrt(self.book.D *
+            np.sqrt(
                     self.time_interval_shifted[self.n_start:self.n_end])
         self.growth_th_high = self.prices[self.n_start-1] + self.A_high * \
-            np.sqrt(self.book.D *
+            np.sqrt(
                     self.time_interval_shifted[self.n_start:self.n_end])
         self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
 
