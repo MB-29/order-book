@@ -39,8 +39,8 @@ class Simulation:
         self.compute_theoretical_growth()
 
         # Plot
-        self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$x={{{2}}}$, $\beta ={{{3}}}$'.format(
-            round(self.m0, 2), round(self.J, 4),  round(self.book.dx, 5), round(self.beta, 2))
+        self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$x={{{2}}}$, $\beta ={{{3}}}$, interval size = {4}'.format(
+            round(self.m0, 2), round(self.J, 4),  round(self.book.dx, 5), round(self.beta, 2), 2*self.book.upper_bound)
 
     def run(self, animation=False, fig=plt.gcf()):
         """Run the Nt steps of the simulation
@@ -97,7 +97,7 @@ class Simulation:
             ax.set_xscale('symlog', linthreshx=self.tstep)
 
         ax.legend(loc='lower right')
-        ax.set_title('Price evolution')
+        ax.set_title(self.parameters_string)
 
         return ax
 
@@ -125,8 +125,7 @@ class Simulation:
     # ================== ANIMATION ==================
 
     def run_animation(self, fig):
-        """[summary]
-
+        """
         Arguments:
             fig {pyplot figure} -- The figure the animation is displayed in
         """
