@@ -63,6 +63,8 @@ class Simulation:
             self.book.mt = mt
             self.book.timestep()
 
+    # ================== COMPUTATIONS ==================
+
     def compute_theoretical_growth(self):
         self.growth_th_low = self.prices[self.n_start-1] + self.A_low * \
             np.sqrt(
@@ -168,7 +170,7 @@ class Simulation:
         self.price_line.set_data([], [])
         self.density_ax.hlines(0, self.book.lower_bound, self.book.upper_bound, color='black',
                                linewidth=0.5, linestyle='dashed')
-        self.density_ax.hlines(0, y_min, y_max, color='black',
+        self.density_ax.vlines(0, y_min, y_max, color='black',
                                linewidth=0.5, linestyle='dashed')
 
         self.price_ax.hlines(0, 0, self.T, color='black',

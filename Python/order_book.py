@@ -1,12 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.sparse import diags
-from scipy.sparse.linalg import spsolve
 
 from diffusion_schemes import theta_scheme_iteration
 
 
 class OrderBook:
+    """Models an order book with its order density in the LLOB framework.
+    """
 
     volume_resolution = 1e-4
 
@@ -47,6 +46,11 @@ class OrderBook:
 
         # Density function, which is solved
         self.density = self.initial_density(self.X)
+    
+    def initial_density(self, x):
+        return -self.L * (x-self.price)
+
+    # ================== Time evolution ==================
 
     def update_best_ask(self):
         ask_indices = np.where(self.density * self.dx < -
@@ -105,9 +109,6 @@ class OrderBook:
         self.best_ask_density = self.density[self.best_ask_index]
         self.best_bid_density = self.density[self.best_bid_index]
 
-    def initial_density(self, x):
-        return -self.L * (x-self.price)
-
     def timestep(self):
         """
         Step forward
@@ -119,6 +120,3 @@ class OrderBook:
             self.density, self.dx, self.dt, self.D, self.L)
         self.update_prices()
 
-    def __str__(self):
-        parameters_string = f'D= {self.D}\nL = {self.L}\ndt= {self.dt}'
-        return f'Order book with following parameters\n{parameters_string}'
