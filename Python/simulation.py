@@ -12,32 +12,35 @@ class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
     """
 
-    def __init__(self, book_parameters, T, Nt, m0, model_type='discrete', n_start=None, n_end=None):
+    def __init__(self, book_args, T, Nt, metaorder_args, model_type='discrete'):
         """
 
         Arguments:
-            book_parameters {dictionary} -- Argument for the instance of order book.
+            book_args {dictionary} -- Arguments for the instance of order book.
             T {float} -- Time horizon
             Nt {int} -- Number of time steps
-            m0 {float} -- Metaorder trading intensity
+            metaorder_args {dictionary} -- Sets metaorder variables.
+            Metaorder trading intensity is defined by key 'metaorder' whose value
+            must be an array either of size 1, in which case it stands for the value of a constant
+            metaorder, or of size Nt.
+            Key 'm0' denotes the temporal mean of the metaorder.
+            Keys 'n_start' and 'n_end' set the start and end steps.
 
         Keyword Arguments:
             model_type {str} -- 'discrete' or 'continuous' (default: 'discrete')
-            n_start {int} --  Metaorder start step
-            n_end {int} -- Metaorder end step
         """
 
         # Model type
         assert model_type in ['discrete', 'continuous']
 
-        model_dic = {
+        model_choice = {
             'discrete': LinearDiscreteBook,
             'continuous': ContinuousBook
         }
 
         # Order book
-        self.book_parameters = book_parameters
-        self.book = model_dic.get(model_type)(**book_parameters)
+        self.book_args = book_args
+        self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
 
@@ -50,20 +53,28 @@ class Simulation:
             0, T, num=Nt, retstep=True)
 
         # Metaorder
-        self.m0 = m0
-        self.beta = np.sqrt(2*m0*T/self.book.L)/self.book.price_range
-        self.n_start = Nt//10+1 if not n_start else n_start
-        self.n_end = 9*Nt//10 if not n_end else n_end
+        metaorder = metaorder_args.get('metaorder', 0)
+        if len(metaorder) == 1:
+            self.metaorder = np.full(Nt, metaorder)
+        else:
+            assert len(metaorder) == Nt
+            self.metaorder = metaorder
+
+        self.m0 = metaorder_args.get('m0', 0)
+        self.beta = np.sqrt(2*self.m0*T/self.book.L)/self.book.price_range
+        self.n_start = metaorder_args.get('n_start', Nt//10+1)
+        self.n_end = metaorder_args.get('n_end', 9*Nt//10)
         self.t_start = self.n_start * self.tstep
         self.t_end = self.n_end * self.tstep
         self.time_interval_shifted = self.time_interval-self.t_start
 
         # Theoretical values
         self.infinity_density = self.book.L * self.book.upper_bound
-        self.price_shift_th = np.sqrt(m0*T/self.book.L)
-        self.density_shift_th = np.sqrt(m0*T*self.book.L)  # price_shift_th * L
-        self.A_low = m0/(self.book.L*np.sqrt(self.book.D * np.pi))
-        self.A_high = np.sqrt(2)*np.sqrt(m0/self.book.L)
+        self.price_shift_th = np.sqrt(self.m0*T/self.book.L)
+        self.density_shift_th = np.sqrt(
+            self.m0*T*self.book.L)  # price_shift_th * L
+        self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))
+        self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.book.L)
         self.participation_rate = self.m0/self.J
         self.compute_theoretical_growth()
 
