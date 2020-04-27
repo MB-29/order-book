@@ -1,36 +1,43 @@
-# Locally Linear Order Book equation
+# Locally Linear Order Book
 
-This code aims at solving order density reaction-diffusion equation under the assumptions of infinite memory.
+An implementation of the Locally Linear Order Book model as introduced by Donier *et al* in the paper [A fully consistent, minimal model for non-linear market impact ](https://https://arxiv.org/abs/1412.0141).
 
-## Requirements
-* Python 3
-* Modules numpy and matplotlib
+Our code aims at solving both the coarse-grained, *discrete* model, and the *continuous model* where the variable solved for is the algebraic order density.
 
 ## Structure of the code
 
-An order book is represented by an instance of class `OrderBook` from `order_book.py`.
+Depending on the model, a locally linear order book is represented by an instance of either class `DiscreteBook` `discrete_book.py` or class `ContinuousBook` `continuous_book.py`.
 
-A simulation is represented by an instance of class `Simulation` from `simulation.py`.
+A simulation can be created with class `Simulation` from `simulation.py` by inputting the model type and various simulation parameters.
+
+Run the simulation with method `simulation.run()`. Display a `matplotlib` animation by setting argument `animation=True` and save it by setting `save=True`.
+
+## Discrete Order Book
+
+An instance of `DiscreteBook` has two `orders` attributes which are instances of class `LimitOrders` and represent ASK and BUY orders respectively.
+Class `LinearDiscreteBook` inherits from `DiscreteBook` and may be initialized with latent liquidity constant *L* instead of order deposition and cancellation constants.
+
+## Continuous Order Book
+
+This part of the code aims at solving order density reaction-diffusion equation under the assumptions of infinite memory.
 
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 
-A script setting parameters, running and plotting a simulation is provided in `run_simulation.py`.
-
-Plots can be performed with `simulation.plot_...` methods.
-
-Display an animation of the order book and of the price evolution using `simulation.run(animation=True)`. 
 
 
 ## Run a simulation
-Set parameters in `run_simulation.py` then run
+Set parameters in `run.py` then run
 
 ```bash
 cd Python
-python run_simulation.py
+python run.py
 ```
 
 ## Output
 
-![Density profile](demo/density.png)
-![Price evolution](demo/price.png)
-![Price evolution](demo/price_symlog.png)
+![Discrete book animation](demo/histogramgif)
+![Price impact vs theory](demo/vs_vs_theory.png)
+
+## Requirements
+* Python 3
+* Modules numpy and matplotlib
