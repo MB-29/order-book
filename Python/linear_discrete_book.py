@@ -1,8 +1,12 @@
 from discrete_book import DiscreteBook
 
 class LinearDiscreteBook(DiscreteBook):
+    """ Implements a discrete order book in the linear regime.
+    """
 
     def __init__(self, **order_args):
+        """Latent liquidity L must be provided.
+        """
 
         order_args['nu'] = 0
         order_args['lambd'] = 0

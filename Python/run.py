@@ -14,10 +14,17 @@ dx = 2*size/Nx
 
 lambd = 10
 nu = 1
+L = 10
 
+# Metaorder
 n_start, n_end = 10, Nt
 m0 = 10000
-L = 10
+metaorder_args ={
+    'metaorder' : [m0],
+    'm0' : m0,
+    'n_start' : n_start,
+    'n_end' : n_end
+}
 
 order_args = {
     'nu': nu,
@@ -41,10 +48,9 @@ order_args2 = {
 
 # Run
 model_type = 'continuous'
-model_type = 'discrete'
+# model_type = 'discrete'
 args = order_args if model_type == 'discrete' else order_args2
-simulation = Simulation(args, T, Nt, m0, n_start=0,
-                        n_end=Nt, model_type=model_type)
+simulation = Simulation(args, T, Nt, metaorder_args, model_type=model_type)
 fig = plt.figure(figsize=(12, 6))
 simulation.run(animation=True, fig=fig)
 fig = plt.figure(figsize=(10, 8))

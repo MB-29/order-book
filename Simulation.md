@@ -1,6 +1,6 @@
 # Locally Linear Order Book
 
-An implementation of the Locally Linear Order Book model as introduced by Donier *et al* in the paper [A fully consistent, minimal model for non-linear market impact ](https://https://arxiv.org/abs/1412.0141).
+An implementation of the Locally Linear Order Book model as introduced by Donier *et al.* in the paper [A fully consistent, minimal model for non-linear market impact ](https://https://arxiv.org/abs/1412.0141).
 
 Our code aims at solving both the coarse-grained, *discrete* model, and the *continuous model* where the variable solved for is the algebraic order density.
 
@@ -23,7 +23,16 @@ This part of the code aims at solving order density reaction-diffusion equation 
 
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 
-
+## Metaorder
+A metaorder is defined by a dictionary of parameters 
+```python
+metaorder_args ={
+    'metaorder' : [m0],
+    'm0' : m0,
+    'n_start' : n_start,
+    'n_end' : n_end
+}
+```
 
 ## Run a simulation
 Set parameters in `run.py` then run
