@@ -35,8 +35,8 @@ python run.py
 
 ## Output
 
-![Discrete book animation](demo/histogramgif)
-![Price impact vs theory](demo/vs_vs_theory.png)
+![Discrete book animation](demo/histogram.gif)
+![Price impact vs theory](demo/vs_theory.png)
 
 ## Requirements
 * Python 3
