@@ -24,9 +24,9 @@ This part of the code aims at solving order density reaction-diffusion equation 
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 
 ## Metaorder
-A metaorder is defined by a dictionary of parameters 
+A metaorder is defined by a dictionary of parameters of the form
 ```python
-metaorder_args ={
+metaorder_args = {
     'metaorder' : [m0],
     'm0' : m0,
     'n_start' : n_start,
