@@ -28,7 +28,6 @@ class LimitOrders:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
 
-
         initial_density = kwargs.get('initial_density', 'stationary')
         boundary_conditions = kwargs.get('boundary_conditions', 'flat')
 
@@ -42,7 +41,7 @@ class LimitOrders:
         self.lambd = lambd
         self.nu = nu
         self.D = (self.dx)**2/(2*self.dt)
-        self.L = lambd/ np.sqrt(nu * self.D) if not L else L
+        self.L = lambd / np.sqrt(nu * self.D) if not L else L
         self.J = self.D * self.L
         self.jump_probabilities = [self.dt/2, 1-self.dt, self.dt/2]
 
@@ -80,12 +79,12 @@ class LimitOrders:
             return 0
         x_crit = np.sqrt(self.D/self.nu)
         return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
-    
+
     def set_boundary_conditions(self, boundary_conditions):
 
         boundary_flow_dic = {
-            'flat' : 0,
-            'linear' : self.L
+            'flat': 0,
+            'linear': self.L
         }
         boundary_flow = boundary_flow_dic.get(boundary_conditions)
         self.boundary_flow = boundary_flow
@@ -159,12 +158,13 @@ class LimitOrders:
             jumps[index, :] = self.get_jumps(order_volume)
 
         p = self.jump_probabilities[0]
-        boundary_volume = self.volumes[self.boundary_index] + self.boundary_flow * (self.dx)**2 
+        boundary_volume = self.volumes[self.boundary_index] + \
+            self.boundary_flow * (self.dx)**2
         boundary_jumps = np.random.binomial(boundary_volume, p)
 
         # Set boundary flow
-        boundary_jumps_left = boundary_jumps if self.side=='ASK' else 0
-        boundary_jumps_right = boundary_jumps if self.side=='BID' else 0
+        boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
+        boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
 
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
@@ -186,12 +186,11 @@ class LimitOrders:
         """
 
         # Random choice of jumps for each order : either jump left, stay or jump right
-        choices = np.random.choice(
-            [-1, 0, 1], p=self.jump_probabilities, size=volume)
+        pvals = [self.jump_probabilities[0],
+                 self.jump_probabilities[-1],
+                 self.jump_probabilities[1]]
 
-        # Count choices and return number of jumps left and jumps right
-        jumps, _ = np.histogram(choices, [-1, 0, 1, 2])
-        return jumps[::2]
+        return np.random.multinomial(volume, pvals=pvals)[:2]
 
     # ------------------ Price ------------------
 
