@@ -43,7 +43,6 @@ class LimitOrders:
         self.D = (self.dx)**2/(2*self.dt)
         self.L = lambd / np.sqrt(nu * self.D) if not L else L
         self.J = self.D * self.L
-        self.jump_probabilities = [self.dt/2, 1-self.dt, self.dt/2]
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
@@ -155,12 +154,12 @@ class LimitOrders:
     # the number of jumps left and jumps right
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
-            jumps[index, :] = self.get_jumps(order_volume)
+            jumps_left = np.random.binomial(order_volume, 0.5)
+            jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
-        p = self.jump_probabilities[0]
         boundary_volume = self.volumes[self.boundary_index] + \
             self.boundary_flow * (self.dx)**2
-        boundary_jumps = np.random.binomial(boundary_volume, p)
+        boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
         # Set boundary flow
         boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
@@ -175,22 +174,21 @@ class LimitOrders:
         self.volumes = self.volumes - np.diff(flow)
         self.total_volume += flow[0] - flow[self.Nx]
 
-    def get_jumps(self, volume):
-        """Compute the number of jumps for a given volume of orders, in a given direction.
+    # def get_jumps(self, volume):
+    #     """Compute the number of jumps for a given volume of orders, in a given direction.
 
-        Arguments:
-            volume {int} -- The volume of orders at a certain price
+    #     Arguments:
+    #         volume {int} -- The volume of orders at a certain price
 
-        Returns:
-            Numpy array of size 2 -- [jumps left, jumps right]
-        """
+    #     Returns:
+    #         Numpy array of size 2 -- [jumps left, jumps right]
+    #     """
 
-        # Random choice of jumps for each order : either jump left, stay or jump right
-        pvals = [self.jump_probabilities[0],
-                 self.jump_probabilities[-1],
-                 self.jump_probabilities[1]]
+    #     # Random choice of jumps for each order : either jump left, stay or jump right
+    #              self.jump_probabilities[-1],
+    #              self.jump_probabilities[1]]
 
-        return np.random.multinomial(volume, pvals=pvals)[:2]
+    #     return np.random.multinomial(volume, pvals=pvals)[:2]
 
     # ------------------ Price ------------------
 

@@ -63,7 +63,7 @@ class DiscreteBook:
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.price_index = self.ask_orders.best_price_index
+        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index) // 2
         self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------

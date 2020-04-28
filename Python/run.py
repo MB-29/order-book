@@ -3,22 +3,22 @@ import numpy as np
 
 from simulation import Simulation
 
-T = 1
+T = 100
 Nt = 100
 dt = T/float(Nt)
 time_interval = np.linspace(0, T, num=Nt)
 
 size = 50
-Nx = 1000
+Nx = 100
 dx = 2*size/Nx
 
 lambd = 10
 nu = 1
-L = 10
+L = 1
 
 # Metaorder
 n_start, n_end = 10, Nt
-m0 = 1000
+m0 = 10
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
@@ -39,7 +39,7 @@ order_args = {
 
 order_args2 = {
     'dt': T/float(Nt),
-    'D': dx*dx/dt,
+    'D': 1e-2,
     'L': L,
     'Nx': Nx,
     'lower_bound': -size,
@@ -57,6 +57,6 @@ simulation.run(animation=True, fig=fig)
 fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(2, 1, 1)
 ax2 = fig.add_subplot(2, 1, 2)
-simulation.plot_price(ax1, high=True)
+simulation.plot_price(ax1, low=True)
 simulation.plot_err(ax2, relative=True)
 plt.show()

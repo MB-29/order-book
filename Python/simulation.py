@@ -78,6 +78,7 @@ class Simulation:
         self.participation_rate = self.m0/self.J if self.J !=0 else float("inf")
         self.compute_theoretical_growth()
         self.alpha = self.book.D * self.dt / (self.dx * self.dx)
+        self.lower_impact = np.sqrt(self.participation_rate/(2*np.pi)) * self.price_shift_th
 
         # Plot
         self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$t={{{2}}}$, $X = {{{3}}}$ '.format(
@@ -269,7 +270,9 @@ class Simulation:
         Theoretical values : 
                         Participation rate = {self.participation_rate:.1e},
                         impact = {self.price_shift_th:.1e},
+                        lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
-                        beta = {self.beta:.1e}.
+                        beta = {self.beta:.1e},
+                        lower resolution = {self.lower_impact / (self.dx * self.participation_rate):.1e}.
                         """
         return string
