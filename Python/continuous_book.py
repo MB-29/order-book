@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from diffusion_schemes import theta_scheme_iteration
 
@@ -7,7 +8,7 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    volume_resolution = 1e-4
+    resolution_volume = 1e-8
 
     def __init__(self, dt, D, L, lower_bound, upper_bound, Nx=1000):
         """
@@ -44,9 +45,16 @@ class ContinuousBook:
         self.mt = 0
 
         # Density function
+        if ContinuousBook.resolution_volume > self.L * self.dx * self.dx:
+            warnings.warn(
+                'Resolution volume may be too large and lead to inaccurate price')
+
         self.density = self.initial_density(self.X)
-        self.best_ask_density = self.density[self.best_ask_index]
-        self.best_bid_density = self.density[self.best_bid_index]
+        self.update_best_ask()
+        self.update_best_bid()
+        self.best_ask_density = self.density[self.best_ask_index + 1]
+        self.best_bid_density = self.density[self.best_bid_index - 1]
+
 
     def initial_density(self, x):
         return -self.L * (x-self.price)
@@ -54,14 +62,14 @@ class ContinuousBook:
     # ================== Time evolution ==================
 
     def update_best_ask(self):
-        ask_indices = np.where(self.density * self.dx < -
-                               ContinuousBook.volume_resolution)[0]
+        ask_indices = np.where(self.density * self.dx <
+                               - ContinuousBook.resolution_volume)[0]
         self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
         self.best_ask = self.X[self.best_ask_index]
 
     def update_best_bid(self):
         bid_indices = np.where(self.density * self.dx >
-                               ContinuousBook.volume_resolution)[0]
+                               ContinuousBook.resolution_volume)[0]
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
         self.best_bid = self.X[self.best_bid_index]
 
@@ -74,10 +82,10 @@ class ContinuousBook:
                       self.best_bid_density)/(-self.best_ask_density + self.best_bid_density)
 
     def execute_metaorder(self, volume):
-        """ Execute at current time the quantity dq = mt * dt at the best price which depends on the sign of mt.
-        If mt > 0, then the metaorder is a buy and hence ask orders are executed, first at price best_ask.
-        If mt < 0, then the metaorder is a sell and hence bid orders are executed, first at price best_bid.
-        Depending on the liquidity, the price is then shifted.
+        """ Execute at current time the quantity volume at the best price which depends on the sign of volume.
+        If volume > 0, then the metaorder is a buy and hence ask orders are executed at price best_ask.
+        If volume < 0, then the metaorder is a sell and hence bid orders are executed at price best_bid.
+        As liquidity vanishes the best price is increasingly shifted.
         """
 
         if volume == 0:
@@ -138,7 +146,9 @@ class ContinuousBook:
         self.density_line, = self.density_ax.plot([], [], label='Density')
         self.price_axis, = self.density_ax.plot(
             [], [], label='Price', color='yellow', ls='dashed', lw=1)
-        self.density_ax.set_title('Order algebraic density')
+        self.density_ax.plot([self.lower_bound, self.upper_bound], [
+                             0, 0], color='black', lw=0.5, ls='dashed')
+        self.density_ax.set_title('Algebraic order density')
         self.density_ax.legend(loc='center left', bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
 

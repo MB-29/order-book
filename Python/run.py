@@ -8,7 +8,7 @@ Nt = 100
 dt = T/float(Nt)
 time_interval = np.linspace(0, T, num=Nt)
 
-size = 1
+size = 50
 Nx = 1000
 dx = 2*size/Nx
 
@@ -18,12 +18,12 @@ L = 10
 
 # Metaorder
 n_start, n_end = 10, Nt
-m0 = 10000
-metaorder_args ={
-    'metaorder' : [m0],
-    'm0' : m0,
-    'n_start' : n_start,
-    'n_end' : n_end
+m0 = 1000
+metaorder_args = {
+    'metaorder': [m0],
+    'm0': m0,
+    'n_start': n_start,
+    'n_end': n_end
 }
 
 order_args = {
@@ -31,24 +31,25 @@ order_args = {
     'lambd': lambd,
     'dt': dt,
     'Nx': Nx,
-    'lower_bound': -50,
-    'upper_bound': 50,
+    'lower_bound': -size,
+    'upper_bound': size,
     'initial_density': 'linear',
     'L': L
 }
+
 order_args2 = {
     'dt': T/float(Nt),
-    'D': dx * dx / (2 * dt),
+    'D': dx*dx/dt,
     'L': L,
     'Nx': Nx,
-    'lower_bound': -50,
-    'upper_bound': 50
+    'lower_bound': -size,
+    'upper_bound': size
 }
 
 
 # Run
 model_type = 'continuous'
-# model_type = 'discrete'
+model_type = 'discrete'
 args = order_args if model_type == 'discrete' else order_args2
 simulation = Simulation(args, T, Nt, metaorder_args, model_type=model_type)
 fig = plt.figure(figsize=(12, 6))

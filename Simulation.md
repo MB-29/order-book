@@ -6,7 +6,7 @@ Our code aims at solving both the coarse-grained, *discrete* model, and the *con
 
 ## Structure of the code
 
-Depending on the model, a locally linear order book is represented by an instance of either class `DiscreteBook` `discrete_book.py` or class `ContinuousBook` `continuous_book.py`.
+Depending on the model, a locally linear order book is represented by an instance of either class `DiscreteBook` from `discrete_book.py` or class `ContinuousBook` from `continuous_book.py`.
 
 A simulation can be created with class `Simulation` from `simulation.py` by inputting the model type and various simulation parameters.
 

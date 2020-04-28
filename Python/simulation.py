@@ -75,8 +75,9 @@ class Simulation:
             self.m0*T*self.book.L)  # price_shift_th * L
         self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))
         self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.book.L)
-        self.participation_rate = self.m0/self.J
+        self.participation_rate = self.m0/self.J if self.J !=0 else float("inf")
         self.compute_theoretical_growth()
+        self.alpha = self.book.D * self.dt / (self.dx * self.dx)
 
         # Plot
         self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$t={{{2}}}$, $X = {{{3}}}$ '.format(
@@ -84,13 +85,15 @@ class Simulation:
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
             round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
+        print(self)
+
     def run(self, fig=plt.gcf(), animation=False, save=False):
         """Run the Nt steps of the simulation
 
         Keyword Arguments:
             fig {pyplot figure} -- The figure the animation is displayed in
             animation {bool} -- Set True to display an animation
-            save {bool} -- Set True to save the animation under ./animation.m4
+            save {bool} -- Set True to save the animation under ./animation.mp4
         """
 
         if animation:
@@ -125,6 +128,16 @@ class Simulation:
     # ================== PLOTS ==================
 
     def plot_price(self, ax, symlog=False, low=False, high=False):
+        """
+
+        Arguments:
+            ax {matplotlib ax} -- 
+
+        Keyword Arguments:
+            symlog {bool} -- Use symlog scale (default: {False})
+            low {bool} -- Plot low participation regime theoretical impact (default: {False})
+            high {bool} -- Plot high participation regime theoretical impact (default: {False})
+        """
 
         # Lines
         ax.plot(self.time_interval_shifted,
@@ -147,6 +160,15 @@ class Simulation:
         return ax
 
     def plot_err(self, ax, relative=False, symlog=False):
+        """
+
+        Arguments:
+            ax {matplotlib ax} -- 
+
+        Keyword Arguments:
+            relative {bool} -- Plot relative error
+            symlog {bool} -- Use symlog scale (default: {False})
+        """
         self.growth_error_abs = abs(
             self.prices[self.n_start:self.n_end] - self.growth_th)
 
@@ -196,7 +218,7 @@ class Simulation:
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
         self.price_ax.set_ylim(
-            (-1 - self.price_shift_th, 1 + 1.5 * self.price_shift_th))
+            (- self.price_shift_th, 1.5 * self.price_shift_th))
         self.price_ax.set_xlim((0, self.T))
 
         fig.suptitle(self.parameters_string + self.constant_string)
@@ -212,7 +234,7 @@ class Simulation:
         """Update function called by FuncAnimation
         """
         if n % 10 == 0:
-            print(f'Iteration {n}')
+            print(f'Step {n}')
         y_min, y_max = -self.density_shift_th, self.density_shift_th
 
         self.book.mt = self.m0 if (
@@ -223,3 +245,31 @@ class Simulation:
 
             self.time_interval[:n+1], self.prices[:n+1])
         return self.book.update_animation(n) + [self.price_line]
+
+    def __str__(self):
+        string = f""" Order book simulation.
+        Time parameters :
+                        T = {self.T},
+                        Nt = {self.Nt},
+                        dt = {self.dt:.1e}.
+
+        Space parameters : 
+                        Price range = {self.book.upper_bound - self.book.lower_bound},
+                        dx = {self.dx:.1e}.
+                        
+        Model constants : 
+                        D = {self.book.D:.1e},
+                        J = {self.J:.1e},
+                        L = {self.book.L:.1e}.
+
+        Metaorder : 
+                        m0 = {self.m0:.1e},
+                        dq = {self.m0 * self.dt:.1e}.
+
+        Theoretical values : 
+                        Participation rate = {self.participation_rate:.1e},
+                        impact = {self.price_shift_th:.1e},
+                        alpha = {self.alpha:.1e},
+                        beta = {self.beta:.1e}.
+                        """
+        return string
