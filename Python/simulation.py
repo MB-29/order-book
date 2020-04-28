@@ -273,6 +273,6 @@ class Simulation:
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
                         beta = {self.beta:.1e},
-                        lower resolution = {self.lower_impact / (self.dx * self.participation_rate):.1e}.
+                        lower resolution = {self.lower_impact / self.dx:.1e}.
                         """
         return string

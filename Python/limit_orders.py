@@ -174,22 +174,6 @@ class LimitOrders:
         self.volumes = self.volumes - np.diff(flow)
         self.total_volume += flow[0] - flow[self.Nx]
 
-    # def get_jumps(self, volume):
-    #     """Compute the number of jumps for a given volume of orders, in a given direction.
-
-    #     Arguments:
-    #         volume {int} -- The volume of orders at a certain price
-
-    #     Returns:
-    #         Numpy array of size 2 -- [jumps left, jumps right]
-    #     """
-
-    #     # Random choice of jumps for each order : either jump left, stay or jump right
-    #              self.jump_probabilities[-1],
-    #              self.jump_probabilities[1]]
-
-    #     return np.random.multinomial(volume, pvals=pvals)[:2]
-
     # ------------------ Price ------------------
 
     def update_best_price(self):
