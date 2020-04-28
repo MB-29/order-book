@@ -25,3 +25,4 @@ MakeFile
 *.npy
 *.ipynb
 *.pyc
+*.png
