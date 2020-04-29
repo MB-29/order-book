@@ -12,7 +12,7 @@ class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
     """
 
-    def __init__(self, book_args, T, Nt, metaorder_args, model_type='discrete'):
+    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete'):
         """
 
         Arguments:
@@ -85,8 +85,6 @@ class Simulation:
             round(self.m0, 2), round(self.J, 4),  round(self.dt, 5), self.book.upper_bound)
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
             round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
-
-        print(self)
 
     def run(self, fig=plt.gcf(), animation=False, save=False):
         """Run the Nt steps of the simulation
@@ -273,6 +271,7 @@ class Simulation:
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
                         beta = {self.beta:.1e},
-                        lower resolution = {self.lower_impact / self.dx:.1e}.
+                        first volume = {self.book.L * self.dx * self.dx:.1e},
+                        lower resolution = {self.lower_impact / self.dx :.1e}.
                         """
         return string

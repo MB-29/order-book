@@ -3,7 +3,7 @@ import numpy as np
 
 from simulation import Simulation
 
-T = 100
+T = 10
 Nt = 100
 dt = T/float(Nt)
 time_interval = np.linspace(0, T, num=Nt)
@@ -18,7 +18,7 @@ L = 1
 
 # Metaorder
 n_start, n_end = 10, Nt
-m0 = 10
+m0 = 1
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
@@ -51,7 +51,7 @@ order_args2 = {
 model_type = 'continuous'
 model_type = 'discrete'
 args = order_args if model_type == 'discrete' else order_args2
-simulation = Simulation(args, T, Nt, metaorder_args, model_type=model_type)
+simulation = Simulation(T, Nt, args, metaorder_args, model_type=model_type)
 fig = plt.figure(figsize=(12, 6))
 simulation.run(animation=True, fig=fig)
 fig = plt.figure(figsize=(10, 8))

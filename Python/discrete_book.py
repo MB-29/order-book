@@ -50,8 +50,8 @@ class DiscreteBook:
 
         self.stochastic_timestep()
         self.order_reaction()
-
         self.update_price()
+
 
     def stochastic_timestep(self):
 
@@ -59,11 +59,12 @@ class DiscreteBook:
             orders.order_arrivals()
             orders.order_cancellation()
             orders.order_jumps()
+            orders.update_best_price()
 
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index) // 2
+        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index)//2
         self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------

@@ -150,8 +150,8 @@ class LimitOrders:
         """Process order jumps stochastic step.
         """
 
-    # 2D array where rows correspond to the price range, and column are respectively
-    # the number of jumps left and jumps right
+        # 2D array where rows correspond to the price range, and column are respectively
+        # the number of jumps left and jumps right
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
             jumps_left = np.random.binomial(order_volume, 0.5)
@@ -164,7 +164,6 @@ class LimitOrders:
         # Set boundary flow
         boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
         boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
-
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
         flow = jumps_right - jumps_left
@@ -197,7 +196,6 @@ class LimitOrders:
 
         if volume == 0:
             return
-        self.update_best_price()
 
         index_increment = -self.sign
 
@@ -223,7 +221,7 @@ class LimitOrders:
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def get_available_volume(self, price_index):
-        """Compute order volume between price of index price_index and best_price
+        """Compute order volume between prices of indices price_index and best_price
         """
         price = self.X[price_index]
         if self.sign * (price - self.best_price) > 0:

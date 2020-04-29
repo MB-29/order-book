@@ -47,7 +47,7 @@ class ContinuousBook:
         # Density function
         if ContinuousBook.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
-                'Resolution volume may be too large and lead to inaccurate price')
+                'Resolution volume may be too large and lead to an inaccurate price')
 
         self.density = self.initial_density(self.X)
         self.update_best_ask()
