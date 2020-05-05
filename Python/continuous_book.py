@@ -8,7 +8,7 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    resolution_volume = 1e-8
+    resolution_volume = 5
 
     def __init__(self, dt, D, L, lower_bound, upper_bound, Nx=1000):
         """
@@ -97,7 +97,7 @@ class ContinuousBook:
                 # liquidity > 0 is the absolute available volume at the best ask price
                 liquidity = -self.density[self.best_ask_index] * self.dx
                 if dq < liquidity:
-                    self.density[self.best_ask_index] += dq
+                    self.density[self.best_ask_index] += dq/self.dx
                     dq = 0
                     break
 
@@ -112,15 +112,15 @@ class ContinuousBook:
                 if -dq > liquidity:
                     dq += liquidity
                     self.density[self.best_bid_index] = 0
-                    self.best_ask_index -= 1
-                    if self.best_ask_index == 0:
+                    self.best_bid_index -= 1
+                    if self.best_bid_index == 0:
                         raise ValueError('Market lacks bid liquidity')
                 else:
-                    self.density[self.best_bid_index] += dq
+                    self.density[self.best_bid_index] += dq/self.dx
                     dq = 0
 
-        self.best_ask_density = self.density[self.best_ask_index]
-        self.best_bid_density = self.density[self.best_bid_index]
+        self.best_ask_density = self.density[self.best_ask_index + 1]
+        self.best_bid_density = self.density[self.best_bid_index - 1]
 
     def timestep(self):
         """
@@ -135,14 +135,14 @@ class ContinuousBook:
 
      # ================== ANIMATION ==================
 
-    def set_animation(self, fig):
+    def set_animation(self, fig, lims):
         """Create subplot axes, lines and texts
         """
-
-        y_max = self.L * self.upper_bound
+        xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
+        y_max = self.L * xlims[1]
 
         self.density_ax = fig.add_subplot(1, 2, 1)
-        self.density_ax.set_xlim((self.lower_bound, self.upper_bound))
+        self.density_ax.set_xlim(xlims)
         self.density_line, = self.density_ax.plot([], [], label='Density')
         self.price_axis, = self.density_ax.plot(
             [], [], label='Price', color='yellow', ls='dashed', lw=1)

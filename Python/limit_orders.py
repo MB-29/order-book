@@ -71,7 +71,7 @@ class LimitOrders:
         self.volumes = volumes_function(self.X)
 
         self.total_volume = np.sum(self.volumes)
-        self.best_price_volume = self.volumes[self.best_price_index - self.sign]
+        self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):
         if self.sign * x > 0:
@@ -199,10 +199,10 @@ class LimitOrders:
 
         index_increment = -self.sign
 
-        if volume > self.total_volume:
+        trade_volume = abs(volume)
+        if trade_volume > self.total_volume:
             raise ValueError(f'{self.side} book lacks liquidity.')
 
-        trade_volume = volume
         while trade_volume > 0:
             liquidity = self.volumes[self.best_price_index]
             if trade_volume < liquidity:
