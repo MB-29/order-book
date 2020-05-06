@@ -43,7 +43,6 @@ class LimitOrders:
         self.D = (self.dx)**2/(2*self.dt)
         self.L = lambd / np.sqrt(nu * self.D) if not L else L
         self.J = self.D * self.L
-        self.jump_probabilities = [self.dt/2, 1-self.dt, self.dt/2]
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
@@ -72,7 +71,7 @@ class LimitOrders:
         self.volumes = volumes_function(self.X)
 
         self.total_volume = np.sum(self.volumes)
-        self.best_price_volume = self.volumes[self.best_price_index - self.sign]
+        self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):
         if self.sign * x > 0:
@@ -151,21 +150,20 @@ class LimitOrders:
         """Process order jumps stochastic step.
         """
 
-    # 2D array where rows correspond to the price range, and column are respectively
-    # the number of jumps left and jumps right
+        # 2D array where rows correspond to the price range, and column are respectively
+        # the number of jumps left and jumps right
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
-            jumps[index, :] = self.get_jumps(order_volume)
+            jumps_left = np.random.binomial(order_volume, 0.5)
+            jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
-        p = self.jump_probabilities[0]
         boundary_volume = self.volumes[self.boundary_index] + \
             self.boundary_flow * (self.dx)**2
-        boundary_jumps = np.random.binomial(boundary_volume, p)
+        boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
         # Set boundary flow
         boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
         boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
-
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
         flow = jumps_right - jumps_left
@@ -174,23 +172,6 @@ class LimitOrders:
         # update volumes : dV/dt = -dj/dx
         self.volumes = self.volumes - np.diff(flow)
         self.total_volume += flow[0] - flow[self.Nx]
-
-    def get_jumps(self, volume):
-        """Compute the number of jumps for a given volume of orders, in a given direction.
-
-        Arguments:
-            volume {int} -- The volume of orders at a certain price
-
-        Returns:
-            Numpy array of size 2 -- [jumps left, jumps right]
-        """
-
-        # Random choice of jumps for each order : either jump left, stay or jump right
-        pvals = [self.jump_probabilities[0],
-                 self.jump_probabilities[-1],
-                 self.jump_probabilities[1]]
-
-        return np.random.multinomial(volume, pvals=pvals)[:2]
 
     # ------------------ Price ------------------
 
@@ -215,14 +196,13 @@ class LimitOrders:
 
         if volume == 0:
             return
-        self.update_best_price()
 
         index_increment = -self.sign
 
-        if volume > self.total_volume:
+        trade_volume = abs(volume)
+        if trade_volume > self.total_volume:
             raise ValueError(f'{self.side} book lacks liquidity.')
 
-        trade_volume = volume
         while trade_volume > 0:
             liquidity = self.volumes[self.best_price_index]
             if trade_volume < liquidity:
@@ -241,7 +221,7 @@ class LimitOrders:
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def get_available_volume(self, price_index):
-        """Compute order volume between price of index price_index and best_price
+        """Compute order volume between prices of indices price_index and best_price
         """
         price = self.X[price_index]
         if self.sign * (price - self.best_price) > 0:

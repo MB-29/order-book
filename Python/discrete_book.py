@@ -48,8 +48,8 @@ class DiscreteBook:
 
         self.stochastic_timestep()
         self.order_reaction()
-
         self.update_price()
+
 
     def stochastic_timestep(self):
 
@@ -57,11 +57,12 @@ class DiscreteBook:
             orders.order_arrivals()
             orders.order_cancellation()
             orders.order_jumps()
+            orders.update_best_price()
 
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.price_index = self.ask_orders.best_price_index
+        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index)//2
         self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------
@@ -88,11 +89,15 @@ class DiscreteBook:
 
   # ================== ANIMATION ==================
 
-    def set_animation(self, fig):
+    def set_animation(self, fig, lims):
         """Create subplot axes, lines and texts
         """
+
         self.volume_ax = fig.add_subplot(1, 2, 1)
-        self.volume_ax.set_xlim((self.lower_bound, self.upper_bound))
+        xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
+        y_max = 1.5 * xlims[1] * self.L * self.dx 
+        self.volume_ax.set_xlim(xlims)
+        self.volume_ax.set_ylim((0, y_max))
         self.ask_bars = self.volume_ax.bar(
             self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
@@ -117,8 +122,7 @@ class DiscreteBook:
         """Update function called by FuncAnimation
         """
         # Axis
-        y_min, y_max = 0, 1.5*self.dx * self.upper_bound * self.L
-        x_min, x_max = self.lower_bound, self.upper_bound
+        y_max = 1.5*self.dx * self.upper_bound * self.L
 
         self.timestep()
 

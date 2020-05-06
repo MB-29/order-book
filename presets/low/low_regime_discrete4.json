@@ -1,0 +1,20 @@
+{
+    "T": 10000,
+    "Nt": 100,
+    "book_args": {
+        "Nx": 101,
+        "dt" : 100,
+        "lower_bound": -10,
+        "upper_bound": 10,
+        "initial_density": "linear",
+        "L": 100
+    },
+    "metaorder_args": {
+        "metaorder": [
+            1
+        ],
+        "m0": 0.01,
+        "n_start": 0,
+        "n_end": 100
+    }
+}

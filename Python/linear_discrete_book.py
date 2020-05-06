@@ -19,7 +19,8 @@ class LinearDiscreteBook(DiscreteBook):
 
         DiscreteBook.__init__(self, **order_args)
 
-    # Only allowed timestep is order jumps
+    # Only allowed operation is order jumps
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.order_jumps()
+            orders.update_best_price()

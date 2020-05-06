@@ -1,45 +1,40 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import json
+import os
 
 from simulation import Simulation
 
-T = 1
+T = 1000
 Nt = 100
 dt = T/float(Nt)
 time_interval = np.linspace(0, T, num=Nt)
 
-size = 50
-Nx = 1000
-dx = 2*size/Nx
+size = 400
+Nx = 501
 
-lambd = 10
-nu = 1
-L = 10
-
-# Metaorder
-n_start, n_end = 10, Nt
-m0 = 1000
+n_start, n_end = 0, Nt
+L = 1
+m0 = 100
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
     'n_start': n_start,
-    'n_end': n_end
+    'n_end': n_end,
 }
 
-order_args = {
-    'nu': nu,
-    'lambd': lambd,
+dbook_args = {
     'dt': dt,
     'Nx': Nx,
     'lower_bound': -size,
     'upper_bound': size,
-    'initial_density': 'linear',
+    'initial_density': 'empty',
     'L': L
 }
 
-order_args2 = {
+cbook_args = {
     'dt': T/float(Nt),
-    'D': dx*dx/dt,
+    'D': 0.0,
     'L': L,
     'Nx': Nx,
     'lower_bound': -size,
@@ -50,13 +45,30 @@ order_args2 = {
 # Run
 model_type = 'continuous'
 model_type = 'discrete'
-args = order_args if model_type == 'discrete' else order_args2
-simulation = Simulation(args, T, Nt, metaorder_args, model_type=model_type)
+
+args_path = os.path.join('..', 'presets', 'high', 'high_regime_discrete.json')
+with open(args_path, 'r') as args_file:
+    json_args = json.load(args_file)
+
+book_args = dbook_args if model_type == 'discrete' else cbook_args
+args = {'Nt': Nt,
+        'T': T,
+        'book_args': book_args,
+        'metaorder_args': metaorder_args,
+        'model_type': model_type}
+
+simulation = Simulation(**args)
+simulation = Simulation(**json_args)
+
+print(simulation)
+
 fig = plt.figure(figsize=(12, 6))
 simulation.run(animation=True, fig=fig)
+
 fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(2, 1, 1)
 ax2 = fig.add_subplot(2, 1, 2)
+simulation.compute_theoretical_growth()
 simulation.plot_price(ax1, high=True)
 simulation.plot_err(ax2, relative=True)
 plt.show()
