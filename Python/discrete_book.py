@@ -33,6 +33,7 @@ class DiscreteBook:
         # Metaorder
         self.update_price()
         self.mt = 0
+        self.n_exec = max(self.t_obs//self.dt, 1)
 
     def stationary_density(self, x):
 
@@ -45,7 +46,7 @@ class DiscreteBook:
     def timestep(self):
 
         self.execute_metaorder(self.mt * self.dt)
-
+        for t in 
         self.stochastic_timestep()
         self.order_reaction()
         self.update_price()
