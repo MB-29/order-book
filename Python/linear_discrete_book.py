@@ -1,5 +1,6 @@
 from discrete_book import DiscreteBook
 
+
 class LinearDiscreteBook(DiscreteBook):
     """ Implements a discrete order book in the linear regime.
     """
@@ -21,4 +22,4 @@ class LinearDiscreteBook(DiscreteBook):
     # Only allowed timestep is order jumps
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.order_jumps()        
+            orders.order_jumps()

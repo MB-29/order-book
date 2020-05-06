@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, writers
-import os
 
-from discrete_book import DiscreteBook
 from linear_discrete_book import LinearDiscreteBook
 from continuous_book import ContinuousBook
 
@@ -75,7 +73,8 @@ class Simulation:
             self.m0*T*self.book.L)  # price_shift_th * L
         self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))
         self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.book.L)
-        self.participation_rate = self.m0/self.J if self.J !=0 else float("inf")
+        self.participation_rate = self.m0 / \
+            self.J if self.J != 0 else float("inf")
         self.compute_theoretical_growth()
         self.alpha = self.book.D * self.dt / (self.dx * self.dx)
 
@@ -163,7 +162,7 @@ class Simulation:
         """
 
         Arguments:
-            ax {matplotlib ax} -- 
+            ax {matplotlib ax} --
 
         Keyword Arguments:
             relative {bool} -- Plot relative error
@@ -204,7 +203,7 @@ class Simulation:
             Writer = writers['ffmpeg']
             writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
             self.animation.save('animation.mp4', writer=writer)
-        plt.show()
+        # plt.show()
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
@@ -253,20 +252,20 @@ class Simulation:
                         Nt = {self.Nt},
                         dt = {self.dt:.1e}.
 
-        Space parameters : 
+        Space parameters :
                         Price range = {self.book.upper_bound - self.book.lower_bound},
                         dx = {self.dx:.1e}.
-                        
-        Model constants : 
+
+        Model constants:
                         D = {self.book.D:.1e},
                         J = {self.J:.1e},
                         L = {self.book.L:.1e}.
 
-        Metaorder : 
+        Metaorder:
                         m0 = {self.m0:.1e},
                         dq = {self.m0 * self.dt:.1e}.
 
-        Theoretical values : 
+        Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
                         impact = {self.price_shift_th:.1e},
                         alpha = {self.alpha:.1e},
