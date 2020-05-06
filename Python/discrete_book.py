@@ -16,6 +16,7 @@ class DiscreteBook:
         self.dt = self.order_args['dt']
         self.lower_bound = self.order_args['lower_bound']
         self.upper_bound = self.order_args['upper_bound']
+        self.n_relax = self.order_args.get('n_relax', 1)
         self.Nx = self.order_args['Nx']
         self.X = np.linspace(self.lower_bound, self.upper_bound, num=self.Nx)
         self.dx = (self.upper_bound - self.lower_bound)/float(self.Nx)
@@ -32,8 +33,7 @@ class DiscreteBook:
 
         # Metaorder
         self.update_price()
-        self.mt = 0
-        self.n_exec = max(self.t_obs//self.dt, 1)
+        self.dq = 0
 
     def stationary_density(self, x):
 
@@ -45,11 +45,11 @@ class DiscreteBook:
 
     def timestep(self):
 
-        self.execute_metaorder(self.mt * self.dt)
-        for t in 
-        self.stochastic_timestep()
-        self.order_reaction()
-        self.update_price()
+        self.execute_metaorder(self.dq)
+        for t in range(self.n_relax):
+            self.stochastic_timestep()
+            self.order_reaction()
+            self.update_price()
 
 
     def stochastic_timestep(self):

@@ -7,15 +7,16 @@ from simulation import Simulation
 
 T = 1000
 Nt = 100
-dt = T/float(Nt)
-time_interval = np.linspace(0, T, num=Nt)
+time_interval, tstep = np.linspace(0, T, num=Nt, retstep=True)
+n_relax = 100
+dt = tstep/n_relax
 
-size = 400
+size = 1
 Nx = 501
 
 n_start, n_end = 0, Nt
-L = 1
-m0 = 100
+L = 100000
+m0 = 1
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
@@ -24,12 +25,12 @@ metaorder_args = {
 }
 
 dbook_args = {
-    'dt': dt,
     'Nx': Nx,
     'lower_bound': -size,
     'upper_bound': size,
     'initial_density': 'empty',
-    'L': L
+    'L': L,
+    'n_relax': n_relax
 }
 
 cbook_args = {
@@ -46,7 +47,7 @@ cbook_args = {
 model_type = 'continuous'
 model_type = 'discrete'
 
-args_path = os.path.join('..', 'presets', 'low', 'low_regime_continuous2.json')
+args_path = os.path.join('..', 'presets', 'low', 'continuous.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 

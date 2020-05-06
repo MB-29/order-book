@@ -4,7 +4,7 @@ import os
 
 from monte_carlo import MonteCarlo
 
-args_path = os.path.join('..', 'presets', 'high', 'high_regime_discrete2.json')
+args_path = os.path.join('..', 'presets', 'high', 'discrete2.json')
 with open(args_path, 'r') as args_file:
     simulation_args = json.load(args_file)
 

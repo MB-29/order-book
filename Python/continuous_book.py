@@ -42,7 +42,7 @@ class ContinuousBook:
         self.price = (lower_bound + upper_bound)/2
         self.best_bid_index = Nx//2
         self.best_ask_index = Nx//2 + 1
-        self.mt = 0
+        self.dq = 0
 
         # Density function
         if ContinuousBook.resolution_volume > self.L * self.dx * self.dx:
@@ -87,7 +87,7 @@ class ContinuousBook:
         If volume < 0, then the metaorder is a sell and hence bid orders are executed at price best_bid.
         As liquidity vanishes the best price is increasingly shifted.
         """
-
+        
         if volume == 0:
             return
 
@@ -127,7 +127,7 @@ class ContinuousBook:
         Step forward
         """
 
-        self.execute_metaorder(self.mt * self.dt)
+        self.execute_metaorder(self.dq)
         # Update density values with one iteration of the numerical scheme
         self.density = theta_scheme_iteration(
             self.density, self.dx, self.dt, self.D, self.L)

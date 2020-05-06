@@ -38,19 +38,21 @@ class Simulation:
             'continuous': ContinuousBook
         }
 
+        # Time evolution
+        self.T = T
+        self.Nt = Nt
+        self.time_interval, self.tstep = np.linspace(
+            0, T, num=Nt, retstep=True)
+        self.n_relax = book_args.get('n_relax', 1)
+        self.dt = self.tstep/self.n_relax
+        book_args['dt'] = self.dt
+        self.prices = np.zeros(self.Nt)
+
         # Order book
         self.book_args = book_args
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
-
-        # Time evolution
-        self.T = T
-        self.Nt = Nt
-        self.dt = T/float(Nt)
-        self.prices = np.zeros(Nt)
-        self.time_interval, self.tstep = np.linspace(
-            0, T, num=Nt, retstep=True)
 
         # Metaorder
         metaorder = metaorder_args.get('metaorder', 0)
@@ -102,12 +104,11 @@ class Simulation:
             return
 
         for n in range(self.Nt):
-
             # Update metaorder intensity
             mt = self.metaorder[n]
 
             self.prices[n] = self.book.price
-            self.book.mt = mt
+            self.book.dq = mt * self.tstep
             self.book.timestep()
 
     # ================== COMPUTATIONS ==================
@@ -212,7 +213,7 @@ class Simulation:
         """
         lims = {}
         if self.participation_rate < 0.4:
-            lims['xlim'] = (-1.5 * self.lower_impact, 1.5*self.lower_impact)
+            lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
 
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(1, 2, 2)
@@ -239,12 +240,10 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        y_min, y_max = -self.density_shift_th, self.density_shift_th
 
-        self.book.mt = self.metaorder[n]
+        self.book.dq = self.metaorder[n] * self.tstep
         self.prices[n] = self.book.price
         self.price_line.set_data(
-
             self.time_interval[:n+1], self.prices[:n+1])
         return self.book.update_animation(n) + [self.price_line]
 
@@ -253,6 +252,7 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
+                        t_step = {self.tstep},
                         dt = {self.dt:.1e}.
 
         Space parameters :
