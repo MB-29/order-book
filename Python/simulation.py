@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, writers
 
 from linear_discrete_book import LinearDiscreteBook
@@ -90,7 +89,7 @@ class Simulation:
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
             round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
-    def run(self, fig=plt.gcf(), animation=False, save=False):
+    def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
 
         Keyword Arguments:
@@ -117,8 +116,7 @@ class Simulation:
         self.growth_th_low = self.prices[self.n_start] + self.A_low * \
             np.sqrt(
             self.time_interval_shifted[self.n_start:self.n_end])
-        self.growth_th_high = self.prices[self.n_start] + self.A_high * \
-            np.sqrt(
+        self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
             self.time_interval_shifted[self.n_start:self.n_end])
         self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
 
@@ -133,7 +131,7 @@ class Simulation:
         """
 
         Arguments:
-            ax {matplotlib ax} -- 
+            ax {matplotlib ax} --
 
         Keyword Arguments:
             symlog {bool} -- Use symlog scale (default: {False})
@@ -204,7 +202,8 @@ class Simulation:
             fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
         if save:
             Writer = writers['ffmpeg']
-            writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+            writer = Writer(fps=15, metadata=dict(
+                artist='Me'), bitrate=1800)
             self.animation.save('animation.mp4', writer=writer)
         # plt.show()
 

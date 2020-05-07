@@ -34,10 +34,14 @@ class MonteCarlo:
         self.vanilla_prices = np.zeros((self.Nt, N_samples))
 
     def generate_noise(self):
+
+        # Standard fractional Gaussian noise
         for sample_index in range(self.N_samples):
             self.noise[:, sample_index] = fgn(
                 n=self.Nt, hurst=self.hurst, length=self.T)
-        self.noisy_metaorders = self.sigma * self.noise + self.m0
+
+        # Scale and translate
+        self.noisy_metaorders = self.m0 + self.m0 * self.sigma * self.noise
 
     def run(self):
         self.generate_noise()
@@ -101,8 +105,8 @@ class MonteCarlo:
     def plot_variance(self, ax, scale='linear'):
 
         # Lines
-        ax.plot(self.time_interval,
-                self.price_variance, label='price variance')
+        ax.plot(self.time_interval[10:],
+                self.price_variance[10:], label='price variance')
 
         # Scale
         ax.set_yscale(scale)

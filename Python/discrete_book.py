@@ -51,7 +51,6 @@ class DiscreteBook:
             self.order_reaction()
             self.update_price()
 
-
     def stochastic_timestep(self):
 
         for orders in [self.ask_orders, self.bid_orders]:
@@ -63,7 +62,9 @@ class DiscreteBook:
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index)//2
+        self.price_index = (self.ask_orders.best_price_index +
+                            self.bid_orders.best_price_index)//2
+        self.price_index = self.ask_orders.best_price_index
         self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------
@@ -96,7 +97,7 @@ class DiscreteBook:
 
         self.volume_ax = fig.add_subplot(1, 2, 1)
         xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
-        y_max = 1.5 * xlims[1] * self.L * self.dx 
+        y_max = 1.5 * xlims[1] * self.L * self.dx
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, y_max))
         self.ask_bars = self.volume_ax.bar(
