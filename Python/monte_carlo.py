@@ -1,6 +1,6 @@
 import numpy as np
 from fbm import fgn
-
+from tqdm import tqdm
 from simulation import Simulation
 
 
@@ -42,7 +42,7 @@ class MonteCarlo:
     def run(self):
         self.generate_noise()
         args = self.simulation_args
-        for k in range(self.N_samples):
+        for k in tqdm(range(self.N_samples)):
             # without noise
             args['metaorder_args']['metaorder'] = [self.m0]
             self.simulation = Simulation(**args)
@@ -54,9 +54,6 @@ class MonteCarlo:
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
-
-            if (k+1) % (max(self.N_samples//10, 1)) == 0:
-                print(f'Performed {k+1} simulations')
 
         self.compute_statistics()
         self.compute_theory()
