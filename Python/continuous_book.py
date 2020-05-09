@@ -144,9 +144,11 @@ class ContinuousBook:
 
         self.density_ax = fig.add_subplot(1, 2, 1)
         self.density_ax.set_xlim(xlims)
-        self.density_line, = self.density_ax.plot([], [], label='Density')
-        self.price_axis, = self.density_ax.plot(
-            [], [], label='Price', color='yellow', ls='dashed', lw=1)
+        self.density_line, = self.density_ax.plot([], [], label='Density', color='gray')
+        self.best_ask_axis, = self.density_ax.plot(
+            [], [], color='blue', ls='dashed', lw=1, label='best ask')
+        self.best_bid_axis, = self.density_ax.plot(
+            [], [], color='red', ls='dashed', lw=1, label='best bid')
         self.density_ax.plot([self.lower_bound, self.upper_bound], [
                              0, 0], color='black', lw=0.5, ls='dashed')
         self.density_ax.set_title('Algebraic order density')
@@ -168,5 +170,6 @@ class ContinuousBook:
 
         self.timestep()
         self.density_line.set_data(self.X, self.density)
-        self.price_axis.set_data([self.price, self.price], [-y_max, y_max])
-        return [self.price_axis, self.density_line]
+        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [-y_max, y_max])
+        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [-y_max, y_max])
+        return [self.best_ask_axis, self.best_bid_axis, self.density_line]

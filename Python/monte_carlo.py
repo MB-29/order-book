@@ -21,7 +21,8 @@ class MonteCarlo:
         self.N_samples = N_samples
         self.Nt = simulation_args.get('Nt')
         self.T = simulation_args.get('T')
-        self.time_interval = np.linspace(0, self.T, num=self.Nt)
+        self.time_interval, self.tstep = np.linspace(
+            0, self.T, num=self.Nt, retstep=True)
 
         self.simulation_args = simulation_args
 
@@ -41,7 +42,8 @@ class MonteCarlo:
                 n=self.Nt, hurst=self.hurst, length=self.T)
 
         # Scale and translate
-        self.noisy_metaorders = self.m0 + self.m0 * self.sigma * self.noise
+        scale = self.m0 * self.sigma * (self.tstep ** self.hurst)
+        self.noisy_metaorders = self.m0 + scale * self.noise
 
     def run(self):
         self.generate_noise()

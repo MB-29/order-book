@@ -11,7 +11,7 @@ class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
     """
 
-    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete'):
+    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete', price_formula='middle'):
         """
 
         Arguments:
@@ -48,6 +48,14 @@ class Simulation:
         self.best_asks = np.zeros(self.Nt)
         self.best_bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
+
+        self.price_formula = price_formula
+        price_getter_choice = {
+            'middle': lambda a, b: (a+b)/2,
+            'best_ask': lambda a, b: a,
+            'best_bid': lambda a, b: b
+        }
+        self.get_price = price_getter_choice[price_formula]
 
         # Order book
         self.book_args = book_args
@@ -110,7 +118,7 @@ class Simulation:
 
             self.best_asks[n] = self.book.best_ask
             self.best_bids[n] = self.book.best_bid
-            self.prices[n] = (self.book.best_bid + self.book.best_ask) / 2
+            self.prices[n] = self.get_price(self.book.best_ask, self.book.best_bid)
             self.book.dq = mt * self.tstep
             self.book.timestep()
 
@@ -140,9 +148,11 @@ class Simulation:
 
         # Lines
         ax.plot(self.time_interval_shifted,
-                self.prices, label='price', color='yellow')
+                self.prices, label=f'price ({self.price_formula})', color='yellow')
         ax.plot(self.time_interval_shifted,
-                self.best_asks, label='best ask', color='blue')
+                self.best_asks, label='best ask', color='blue', ls='--')
+        ax.plot(self.time_interval_shifted,
+                self.best_bids, label='best bid', color='red', ls='--')
         if low:
             ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
                     self.growth_th_low, label='low regime', lw=1, color='green')
@@ -218,9 +228,12 @@ class Simulation:
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(1, 2, 2)
         self.price_ax.set_title('Price evolution')
-        self.price_line, = self.price_ax.plot([], [], label='Price', color='yellow')
-        self.best_ask_line, = self.price_ax.plot([], [], label='Best Ask', color='blue')
-        self.best_bid_line, = self.price_ax.plot([], [], label='Best Bid', color='red')
+        self.best_ask_line, = self.price_ax.plot(
+            [], [], label='Best Ask', color='blue', ls='--')
+        self.best_bid_line, = self.price_ax.plot(
+            [], [], label='Best Bid', color='red', ls='--')
+        self.price_line, = self.price_ax.plot(
+            [], [], label=f'Price ({self.price_formula})', color='yellow')
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
@@ -248,7 +261,7 @@ class Simulation:
         self.book.dq = self.metaorder[n] * self.tstep
         self.best_asks[n] = self.book.best_ask
         self.best_bids[n] = self.book.best_bid
-        self.prices[n] = (self.book.best_bid + self.book.best_ask) / 2
+        self.prices[n] = self.get_price(self.book.best_ask, self.book.best_bid)
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(

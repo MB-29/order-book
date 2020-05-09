@@ -105,9 +105,12 @@ class DiscreteBook:
             self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
             self.X, self.bid_orders.volumes, label='Bid', color='red', width=0.1, animated='True')
-        self.price_axis, = self.volume_ax.plot(
-            [], [], label='Price', color='yellow', ls='dashed', lw=1)
+        self.best_ask_axis, = self.volume_ax.plot(
+            [], [], color='blue', ls='dashed', lw=1, label='best ask')
+        self.best_bid_axis, = self.volume_ax.plot(
+            [], [], color='red', ls='dashed', lw=1, label='best bid')
         self.volume_ax.set_title('Order volumes')
+        self.volume_ax.legend()
 
     def init_animation(self):
         """Init function called by FuncAnimation
@@ -133,6 +136,7 @@ class DiscreteBook:
             self.ask_bars[index].set_height(self.ask_orders.volumes[index])
             self.bid_bars[index].set_height(self.bid_orders.volumes[index])
 
-        self.price_axis.set_data([self.price, self.price], [0, y_max])
+        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
+        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
 
-        return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.price_axis]
+        return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]

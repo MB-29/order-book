@@ -1,6 +1,7 @@
 {
     "T": 100,
     "Nt": 100,
+    "price_formula" : "best_ask",
     "book_args": {
         "dt": 1,
         "Nx": 301,
