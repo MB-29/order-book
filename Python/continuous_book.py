@@ -78,8 +78,9 @@ class ContinuousBook:
         """
         self.update_best_ask()
         self.update_best_bid()
-        self.price = (- self.best_ask * self.best_ask_density + self.best_bid *
-                      self.best_bid_density)/(-self.best_ask_density + self.best_bid_density)
+        # self.price = (- self.best_ask * self.best_ask_density + self.best_bid *
+        #               self.best_bid_density)/(-self.best_ask_density + self.best_bid_density)
+        self.price = (self.best_bid + self.best_ask) / 2
 
     def execute_metaorder(self, volume):
         """ Execute at current time the quantity volume at the best price which depends on the sign of volume.

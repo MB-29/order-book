@@ -45,6 +45,8 @@ class Simulation:
         self.n_relax = book_args.get('n_relax', 1)
         self.dt = self.tstep/self.n_relax
         book_args['dt'] = self.dt
+        self.best_asks = np.zeros(self.Nt)
+        self.best_bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
 
         # Order book
@@ -106,7 +108,9 @@ class Simulation:
             # Update metaorder intensity
             mt = self.metaorder[n]
 
-            self.prices[n] = self.book.price
+            self.best_asks[n] = self.book.best_ask
+            self.best_bids[n] = self.book.best_bid
+            self.prices[n] = (self.book.best_bid + self.book.best_ask) / 2
             self.book.dq = mt * self.tstep
             self.book.timestep()
 
@@ -119,11 +123,6 @@ class Simulation:
         self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
             self.time_interval_shifted[self.n_start:self.n_end])
         self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
-
-    def compute_growth_mean_error(self, ord=2):
-        self.growth_mean_error = np.linalg.norm(
-            self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.power(self.n_end - self.n_start, 1/ord)
-        return self.growth_mean_error
 
     # ================== PLOTS ==================
 
@@ -141,13 +140,15 @@ class Simulation:
 
         # Lines
         ax.plot(self.time_interval_shifted,
-                self.prices, label='price evolution')
+                self.prices, label='price', color='yellow')
+        ax.plot(self.time_interval_shifted,
+                self.best_asks, label='best ask', color='blue')
         if low:
             ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
                     self.growth_th_low, label='low regime', lw=1, color='green')
         if high:
             ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
-                    self.growth_th_high, label='high regime', lw=1, color='orange')
+                    self.growth_th_high, label='high regime', lw=1, color='magenta')
 
         # Scale
         if symlog:
@@ -217,7 +218,9 @@ class Simulation:
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(1, 2, 2)
         self.price_ax.set_title('Price evolution')
-        self.price_line, = self.price_ax.plot([], [], label='Price')
+        self.price_line, = self.price_ax.plot([], [], label='Price', color='yellow')
+        self.best_ask_line, = self.price_ax.plot([], [], label='Best Ask', color='blue')
+        self.best_bid_line, = self.price_ax.plot([], [], label='Best Bid', color='red')
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
@@ -231,8 +234,10 @@ class Simulation:
         """Init function called by FuncAnimation
         """
         self.price_line.set_data([], [])
+        self.best_bid_line.set_data([], [])
+        self.best_ask_line.set_data([], [])
 
-        return self.book.init_animation() + [self.price_line]
+        return self.book.init_animation() + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def update_animation(self, n):
         """Update function called by FuncAnimation
@@ -241,10 +246,16 @@ class Simulation:
             print(f'Step {n}')
 
         self.book.dq = self.metaorder[n] * self.tstep
-        self.prices[n] = self.book.price
+        self.best_asks[n] = self.book.best_ask
+        self.best_bids[n] = self.book.best_bid
+        self.prices[n] = (self.book.best_bid + self.book.best_ask) / 2
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
-        return self.book.update_animation(n) + [self.price_line]
+        self.best_ask_line.set_data(
+            self.time_interval[:n+1], self.best_asks[:n+1])
+        self.best_bid_line.set_data(
+            self.time_interval[:n+1], self.best_bids[:n+1])
+        return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
         string = f""" Order book simulation.

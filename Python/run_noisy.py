@@ -56,6 +56,6 @@ ax4.set_title('Variance')
 plt.suptitle(
     fr'$ H={hurst: .2f}$, $ m_0={noisy_simulation.m0: .1f}$'
     fr'$, r={noisy_simulation.simulation.participation_rate: .1e}$'
-    fr', $\sigma={sigma: .1f}$,  {N_samples} samples')
+    fr', $\sigma={sigma:.2f}$,  {N_samples} samples')
 
 plt.show()
