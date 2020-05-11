@@ -92,7 +92,7 @@ class DiscreteBook:
 
   # ================== ANIMATION ==================
 
-    def set_animation(self, fig, lims):
+    def set_animation(self, fig=None, lims=None):
         """Create subplot axes, lines and texts
         """
 
@@ -101,6 +101,8 @@ class DiscreteBook:
         y_max = 1.5 * xlims[1] * self.L * self.dx
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, y_max))
+        self.volume_ax.plot([0, 0], [
+                             -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.ask_bars = self.volume_ax.bar(
             self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(

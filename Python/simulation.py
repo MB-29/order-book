@@ -50,12 +50,12 @@ class Simulation:
         self.prices = np.zeros(self.Nt)
 
         self.price_formula = price_formula
-        price_getter_choice = {
+        price_formula_choice = {
             'middle': lambda a, b: (a+b)/2,
             'best_ask': lambda a, b: a,
             'best_bid': lambda a, b: b
         }
-        self.get_price = price_getter_choice[price_formula]
+        self.compute_price = price_formula_choice[price_formula]
 
         # Order book
         self.book_args = book_args
@@ -118,7 +118,7 @@ class Simulation:
 
             self.best_asks[n] = self.book.best_ask
             self.best_bids[n] = self.book.best_bid
-            self.prices[n] = self.get_price(self.book.best_ask, self.book.best_bid)
+            self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
             self.book.dq = mt * self.tstep
             self.book.timestep()
 
@@ -216,7 +216,6 @@ class Simulation:
             writer = Writer(fps=15, metadata=dict(
                 artist='Me'), bitrate=1800)
             self.animation.save('animation.mp4', writer=writer)
-        # plt.show()
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
@@ -261,7 +260,7 @@ class Simulation:
         self.book.dq = self.metaorder[n] * self.tstep
         self.best_asks[n] = self.book.best_ask
         self.best_bids[n] = self.book.best_bid
-        self.prices[n] = self.get_price(self.book.best_ask, self.book.best_bid)
+        self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(

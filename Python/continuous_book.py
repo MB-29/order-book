@@ -55,7 +55,6 @@ class ContinuousBook:
         self.best_ask_density = self.density[self.best_ask_index + 1]
         self.best_bid_density = self.density[self.best_bid_index - 1]
 
-
     def initial_density(self, x):
         return -self.L * (x-self.price)
 
@@ -88,7 +87,7 @@ class ContinuousBook:
         If volume < 0, then the metaorder is a sell and hence bid orders are executed at price best_bid.
         As liquidity vanishes the best price is increasingly shifted.
         """
-        
+
         if volume == 0:
             return
 
@@ -134,7 +133,7 @@ class ContinuousBook:
             self.density, self.dx, self.dt, self.D, self.L)
         self.update_prices()
 
-     # ================== ANIMATION ==================
+    # ================== ANIMATION ==================
 
     def set_animation(self, fig, lims):
         """Create subplot axes, lines and texts
@@ -144,13 +143,16 @@ class ContinuousBook:
 
         self.density_ax = fig.add_subplot(1, 2, 1)
         self.density_ax.set_xlim(xlims)
-        self.density_line, = self.density_ax.plot([], [], label='Density', color='gray')
+        self.density_line, = self.density_ax.plot(
+            [], [], label='Density', color='gray')
         self.best_ask_axis, = self.density_ax.plot(
             [], [], color='blue', ls='dashed', lw=1, label='best ask')
         self.best_bid_axis, = self.density_ax.plot(
             [], [], color='red', ls='dashed', lw=1, label='best bid')
         self.density_ax.plot([self.lower_bound, self.upper_bound], [
                              0, 0], color='black', lw=0.5, ls='dashed')
+        self.density_ax.plot([0, 0], [
+                             -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.density_ax.set_title('Algebraic order density')
         self.density_ax.legend(loc='center left', bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
@@ -166,10 +168,12 @@ class ContinuousBook:
         """Update function called by FuncAnimation
         """
         # Axis
-        y_min, y_max = 0, 1.5 * self.upper_bound * self.L
+        y_max = 1.5 * self.upper_bound * self.L
 
         self.timestep()
         self.density_line.set_data(self.X, self.density)
-        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [-y_max, y_max])
-        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [-y_max, y_max])
+        self.best_ask_axis.set_data(
+            [self.best_ask, self.best_ask], [-y_max, y_max])
+        self.best_bid_axis.set_data(
+            [self.best_bid, self.best_bid], [-y_max, y_max])
         return [self.best_ask_axis, self.best_bid_axis, self.density_line]

@@ -47,7 +47,7 @@ cbook_args = {
 model_type = 'continuous'
 # model_type = 'discrete'
 
-args_path = os.path.join('..', 'presets', 'high', 'continuous.json')
+args_path = os.path.join('..', 'presets', 'high', 'discrete.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 
