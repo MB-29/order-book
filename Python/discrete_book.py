@@ -64,6 +64,8 @@ class DiscreteBook:
             orders.update_best_price()
         self.best_ask = self.X[self.ask_orders.best_price_index]
         self.best_bid = self.X[self.bid_orders.best_price_index]
+        self.best_ask_volume = self.ask_orders.volumes[self.ask_orders.best_price_index]
+        self.best_bid_volume = self.bid_orders.volumes[self.bid_orders.best_price_index]
         self.price_index = (self.ask_orders.best_price_index +
                             self.bid_orders.best_price_index)//2
         self.price = self.X[self.price_index]
@@ -102,7 +104,7 @@ class DiscreteBook:
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, y_max))
         self.volume_ax.plot([0, 0], [
-                             -y_max, y_max], color='black', lw=0.5, ls='dashed')
+            -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.ask_bars = self.volume_ax.bar(
             self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(

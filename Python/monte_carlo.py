@@ -32,7 +32,6 @@ class MonteCarlo:
         self.gamma = 2*(1 - self.hurst)
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
-        self.vanilla_prices = np.zeros((self.Nt, N_samples))
 
     def generate_noise(self):
 
@@ -49,13 +48,7 @@ class MonteCarlo:
         self.generate_noise()
         args = self.simulation_args
         for k in range(self.N_samples):
-            # without noise
-            args['metaorder_args']['metaorder'] = [self.m0]
-            self.simulation = Simulation(**args)
-            self.simulation.run()
-            self.vanilla_prices[:, k] = self.simulation.prices
 
-            # with noise
             args['metaorder_args']['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
@@ -69,7 +62,6 @@ class MonteCarlo:
 
     def compute_statistics(self):
         self.price_mean = self.price_samples.mean(axis=1)
-        self.vanilla_price_mean = self.vanilla_prices.mean(axis=1)
         self.price_variance = self.price_samples.var(axis=1)
 
     def compute_theory(self):
@@ -100,7 +92,7 @@ class MonteCarlo:
         ax.set_xscale(scale)
 
         ax.legend()
-        ax.set_title('Price evolution')
+        # ax.set_title('Price evolution')
 
         return ax
 
@@ -115,6 +107,6 @@ class MonteCarlo:
         ax.set_xscale(scale)
 
         ax.legend()
-        ax.set_title('Variance evolution')
+        # ax.set_title('Variance evolution')
 
         return ax

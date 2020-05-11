@@ -53,7 +53,8 @@ class Simulation:
         price_formula_choice = {
             'middle': lambda a, b: (a+b)/2,
             'best_ask': lambda a, b: a,
-            'best_bid': lambda a, b: b
+            'best_bid': lambda a, b: b,
+            'vwap': lambda a, b: self.compute_vwap(a, b)
         }
         self.compute_price = price_formula_choice[price_formula]
 
@@ -99,6 +100,11 @@ class Simulation:
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
             round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
+    def compute_vwap(self, best_ask, best_bid):
+        return (abs(self.book.best_ask_volume) * best_ask
+                + abs(self.book.best_bid_volume) * best_bid)/(
+                    abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
+
     def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
 
@@ -118,7 +124,8 @@ class Simulation:
 
             self.best_asks[n] = self.book.best_ask
             self.best_bids[n] = self.book.best_bid
-            self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
+            self.prices[n] = self.compute_price(
+                self.book.best_ask, self.book.best_bid)
             self.book.dq = mt * self.tstep
             self.book.timestep()
 
@@ -260,7 +267,8 @@ class Simulation:
         self.book.dq = self.metaorder[n] * self.tstep
         self.best_asks[n] = self.book.best_ask
         self.best_bids[n] = self.book.best_bid
-        self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
+        self.prices[n] = self.compute_price(
+            self.book.best_ask, self.book.best_bid)
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(

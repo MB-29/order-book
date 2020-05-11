@@ -47,7 +47,7 @@ cbook_args = {
 model_type = 'continuous'
 # model_type = 'discrete'
 
-args_path = os.path.join('..', 'presets', 'high', 'discrete.json')
+args_path = os.path.join('..', 'presets', 'low', 'continuous.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 
@@ -71,6 +71,6 @@ fig2 = plt.figure(figsize=(10, 8))
 ax1 = fig2.add_subplot(2, 1, 1)
 ax2 = fig2.add_subplot(2, 1, 2)
 simulation.compute_theoretical_growth()
-simulation.plot_price(ax1, high=True)
+simulation.plot_price(ax1, low=True)
 simulation.plot_err(ax2, relative=True)
 plt.show()
