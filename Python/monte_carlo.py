@@ -27,8 +27,8 @@ class MonteCarlo:
         self.simulation_args = simulation_args
 
         self.m0 = simulation_args['metaorder_args'].get('m0')
-        self.sigma = noise_args.get('sigma')
-        self.hurst = noise_args.get('hurst')
+        self.sigma = noise_args.get('sigma', 0)
+        self.hurst = noise_args.get('hurst', 0.75)
         self.gamma = 2*(1 - self.hurst)
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
@@ -41,8 +41,10 @@ class MonteCarlo:
                 n=self.Nt, hurst=self.hurst, length=self.T)
 
         # Scale and translate
-        scale = self.m0 * self.sigma * (self.tstep ** self.hurst)
+        scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
         self.noisy_metaorders = self.m0 + scale * self.noise
+        print(
+            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
         self.generate_noise()
