@@ -39,9 +39,10 @@ class ContinuousBook:
         self.J = D * L
 
         # Set prices
-        self.price = (lower_bound + upper_bound)/2
-        self.best_bid_index = Nx//2
-        self.best_ask_index = Nx//2 + 1
+        # self.best_bid_index = Nx//2
+        # self.best_ask_index = Nx//2 + 1
+        # self.best_bid = 0
+        # self.best_ask = self.X[self.best_ask_index]
         self.dq = 0
 
         # Density function
@@ -50,36 +51,30 @@ class ContinuousBook:
                 'Resolution volume may be too large and lead to an inaccurate price')
 
         self.density = self.initial_density(self.X)
-        self.update_best_ask()
-        self.update_best_bid()
+        self.update_prices()
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
 
     def initial_density(self, x):
-        return -self.L * (x-self.price)
+        return -self.L * x
 
     # ================== Time evolution ==================
 
-    def update_best_ask(self):
-        ask_indices = np.where(self.density * self.dx <
-                               - ContinuousBook.resolution_volume)[0]
-        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
-        self.best_ask = self.X[self.best_ask_index]
-
-    def update_best_bid(self):
-        bid_indices = np.where(self.density * self.dx >
-                               ContinuousBook.resolution_volume)[0]
-        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
-        self.best_bid = self.X[self.best_bid_index]
 
     def update_prices(self):
         """ Update best ask, best bid and market price
         """
-        self.update_best_ask()
-        self.update_best_bid()
-        # self.price = (- self.best_ask * self.best_ask_volume + self.best_bid *
-        #               self.best_bid_volume)/(-self.best_ask_volume + self.best_bid_volume)
-        self.price = (self.best_bid + self.best_ask) / 2
+        bid_indices = np.where(self.density * self.dx >
+                               ContinuousBook.resolution_volume)[0]
+        ask_indices = np.where(self.density * self.dx <
+                               - ContinuousBook.resolution_volume)[0]
+        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
+        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
+        if abs(self.best_ask_index - self.best_bid_index) > 2:
+            self.best_ask_index -= 1
+            self.best_bid_index += 1
+        self.best_ask = self.X[self.best_ask_index]
+        self.best_bid = self.X[self.best_bid_index]
 
     def execute_metaorder(self, volume):
         """ Execute at current time the quantity volume at the best price which depends on the sign of volume.
@@ -162,7 +157,7 @@ class ContinuousBook:
         """
 
         self.density_line.set_data([], [])
-        return [self.density_line]
+        return [self.density_line, self.best_ask_axis, self.best_bid_axis]
 
     def update_animation(self, n):
         """Update function called by FuncAnimation

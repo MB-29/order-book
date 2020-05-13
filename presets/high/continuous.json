@@ -1,6 +1,7 @@
 {
     "T": 1000,
     "Nt": 100,
+    "price_formula" : "best_ask",
     "model_type" : "continuous",
     "book_args": {
         "Nx": 501,

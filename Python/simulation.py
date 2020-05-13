@@ -73,7 +73,7 @@ class Simulation:
             self.metaorder = metaorder
 
         self.m0 = metaorder_args.get('m0', 0)
-        self.beta = np.sqrt(2*abs(self.m0)*T/self.book.L)/self.book.price_range
+        self.beta = np.sqrt(self.book.D*T)/self.book.price_range
         self.n_start = metaorder_args.get('n_start', Nt//10+1)
         self.n_end = metaorder_args.get('n_end', 9*Nt//10)
         self.t_start = self.n_start * self.tstep
@@ -120,13 +120,11 @@ class Simulation:
 
         for n in range(self.Nt):
             # Update metaorder intensity
-            mt = self.metaorder[n]
-
+            self.book.dq = self.metaorder[n] * self.tstep
             self.best_asks[n] = self.book.best_ask
             self.best_bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
-            self.book.dq = mt * self.tstep
             self.book.timestep()
 
     # ================== COMPUTATIONS ==================
