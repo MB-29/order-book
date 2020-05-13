@@ -5,18 +5,19 @@ import os
 
 from simulation import Simulation
 
-T = 1000
+T = 1
 Nt = 100
 time_interval, tstep = np.linspace(0, T, num=Nt, retstep=True)
 n_relax = 100
 dt = tstep/n_relax
 
 size = 1
-Nx = 501
+Nx = 5001
 
 n_start, n_end = 0, Nt
-L = 100000
+L = 200
 m0 = 1
+D = 0.25 
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
@@ -26,7 +27,7 @@ metaorder_args = {
 
 dbook_args = {
     'Nx': Nx,
-    'lower_bound': -size,
+    'lower_bound': -size/10,
     'upper_bound': size,
     'initial_density': 'empty',
     'L': L,
@@ -35,7 +36,7 @@ dbook_args = {
 
 cbook_args = {
     'dt': T/float(Nt),
-    'D': 0.0,
+    'D': D,
     'L': L,
     'Nx': Nx,
     'lower_bound': -size,
@@ -47,7 +48,7 @@ cbook_args = {
 model_type = 'continuous'
 # model_type = 'discrete'
 
-args_path = os.path.join('..', 'presets', 'low', 'continuous.json')
+args_path = os.path.join('..', 'presets', 'high', 'continuous_high_res.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 
@@ -56,10 +57,11 @@ args = {'Nt': Nt,
         'T': T,
         'book_args': book_args,
         'metaorder_args': metaorder_args,
-        'model_type': model_type}
+        'model_type': model_type,
+        'price_formula': 'vwap'}
 
 simulation = Simulation(**args)
-simulation = Simulation(**json_args)
+# simulation = Simulation(**json_args)
 
 print(simulation)
 
@@ -67,10 +69,10 @@ fig = plt.figure(figsize=(12, 6))
 simulation.run(animation=True, fig=fig)
 plt.show()
 
-fig2 = plt.figure(figsize=(10, 8))
+fig2 = plt.figure(figsize=(10, 6))
 ax1 = fig2.add_subplot(2, 1, 1)
 ax2 = fig2.add_subplot(2, 1, 2)
 simulation.compute_theoretical_growth()
 simulation.plot_price(ax1, low=True)
-simulation.plot_err(ax2, relative=True)
+simulation.plot_err(ax2, relative=False)
 plt.show()

@@ -41,8 +41,8 @@ class MonteCarlo:
                 n=self.Nt, hurst=self.hurst, length=self.T)
 
         # Scale and translate
-        scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
-        self.noisy_metaorders = self.m0 + scale * self.noise
+        self.scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
+        self.noisy_metaorders = self.m0 + self.scale * self.noise
         print(
             f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
@@ -87,7 +87,7 @@ class MonteCarlo:
                     self.growth_th_low, label='low regime', lw=1, color='green')
         if high:
             ax.plot(self.time_interval,
-                    self.growth_th_high, label='high regime', lw=1, color='orange')
+                    self.growth_th_high + self.price_mean[0], label='high regime', lw=1, color='orange')
 
         # Scale
         ax.set_yscale(scale)
