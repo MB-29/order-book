@@ -68,11 +68,12 @@ class Simulation:
         metaorder = metaorder_args.get('metaorder', 0)
         if len(metaorder) == 1:
             self.metaorder = np.full(Nt, metaorder)
+            self.m0 = metaorder[0]
         else:
             assert len(metaorder) == Nt
             self.metaorder = metaorder
+            self.m0 = metaorder.mean()
 
-        self.m0 = metaorder_args.get('m0', 0)
         self.beta = np.sqrt(self.book.D*T)/self.book.price_range
         self.n_start = metaorder_args.get('n_start', Nt//10+1)
         self.n_end = metaorder_args.get('n_end', 9*Nt//10)
@@ -82,7 +83,7 @@ class Simulation:
 
         # Theoretical values
         self.infinity_density = self.book.L * self.book.upper_bound
-        self.price_shift_th = np.sqrt(abs(self.m0)*T/self.book.L)
+        self.price_shift_th = np.sqrt(2*abs(self.m0)*T/self.book.L)
         self.density_shift_th = np.sqrt(
             abs(self.m0)*T*self.book.L)  # price_shift_th * L
         self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))

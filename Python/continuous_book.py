@@ -8,8 +8,6 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    resolution_volume = 0
-
     def __init__(self, dt, D, L, lower_bound, upper_bound, Nx=1000):
         """
 
@@ -37,6 +35,7 @@ class ContinuousBook:
         self.D = D
         self.L = L
         self.J = D * L
+        self.resolution_volume = L * (self.dx)**2
 
         # Set prices
         # self.best_bid_index = Nx//2
@@ -46,7 +45,7 @@ class ContinuousBook:
         self.dq = 0
 
         # Density function
-        if ContinuousBook.resolution_volume > self.L * self.dx * self.dx:
+        if self.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
                 'Resolution volume may be too large and lead to an inaccurate price')
 
@@ -60,14 +59,13 @@ class ContinuousBook:
 
     # ================== Time evolution ==================
 
-
     def update_prices(self):
         """ Update best ask, best bid and market price
         """
         bid_indices = np.where(self.density * self.dx >
-                               ContinuousBook.resolution_volume)[0]
+                               self.resolution_volume)[0]
         ask_indices = np.where(self.density * self.dx <
-                               - ContinuousBook.resolution_volume)[0]
+                               - self.resolution_volume)[0]
         self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
         if abs(self.best_ask_index - self.best_bid_index) > 2:
