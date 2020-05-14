@@ -8,8 +8,6 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    resolution_volume = 5
-
     def __init__(self, dt, D, L, lower_bound, upper_bound, Nx=1000):
         """
 
@@ -37,49 +35,44 @@ class ContinuousBook:
         self.D = D
         self.L = L
         self.J = D * L
+        self.resolution_volume = L * (self.dx)**2
 
         # Set prices
-        self.price = (lower_bound + upper_bound)/2
-        self.best_bid_index = Nx//2
-        self.best_ask_index = Nx//2 + 1
-        self.mt = 0
+        # self.best_bid_index = Nx//2
+        # self.best_ask_index = Nx//2 + 1
+        # self.best_bid = 0
+        # self.best_ask = self.X[self.best_ask_index]
+        self.dq = 0
 
         # Density function
-        if ContinuousBook.resolution_volume > self.L * self.dx * self.dx:
+        if self.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
                 'Resolution volume may be too large and lead to an inaccurate price')
 
         self.density = self.initial_density(self.X)
-        self.update_best_ask()
-        self.update_best_bid()
-        self.best_ask_density = self.density[self.best_ask_index + 1]
-        self.best_bid_density = self.density[self.best_bid_index - 1]
-
+        self.update_prices()
+        self.best_ask_volume = self.density[self.best_ask_index + 1]
+        self.best_bid_volume = self.density[self.best_bid_index - 1]
 
     def initial_density(self, x):
-        return -self.L * (x-self.price)
+        return -self.L * x
 
     # ================== Time evolution ==================
-
-    def update_best_ask(self):
-        ask_indices = np.where(self.density * self.dx <
-                               - ContinuousBook.resolution_volume)[0]
-        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
-        self.best_ask = self.X[self.best_ask_index]
-
-    def update_best_bid(self):
-        bid_indices = np.where(self.density * self.dx >
-                               ContinuousBook.resolution_volume)[0]
-        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
-        self.best_bid = self.X[self.best_bid_index]
 
     def update_prices(self):
         """ Update best ask, best bid and market price
         """
-        self.update_best_ask()
-        self.update_best_bid()
-        self.price = (- self.best_ask * self.best_ask_density + self.best_bid *
-                      self.best_bid_density)/(-self.best_ask_density + self.best_bid_density)
+        bid_indices = np.where(self.density * self.dx >
+                               self.resolution_volume)[0]
+        ask_indices = np.where(self.density * self.dx <
+                               - self.resolution_volume)[0]
+        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
+        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
+        if abs(self.best_ask_index - self.best_bid_index) > 2:
+            self.best_ask_index -= 1
+            self.best_bid_index += 1
+        self.best_ask = self.X[self.best_ask_index]
+        self.best_bid = self.X[self.best_bid_index]
 
     def execute_metaorder(self, volume):
         """ Execute at current time the quantity volume at the best price which depends on the sign of volume.
@@ -119,21 +112,21 @@ class ContinuousBook:
                     self.density[self.best_bid_index] += dq/self.dx
                     dq = 0
 
-        self.best_ask_density = self.density[self.best_ask_index + 1]
-        self.best_bid_density = self.density[self.best_bid_index - 1]
+        self.best_ask_volume = self.density[self.best_ask_index + 1]
+        self.best_bid_volume = self.density[self.best_bid_index - 1]
 
     def timestep(self):
         """
         Step forward
         """
 
-        self.execute_metaorder(self.mt * self.dt)
+        self.execute_metaorder(self.dq)
         # Update density values with one iteration of the numerical scheme
         self.density = theta_scheme_iteration(
             self.density, self.dx, self.dt, self.D, self.L)
         self.update_prices()
 
-     # ================== ANIMATION ==================
+    # ================== ANIMATION ==================
 
     def set_animation(self, fig, lims):
         """Create subplot axes, lines and texts
@@ -143,11 +136,16 @@ class ContinuousBook:
 
         self.density_ax = fig.add_subplot(1, 2, 1)
         self.density_ax.set_xlim(xlims)
-        self.density_line, = self.density_ax.plot([], [], label='Density')
-        self.price_axis, = self.density_ax.plot(
-            [], [], label='Price', color='yellow', ls='dashed', lw=1)
+        self.density_line, = self.density_ax.plot(
+            [], [], label='Density', color='gray')
+        self.best_ask_axis, = self.density_ax.plot(
+            [], [], color='blue', ls='dashed', lw=1, label='best ask')
+        self.best_bid_axis, = self.density_ax.plot(
+            [], [], color='red', ls='dashed', lw=1, label='best bid')
         self.density_ax.plot([self.lower_bound, self.upper_bound], [
                              0, 0], color='black', lw=0.5, ls='dashed')
+        self.density_ax.plot([0, 0], [
+                             -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.density_ax.set_title('Algebraic order density')
         self.density_ax.legend(loc='center left', bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
@@ -157,15 +155,18 @@ class ContinuousBook:
         """
 
         self.density_line.set_data([], [])
-        return [self.density_line]
+        return [self.density_line, self.best_ask_axis, self.best_bid_axis]
 
     def update_animation(self, n):
         """Update function called by FuncAnimation
         """
         # Axis
-        y_min, y_max = 0, 1.5 * self.upper_bound * self.L
+        y_max = 1.5 * self.upper_bound * self.L
 
         self.timestep()
         self.density_line.set_data(self.X, self.density)
-        self.price_axis.set_data([self.price, self.price], [-y_max, y_max])
-        return [self.price_axis, self.density_line]
+        self.best_ask_axis.set_data(
+            [self.best_ask, self.best_ask], [-y_max, y_max])
+        self.best_bid_axis.set_data(
+            [self.best_bid, self.best_bid], [-y_max, y_max])
+        return [self.best_ask_axis, self.best_bid_axis, self.density_line]

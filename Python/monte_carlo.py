@@ -21,35 +21,35 @@ class MonteCarlo:
         self.N_samples = N_samples
         self.Nt = simulation_args.get('Nt')
         self.T = simulation_args.get('T')
-        self.time_interval = np.linspace(0, self.T, num=self.Nt)
+        self.time_interval, self.tstep = np.linspace(
+            0, self.T, num=self.Nt, retstep=True)
 
         self.simulation_args = simulation_args
 
-        self.m0 = simulation_args['metaorder_args'].get('m0')
-        self.sigma = noise_args.get('sigma')
-        self.hurst = noise_args.get('hurst')
+        self.m0 = noise_args.get('m0', 0)
+        self.sigma = noise_args.get('sigma', 0)
+        self.hurst = noise_args.get('hurst', 0.75)
         self.gamma = 2*(1 - self.hurst)
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
-        self.vanilla_prices = np.zeros((self.Nt, N_samples))
 
     def generate_noise(self):
+
+        # Standard fractional Gaussian noise
         for sample_index in range(self.N_samples):
             self.noise[:, sample_index] = fgn(
                 n=self.Nt, hurst=self.hurst, length=self.T)
-        self.noisy_metaorders = self.sigma * self.noise + self.m0
+
+        # Scale and translate
+        self.scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
+        self.noisy_metaorders = self.m0 + self.scale * self.noise
+        print(
+            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
         self.generate_noise()
         args = self.simulation_args
         for k in tqdm(range(self.N_samples)):
-            # without noise
-            args['metaorder_args']['metaorder'] = [self.m0]
-            self.simulation = Simulation(**args)
-            self.simulation.run()
-            self.vanilla_prices[:, k] = self.simulation.prices
-
-            # with noise
             args['metaorder_args']['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
@@ -60,7 +60,6 @@ class MonteCarlo:
 
     def compute_statistics(self):
         self.price_mean = self.price_samples.mean(axis=1)
-        self.vanilla_price_mean = self.vanilla_prices.mean(axis=1)
         self.price_variance = self.price_samples.var(axis=1)
 
     def compute_theory(self):
@@ -84,28 +83,33 @@ class MonteCarlo:
                     self.growth_th_low, label='low regime', lw=1, color='green')
         if high:
             ax.plot(self.time_interval,
-                    self.growth_th_high, label='high regime', lw=1, color='orange')
+                    self.growth_th_high + self.price_mean[0], label='high regime', lw=1, color='orange')
 
         # Scale
         ax.set_yscale(scale)
         ax.set_xscale(scale)
 
         ax.legend()
-        ax.set_title('Price evolution')
+        # ax.set_title('Price evolution')
 
         return ax
 
     def plot_variance(self, ax, scale='linear'):
 
         # Lines
-        ax.plot(self.time_interval,
-                self.price_variance, label='price variance')
+        ax.plot(self.time_interval[10:],
+                self.price_variance[10:], label='price variance')
 
         # Scale
         ax.set_yscale(scale)
         ax.set_xscale(scale)
 
         ax.legend()
-        ax.set_title('Variance evolution')
+        # ax.set_title('Variance evolution')
 
         return ax
+
+    def gather_results(self):
+
+        return {'mean': self.price_mean,
+                'variance': self.price_variance}

@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, writers
 
 from linear_discrete_book import LinearDiscreteBook
@@ -12,7 +11,7 @@ class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
     """
 
-    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete'):
+    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete', price_formula='middle'):
         """
 
         Arguments:
@@ -38,30 +37,44 @@ class Simulation:
             'continuous': ContinuousBook
         }
 
+        # Time evolution
+        self.T = T
+        self.Nt = Nt
+        self.time_interval, self.tstep = np.linspace(
+            0, T, num=Nt, retstep=True)
+        self.n_relax = book_args.get('n_relax', 1)
+        self.dt = self.tstep/self.n_relax
+        book_args['dt'] = self.dt
+        self.best_asks = np.zeros(self.Nt)
+        self.best_bids = np.zeros(self.Nt)
+        self.prices = np.zeros(self.Nt)
+
+        self.price_formula = price_formula
+        price_formula_choice = {
+            'middle': lambda a, b: (a+b)/2,
+            'best_ask': lambda a, b: a,
+            'best_bid': lambda a, b: b,
+            'vwap': lambda a, b: self.compute_vwap(a, b)
+        }
+        self.compute_price = price_formula_choice[price_formula]
+
         # Order book
         self.book_args = book_args
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
 
-        # Time evolution
-        self.T = T
-        self.Nt = Nt
-        self.dt = T/float(Nt)
-        self.prices = np.zeros(Nt)
-        self.time_interval, self.tstep = np.linspace(
-            0, T, num=Nt, retstep=True)
-
         # Metaorder
         metaorder = metaorder_args.get('metaorder', 0)
         if len(metaorder) == 1:
             self.metaorder = np.full(Nt, metaorder)
+            self.m0 = metaorder[0]
         else:
             assert len(metaorder) == Nt
             self.metaorder = metaorder
+            self.m0 = metaorder.mean()
 
-        self.m0 = metaorder_args.get('m0', 0)
-        self.beta = np.sqrt(2*abs(self.m0)*T/self.book.L)/self.book.price_range
+        self.beta = np.sqrt(self.book.D*T)/self.book.price_range
         self.n_start = metaorder_args.get('n_start', Nt//10+1)
         self.n_end = metaorder_args.get('n_end', 9*Nt//10)
         self.t_start = self.n_start * self.tstep
@@ -70,7 +83,7 @@ class Simulation:
 
         # Theoretical values
         self.infinity_density = self.book.L * self.book.upper_bound
-        self.price_shift_th = np.sqrt(abs(self.m0)*T/self.book.L)
+        self.price_shift_th = np.sqrt(2*abs(self.m0)*T/self.book.L)
         self.density_shift_th = np.sqrt(
             abs(self.m0)*T*self.book.L)  # price_shift_th * L
         self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))
@@ -88,7 +101,12 @@ class Simulation:
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
             round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
-    def run(self, fig=plt.gcf(), animation=False, save=False):
+    def compute_vwap(self, best_ask, best_bid):
+        return (abs(self.book.best_ask_volume) * best_ask
+                + abs(self.book.best_bid_volume) * best_bid)/(
+                    abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
+
+    def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
 
         Keyword Arguments:
@@ -102,12 +120,12 @@ class Simulation:
             return
 
         for n in range(self.Nt):
-
             # Update metaorder intensity
-            mt = self.metaorder[n]
-
-            self.prices[n] = self.book.price
-            self.book.mt = mt
+            self.book.dq = self.metaorder[n] * self.tstep
+            self.best_asks[n] = self.book.best_ask
+            self.best_bids[n] = self.book.best_bid
+            self.prices[n] = self.compute_price(
+                self.book.best_ask, self.book.best_bid)
             self.book.timestep()
 
     # ================== COMPUTATIONS ==================
@@ -116,15 +134,9 @@ class Simulation:
         self.growth_th_low = self.prices[self.n_start] + self.A_low * \
             np.sqrt(
             self.time_interval_shifted[self.n_start:self.n_end])
-        self.growth_th_high = self.prices[self.n_start] + self.A_high * \
-            np.sqrt(
+        self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
             self.time_interval_shifted[self.n_start:self.n_end])
         self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
-
-    def compute_growth_mean_error(self, ord=2):
-        self.growth_mean_error = np.linalg.norm(
-            self.growth_th - self.prices[self.n_start:self.n_end], ord=ord) / np.power(self.n_end - self.n_start, 1/ord)
-        return self.growth_mean_error
 
     # ================== PLOTS ==================
 
@@ -132,7 +144,7 @@ class Simulation:
         """
 
         Arguments:
-            ax {matplotlib ax} -- 
+            ax {matplotlib ax} --
 
         Keyword Arguments:
             symlog {bool} -- Use symlog scale (default: {False})
@@ -142,13 +154,17 @@ class Simulation:
 
         # Lines
         ax.plot(self.time_interval_shifted,
-                self.prices, label='price evolution')
+                self.prices, label=f'price ({self.price_formula})', color='yellow')
+        ax.plot(self.time_interval_shifted,
+                self.best_asks, label='best ask', color='blue', ls='--')
+        ax.plot(self.time_interval_shifted,
+                self.best_bids, label='best bid', color='red', ls='--')
         if low:
             ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
                     self.growth_th_low, label='low regime', lw=1, color='green')
         if high:
             ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
-                    self.growth_th_high, label='high regime', lw=1, color='orange')
+                    self.growth_th_high, label='high regime', lw=1, color='magenta')
 
         # Scale
         if symlog:
@@ -203,21 +219,26 @@ class Simulation:
             fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
         if save:
             Writer = writers['ffmpeg']
-            writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+            writer = Writer(fps=15, metadata=dict(
+                artist='Me'), bitrate=1800)
             self.animation.save('animation.mp4', writer=writer)
-        # plt.show()
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
         """
         lims = {}
         if self.participation_rate < 0.4:
-            lims['xlim'] = (-1.5 * self.lower_impact, 1.5*self.lower_impact)
+            lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
 
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(1, 2, 2)
         self.price_ax.set_title('Price evolution')
-        self.price_line, = self.price_ax.plot([], [], label='Price')
+        self.best_ask_line, = self.price_ax.plot(
+            [], [], label='Best Ask', color='blue', ls='--')
+        self.best_bid_line, = self.price_ax.plot(
+            [], [], label='Best Bid', color='red', ls='--')
+        self.price_line, = self.price_ax.plot(
+            [], [], label=f'Price ({self.price_formula})', color='yellow')
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
@@ -231,28 +252,36 @@ class Simulation:
         """Init function called by FuncAnimation
         """
         self.price_line.set_data([], [])
+        self.best_bid_line.set_data([], [])
+        self.best_ask_line.set_data([], [])
 
-        return self.book.init_animation() + [self.price_line]
+        return self.book.init_animation() + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def update_animation(self, n):
         """Update function called by FuncAnimation
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        y_min, y_max = -self.density_shift_th, self.density_shift_th
 
-        self.book.mt = self.metaorder[n]
-        self.prices[n] = self.book.price
+        self.book.dq = self.metaorder[n] * self.tstep
+        self.best_asks[n] = self.book.best_ask
+        self.best_bids[n] = self.book.best_bid
+        self.prices[n] = self.compute_price(
+            self.book.best_ask, self.book.best_bid)
         self.price_line.set_data(
-
             self.time_interval[:n+1], self.prices[:n+1])
-        return self.book.update_animation(n) + [self.price_line]
+        self.best_ask_line.set_data(
+            self.time_interval[:n+1], self.best_asks[:n+1])
+        self.best_bid_line.set_data(
+            self.time_interval[:n+1], self.best_bids[:n+1])
+        return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
         string = f""" Order book simulation.
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
+                        t_step = {self.tstep},
                         dt = {self.dt:.1e}.
 
         Space parameters :

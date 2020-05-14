@@ -1,19 +1,20 @@
 {
-    "T": 10,
+    "T": 1000,
     "Nt": 100,
+    "price_formula": "vwap",
     "book_args": {
-        "dt": 0.1,
-        "Nx": 500,
+        "dt": 10,
+        "Nx": 5000,
         "lower_bound": -5,
         "upper_bound": 5,
-        "L": 100,
-        "D" : 1
+        "L": 100000,
+        "D" : 0.01
     },
     "metaorder_args": {
         "metaorder": [
-            1
+            10
         ],
-        "m0": 1,
+        "m0": 10,
         "n_start": 0,
         "n_end": 100
     },

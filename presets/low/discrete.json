@@ -1,13 +1,13 @@
 {
-    "T": 100,
+    "T": 1000,
     "Nt": 100,
     "book_args": {
-        "Nx": 101,
-        "dt" : 1,
-        "lower_bound": -10,
-        "upper_bound": 10,
+        "n_relax": 100,
+        "Nx": 501,
+        "lower_bound": -1,
+        "upper_bound": 1,
         "initial_density": "linear",
-        "L": 100
+        "L": 100000
     },
     "metaorder_args": {
         "metaorder": [

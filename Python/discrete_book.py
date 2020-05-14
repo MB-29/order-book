@@ -16,6 +16,7 @@ class DiscreteBook:
         self.dt = self.order_args['dt']
         self.lower_bound = self.order_args['lower_bound']
         self.upper_bound = self.order_args['upper_bound']
+        self.n_relax = self.order_args.get('n_relax', 1)
         self.Nx = self.order_args['Nx']
         self.X = np.linspace(self.lower_bound, self.upper_bound, num=self.Nx)
         self.dx = (self.upper_bound - self.lower_bound)/float(self.Nx)
@@ -32,7 +33,7 @@ class DiscreteBook:
 
         # Metaorder
         self.update_price()
-        self.mt = 0
+        self.dq = 0
 
     def stationary_density(self, x):
 
@@ -44,12 +45,11 @@ class DiscreteBook:
 
     def timestep(self):
 
-        self.execute_metaorder(self.mt * self.dt)
-
-        self.stochastic_timestep()
-        self.order_reaction()
-        self.update_price()
-
+        self.execute_metaorder(self.dq)
+        for t in range(self.n_relax):
+            self.stochastic_timestep()
+            self.order_reaction()
+            self.update_price()
 
     def stochastic_timestep(self):
 
@@ -62,7 +62,12 @@ class DiscreteBook:
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.price_index = (self.ask_orders.best_price_index + self.bid_orders.best_price_index)//2
+        self.best_ask = self.X[self.ask_orders.best_price_index]
+        self.best_bid = self.X[self.bid_orders.best_price_index]
+        self.best_ask_volume = self.ask_orders.volumes[self.ask_orders.best_price_index]
+        self.best_bid_volume = self.bid_orders.volumes[self.bid_orders.best_price_index]
+        self.price_index = (self.ask_orders.best_price_index +
+                            self.bid_orders.best_price_index)//2
         self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------
@@ -89,22 +94,27 @@ class DiscreteBook:
 
   # ================== ANIMATION ==================
 
-    def set_animation(self, fig, lims):
+    def set_animation(self, fig=None, lims=None):
         """Create subplot axes, lines and texts
         """
 
         self.volume_ax = fig.add_subplot(1, 2, 1)
         xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
-        y_max = 1.5 * xlims[1] * self.L * self.dx 
+        y_max = 1.5 * xlims[1] * self.L * self.dx
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, y_max))
+        self.volume_ax.plot([0, 0], [
+            -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.ask_bars = self.volume_ax.bar(
             self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
             self.X, self.bid_orders.volumes, label='Bid', color='red', width=0.1, animated='True')
-        self.price_axis, = self.volume_ax.plot(
-            [], [], label='Price', color='yellow', ls='dashed', lw=1)
+        self.best_ask_axis, = self.volume_ax.plot(
+            [], [], color='blue', ls='dashed', lw=1, label='best ask')
+        self.best_bid_axis, = self.volume_ax.plot(
+            [], [], color='red', ls='dashed', lw=1, label='best bid')
         self.volume_ax.set_title('Order volumes')
+        self.volume_ax.legend()
 
     def init_animation(self):
         """Init function called by FuncAnimation
@@ -130,6 +140,7 @@ class DiscreteBook:
             self.ask_bars[index].set_height(self.ask_orders.volumes[index])
             self.bid_bars[index].set_height(self.bid_orders.volumes[index])
 
-        self.price_axis.set_data([self.price, self.price], [0, y_max])
+        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
+        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
 
-        return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.price_axis]
+        return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]

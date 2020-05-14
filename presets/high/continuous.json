@@ -1,0 +1,21 @@
+{
+    "T": 1000,
+    "Nt": 100,
+    "price_formula" : "best_ask",
+    "model_type" : "continuous",
+    "book_args": {
+        "Nx": 501,
+        "dt" : 10,
+        "lower_bound": -400,
+        "upper_bound": 400,
+        "L": 1,
+        "D" : 0
+    },
+    "metaorder_args": {
+        "metaorder": [
+            10
+        ],
+        "n_start": 0,
+        "n_end": 100
+    }
+}

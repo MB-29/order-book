@@ -21,6 +21,8 @@ A simulation can be created with class `Simulation` from `simulation.py` by inpu
 
 Run the simulation with method `simulation.run()`. Display a `matplotlib` animation by setting argument `animation=True` and save it by setting `save=True`.
 
+For noisy metaorders, Monte Carlo simulations can be performed with class MonteCarlo from `monte_carlo.py`.
+
 ## Discrete Order Book
 
 An instance of `DiscreteBook` has two `orders` attributes which are instances of class `LimitOrders` and represent ASK and BUY orders respectively.
@@ -43,7 +45,7 @@ metaorder_args = {
 }
 ```
 
-## Run a simulation
+## Run a sample simulation
 Set parameters in `run.py` then run
 
 ```bash
@@ -51,10 +53,23 @@ cd Python
 python run.py
 ```
 
+## Run a Monte Carlo simulation with a noisy meta-order
+
+Use one of the order book parameter presets from `./presets/` and set noise parameters in file `run_noisy.py` then run
+
+```bash
+cd Python
+python run_noisy.py
+```
+
 ## Output
 
+### Discrete book animation
 ![Discrete book animation](demo/histogram.gif)
+### Price evolution
 ![Price impact vs theory](demo/vs_theory.png)
+### Noisy meta-order
+![Noisy meta-order](demo/monte_carlo.png)
 
 ## Requirements
 * Python 3
