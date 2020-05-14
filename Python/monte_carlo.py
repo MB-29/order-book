@@ -26,7 +26,7 @@ class MonteCarlo:
 
         self.simulation_args = simulation_args
 
-        self.m0 = simulation_args['metaorder_args'].get('m0')
+        self.m0 = noise_args.get('m0', 0)
         self.sigma = noise_args.get('sigma', 0)
         self.hurst = noise_args.get('hurst', 0.75)
         self.gamma = 2*(1 - self.hurst)
@@ -112,3 +112,8 @@ class MonteCarlo:
         # ax.set_title('Variance evolution')
 
         return ax
+
+    def gather_results(self):
+
+        return {'mean': self.price_mean,
+                'variance': self.price_variance}
