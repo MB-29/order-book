@@ -13,13 +13,11 @@ class DiscreteBook:
         self.bid_orders = LimitOrders(**order_args, side='BID')
         self.ask_orders = LimitOrders(**order_args, side='ASK')
 
-        self.dt = self.order_args['dt']
-        self.lower_bound = self.order_args['lower_bound']
-        self.upper_bound = self.order_args['upper_bound']
+        self.xmin = self.order_args['xmin']
+        self.xmax = self.order_args['xmax']
         self.n_relax = self.order_args.get('n_relax', 1)
         self.Nx = self.order_args['Nx']
-        self.X = np.linspace(self.lower_bound, self.upper_bound, num=self.Nx)
-        self.dx = (self.upper_bound - self.lower_bound)/float(self.Nx)
+        self.X, self.dx = np.linspace(self.xmin, self.xmax, num=self.Nx, retstep=True)
         self.lambd = self.order_args['lambd']
         self.nu = self.order_args['nu']
         self.D = (self.dx)**2/(2*self.dt)
@@ -29,7 +27,8 @@ class DiscreteBook:
         if not self.L:
             self.L = self.lambd/(np.sqrt(self.nu * self. D))
         self.J = self.L * self.D
-        self.price_range = self.upper_bound - self.lower_bound
+        self.price_range = self.xmax - self.xmin
+        self.boundary_distance = min(abs(self.xmin), abs(self.xmax))
 
         # Metaorder
         self.update_price()
@@ -37,9 +36,8 @@ class DiscreteBook:
 
     def stationary_density(self, x):
 
-        y = abs(x - self.price)
         x_crit = np.sqrt(self.D/self.nu)
-        return (self.lambd/self.nu) * (1 - np.exp(-y/x_crit))
+        return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
 
     # ================== TIME EVOLUTION ==================
 
@@ -62,13 +60,14 @@ class DiscreteBook:
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.best_ask = self.X[self.ask_orders.best_price_index]
-        self.best_bid = self.X[self.bid_orders.best_price_index]
+        
+        self.best_ask = self.X[self.ask_orders.best_price_index - 1]
+        self.best_bid = self.X[self.bid_orders.best_price_index + 1]
         self.best_ask_volume = self.ask_orders.volumes[self.ask_orders.best_price_index]
         self.best_bid_volume = self.bid_orders.volumes[self.bid_orders.best_price_index]
-        self.price_index = (self.ask_orders.best_price_index +
-                            self.bid_orders.best_price_index)//2
-        self.price = self.X[self.price_index]
+        # self.price_index = (self.ask_orders.best_price_index +
+        #                     self.bid_orders.best_price_index)//2
+        # self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------
 
@@ -99,7 +98,7 @@ class DiscreteBook:
         """
 
         self.volume_ax = fig.add_subplot(1, 2, 1)
-        xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
+        xlims = lims.get('xlim', (self.xmin, self.xmax))
         y_max = 1.5 * xlims[1] * self.L * self.dx
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, y_max))
@@ -132,7 +131,7 @@ class DiscreteBook:
         """Update function called by FuncAnimation
         """
         # Axis
-        y_max = 1.5*self.dx * self.upper_bound * self.L
+        y_max = 1.5*self.dx * self.xmax * self.L
 
         self.timestep()
 

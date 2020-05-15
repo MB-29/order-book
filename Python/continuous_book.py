@@ -8,15 +8,15 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    def __init__(self, dt, D, L, lower_bound, upper_bound, Nx=1000):
+    def __init__(self, dt, D, L, xmin, xmax, Nx=1000):
         """
 
         Arguments:
             dt {float} -- Time subinterval
             D {float} -- Diffusion constant
             L {float} -- Latent liquidity
-            lower_bound {float} -- Price interval lower bound
-            upper_bound {float} -- Price interval upper bound
+            xmin {float} -- Price interval lower bound
+            xmax {float} -- Price interval upper bound
 
         Keyword Arguments:
             Nx {int} -- Number of space (price) subintervals
@@ -24,11 +24,12 @@ class ContinuousBook:
 
         # Structural constants
         self.dt = dt
-        self.dx = (upper_bound - lower_bound)/float(Nx)
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-        self.price_range = (upper_bound - lower_bound)/2
-        self.X = np.linspace(lower_bound, upper_bound, num=Nx)
+        self.xmin = xmin
+        self.xmax = xmax
+        self.price_range = (xmax - xmin)/2
+        self.boundary_distance = min(
+            abs(self.xmin), abs(self.xmax))
+        self.X, self.dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
         self.Nx = Nx
 
         # Model constants
@@ -51,6 +52,7 @@ class ContinuousBook:
 
         self.density = self.initial_density(self.X)
         self.update_prices()
+        # +1 / -1 ensure corresponding volume isn't partially consumed
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
 
@@ -68,11 +70,9 @@ class ContinuousBook:
                                - self.resolution_volume)[0]
         self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
-        if abs(self.best_ask_index - self.best_bid_index) > 2:
-            self.best_ask_index -= 1
-            self.best_bid_index += 1
-        self.best_ask = self.X[self.best_ask_index]
-        self.best_bid = self.X[self.best_bid_index]
+        
+        self.best_ask = self.X[self.best_ask_index - 1]
+        self.best_bid = self.X[self.best_bid_index + 1]
 
     def execute_metaorder(self, volume):
         """ Execute at current time the quantity volume at the best price which depends on the sign of volume.
@@ -131,7 +131,7 @@ class ContinuousBook:
     def set_animation(self, fig, lims):
         """Create subplot axes, lines and texts
         """
-        xlims = lims.get('xlim', (self.lower_bound, self.upper_bound))
+        xlims = lims.get('xlim', (self.xmin, self.xmax))
         y_max = self.L * xlims[1]
 
         self.density_ax = fig.add_subplot(1, 2, 1)
@@ -142,7 +142,7 @@ class ContinuousBook:
             [], [], color='blue', ls='dashed', lw=1, label='best ask')
         self.best_bid_axis, = self.density_ax.plot(
             [], [], color='red', ls='dashed', lw=1, label='best bid')
-        self.density_ax.plot([self.lower_bound, self.upper_bound], [
+        self.density_ax.plot([self.xmin, self.xmax], [
                              0, 0], color='black', lw=0.5, ls='dashed')
         self.density_ax.plot([0, 0], [
                              -y_max, y_max], color='black', lw=0.5, ls='dashed')
@@ -161,7 +161,7 @@ class ContinuousBook:
         """Update function called by FuncAnimation
         """
         # Axis
-        y_max = 1.5 * self.upper_bound * self.L
+        y_max = 1.5 * self.xmax * self.L
 
         self.timestep()
         self.density_line.set_data(self.X, self.density)

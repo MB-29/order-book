@@ -22,7 +22,6 @@ class LimitOrders:
 
         # Structural constants
         self.Nx = Nx
-        self.dt = dt
         self.dx = (upper_bound - lower_bound)/float(Nx)
         self.X = np.linspace(lower_bound, upper_bound, num=Nx)
         self.lower_bound = lower_bound
@@ -50,13 +49,13 @@ class LimitOrders:
     def initialize_volumes(self, initial_density):
 
         # Initialize price
-        initial_price_index_dic = {
-            'stationary': self.Nx//2,
-            'linear': self.Nx//2,
-            'empty': self.boundary_index % self.Nx
-        }
-        self.best_price_index = initial_price_index_dic.get(initial_density)
-        self.best_price = self.X[self.best_price_index]
+        # initial_price_index_dic = {
+        #     'stationary': self.Nx//2,
+        #     'linear': self.Nx//2,
+        #     'empty': self.boundary_index % self.Nx
+        # }
+        # self.best_price_index = initial_price_index_dic.get(initial_density)
+        # self.best_price = self.X[self.best_price_index]
 
         # Initialize volume
         self.volumes = np.zeros(self.Nx, dtype=int)
@@ -71,6 +70,7 @@ class LimitOrders:
         self.volumes = volumes_function(self.X)
 
         self.total_volume = np.sum(self.volumes)
+        self.update_best_price()
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):

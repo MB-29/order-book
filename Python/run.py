@@ -3,7 +3,7 @@ import numpy as np
 import json
 import os
 
-from simulation import Simulation
+from simulation import Simulation, standard_parameters
 
 T = 1
 Nt = 100
@@ -12,12 +12,12 @@ n_relax = 100
 dt = tstep/n_relax
 
 size = 1
-Nx = 5001
+Nx = 10001
 
 n_start, n_end = 0, Nt
-L = 200
-m0 = 1
-D = 0.25 
+L = 5
+m0 = 0.1
+D = 0.5
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
@@ -27,8 +27,8 @@ metaorder_args = {
 
 dbook_args = {
     'Nx': Nx,
-    'lower_bound': -size/10,
-    'upper_bound': size,
+    'xmin': -size/10,
+    'xmax': size,
     'initial_density': 'empty',
     'L': L,
     'n_relax': n_relax
@@ -39,16 +39,17 @@ cbook_args = {
     'D': D,
     'L': L,
     'Nx': Nx,
-    'lower_bound': -size,
-    'upper_bound': size
+    'xmin': -size,
+    'xmax': size
 }
 
-
+participation_rate = 200
 # Run
 model_type = 'continuous'
 # model_type = 'discrete'
-
-args_path = os.path.join('..', 'presets', 'high', 'continuous_high_res.json')
+standard_args = standard_parameters(participation_rate, model_type, Nx=Nx)
+print(standard_args)
+args_path = os.path.join('..', 'presets', 'high', 'discrete.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 
@@ -60,8 +61,10 @@ args = {'Nt': Nt,
         'model_type': model_type,
         'price_formula': 'vwap'}
 
-simulation = Simulation(**args)
+# simulation = Simulation(**args)
 # simulation = Simulation(**json_args)
+simulation = Simulation(**standard_args)
+
 
 print(simulation)
 

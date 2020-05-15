@@ -11,7 +11,7 @@ class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
     """
 
-    def __init__(self, T, Nt, book_args, metaorder_args, model_type='discrete', price_formula='middle'):
+    def __init__(self, model_type, metaorder=[0], **kwargs):
         """
 
         Arguments:
@@ -37,69 +37,85 @@ class Simulation:
             'continuous': ContinuousBook
         }
 
-        # Time evolution
-        self.T = T
-        self.Nt = Nt
+        # Time
+        self.T = kwargs.get('T', 1)
+        self.Nt = kwargs.get('Nt', 100)
         self.time_interval, self.tstep = np.linspace(
-            0, T, num=Nt, retstep=True)
-        self.n_relax = book_args.get('n_relax', 1)
+            0, self.T, num=self.Nt, retstep=True)
+        self.n_relax = kwargs.get('n_relax', 1)
         self.dt = self.tstep/self.n_relax
+
+        # Space
+        self.xmin = kwargs.get('xmin', -1)
+        self.xmax = kwargs.get('xmax', 1)
+        self.price_range = self.xmax - self.xmin
+        self.Nx = kwargs.get('Nx', 100)
+        self.dx = self.price_range / self.Nx
+        self.boundary_distance = min(abs(self.xmin), self.xmax)
+
+        # Order Book
+        self.L = kwargs.get('L', 1e4)
+        self.D = kwargs.get('D', 0.1)
+        book_args = {'xmin': self.xmin,
+                     'xmax': self.xmax,
+                     'Nx': self.Nx,
+                     'L': self.L,
+                     'D': self.D}
         book_args['dt'] = self.dt
+
+        self.book = model_choice.get(model_type)(**book_args)
+        self.J = self.book.J
+        self.dx = self.book.dx
+
+        # Prices
         self.best_asks = np.zeros(self.Nt)
         self.best_bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
 
-        self.price_formula = price_formula
+        self.price_formula = kwargs.get('price_formula', 'middle')
         price_formula_choice = {
             'middle': lambda a, b: (a+b)/2,
             'best_ask': lambda a, b: a,
             'best_bid': lambda a, b: b,
             'vwap': lambda a, b: self.compute_vwap(a, b)
         }
-        self.compute_price = price_formula_choice[price_formula]
-
-        # Order book
-        self.book_args = book_args
-        self.book = model_choice.get(model_type)(**book_args)
-        self.J = self.book.J
-        self.dx = self.book.dx
+        self.compute_price = price_formula_choice[self.price_formula]
 
         # Metaorder
-        metaorder = metaorder_args.get('metaorder', 0)
         if len(metaorder) == 1:
-            self.metaorder = np.full(Nt, metaorder)
+            self.metaorder = np.full(self.Nt, metaorder)
             self.m0 = metaorder[0]
         else:
-            assert len(metaorder) == Nt
+            assert len(metaorder) == self.Nt
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
-
-        self.beta = np.sqrt(self.book.D*T)/self.book.price_range
-        self.n_start = metaorder_args.get('n_start', Nt//10+1)
-        self.n_end = metaorder_args.get('n_end', 9*Nt//10)
+        print(metaorder)
+        self.boundary_rate = np.sqrt(self.D*self.T)/self.boundary_distance
+        self.n_start = kwargs.get('n_start', 0)
+        self.n_end = kwargs.get('n_end', self.Nt)
         self.t_start = self.n_start * self.tstep
         self.t_end = self.n_end * self.tstep
         self.time_interval_shifted = self.time_interval-self.t_start
 
         # Theoretical values
-        self.infinity_density = self.book.L * self.book.upper_bound
-        self.price_shift_th = np.sqrt(2*abs(self.m0)*T/self.book.L)
+        self.infinity_density = self.book.L * self.book.xmax
+        self.impact_th = np.sqrt(2*abs(self.m0)*self.T/self.L)
         self.density_shift_th = np.sqrt(
-            abs(self.m0)*T*self.book.L)  # price_shift_th * L
-        self.A_low = self.m0/(self.book.L*np.sqrt(self.book.D * np.pi))
-        self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.book.L)
+            abs(self.m0)*self.T*self.L)  # impact_th * L
+        self.A_low = self.m0/(self.book.L*np.sqrt(self.D * np.pi))
+        self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.L)
         self.participation_rate = self.m0 / \
             self.J if self.J != 0 else float("inf")
-        self.compute_theoretical_growth()
-        self.alpha = self.book.D * self.dt / (self.dx * self.dx)
+        # self.compute_theoretical_growth()
+        self.alpha = self.D * self.dt / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
-            self.participation_rate/(2*np.pi)) * self.price_shift_th
+            self.participation_rate/(2*np.pi)) * self.impact_th
 
         # Plot
         self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$t={{{2}}}$, $X = {{{3}}}$ '.format(
-            round(self.m0, 2), round(self.J, 4),  round(self.dt, 5), self.book.upper_bound)
+            round(self.m0, 2), round(self.J, 4),  round(self.dt, 5), self.book.xmax)
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
-            round(self.price_shift_th, 2), round(self.beta, 2), round(self.participation_rate, 2), round(self.dx, 3))
+            round(self.impact_th, 2), round(self.boundary_rate, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
     def compute_vwap(self, best_ask, best_bid):
         return (abs(self.book.best_ask_volume) * best_ask
@@ -243,7 +259,7 @@ class Simulation:
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
         self.price_ax.set_ylim(
-            (- self.price_shift_th, 1.5 * self.price_shift_th))
+            (- self.impact_th, 1.5 * self.impact_th))
         self.price_ax.set_xlim((0, self.T))
 
         fig.suptitle(self.parameters_string + self.constant_string)
@@ -281,11 +297,11 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
-                        t_step = {self.tstep},
+                        t_step = {self.tstep:.1e},
                         dt = {self.dt:.1e}.
 
         Space parameters :
-                        Price range = {self.book.upper_bound - self.book.lower_bound},
+                        Price interval = [{self.xmin}, {self.xmax}],
                         dx = {self.dx:.1e}.
 
         Model constants:
@@ -299,11 +315,49 @@ class Simulation:
 
         Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
-                        impact = {self.price_shift_th:.1e},
+                        impact = {self.impact_th:.1e},
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
-                        beta = {self.beta:.1e},
+                        beta = {self.boundary_rate:.1e},
                         first volume = {self.book.L * self.dx * self.dx:.1e},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
                         """
         return string
+
+def standard_parameters(participation_rate, model_type, Nx=5001):
+    r = abs(participation_rate)
+    xmax = 1 if participation_rate > 0 else 0.1
+    xmin = -0.1 if participation_rate > 0 else 1
+    dx = (xmax - xmin) / Nx
+    L = 1/(dx * dx)
+    if r >= 1:
+        m0 = L / 5
+        D = m0 / (L*r)
+        price_formula = 'best_ask'
+    elif r > 0.5:
+        price_formula = 'vwap'
+        D = 0.1
+        m0 = L * D * r
+    else:
+        price_formula = 'middle'
+        D = min(abs(xmin)**2, abs(xmax)**2)
+        m0 = L * D * r
+
+    if model_type == 'discrete':
+        dx = (xmax - xmin)/float(Nx)
+        dt = dx * dx / (2 * D)
+
+    simulation_args = {
+        "model_type": model_type,
+        "T": 1,
+        "Nt": 100,
+        "price_formula": price_formula,
+        "Nx": Nx,
+        "xmin": xmin,
+        "xmax": xmax,
+        "L": L,
+        "D": D,
+        "metaorder" : [m0]
+    }
+
+    return simulation_args
