@@ -15,12 +15,14 @@ class DiscreteBook:
 
         self.xmin = self.order_args['xmin']
         self.xmax = self.order_args['xmax']
-        self.n_relax = self.order_args.get('n_relax', 1)
+        self.n_relax = self.order_args['n_relax']
         self.Nx = self.order_args['Nx']
         self.X, self.dx = np.linspace(self.xmin, self.xmax, num=self.Nx, retstep=True)
+        self.dt = self.order_args['dt']
         self.lambd = self.order_args['lambd']
         self.nu = self.order_args['nu']
-        self.D = (self.dx)**2/(2*self.dt)
+        self.D = self.order_args['D']
+        # self.D = (self.dx)**2/(2*self.dt)
 
         # Theoretical values
         self.L = self.order_args['L']

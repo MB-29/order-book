@@ -49,15 +49,17 @@ class MonteCarlo:
     def run(self):
         self.generate_noise()
         args = self.simulation_args
+        self.simulation = Simulation(**args)
+        print(self.simulation)
         for k in range(self.N_samples):
 
-            args['metaorder_args']['metaorder'] = self.noisy_metaorders[:, k]
-            self.simulation = Simulation(**args)
+            args['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
 
             if (k+1) % (max(self.N_samples//10, 1)) == 0:
                 print(f'Performed {k+1} simulations')
+            self.simulation = Simulation(**args)
 
         self.compute_statistics()
         self.compute_theory()

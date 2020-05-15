@@ -5,7 +5,7 @@ class LimitOrders:
     """Orders of one side - bid or ask - with their volume depending on the price and stochastic dynamics.
     """
 
-    def __init__(self, dt, lambd, nu, side, lower_bound, upper_bound, Nx=1000, L=None, **kwargs):
+    def __init__(self, dt, lambd, nu, side, xmin, xmax, Nx=1000, L=None, **kwargs):
         """
 
         Arguments:
@@ -15,17 +15,18 @@ class LimitOrders:
             side {string} -- Either 'BID' or ASK'
 
         Keyword Arguments:
-            lower_bound {float} -- Price interval lower bound
-            upper_bound {float} -- Price interval upper bound
+            xmin {float} -- Price interval lower bound
+            xmax {float} -- Price interval upper bound
             Nx {int} -- Number of space (price) subintervals
         """
 
         # Structural constants
         self.Nx = Nx
-        self.dx = (upper_bound - lower_bound)/float(Nx)
-        self.X = np.linspace(lower_bound, upper_bound, num=Nx)
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
+        self.dx = (xmax - xmin)/float(Nx)
+        self.X = np.linspace(xmin, xmax, num=Nx)
+        self.xmin = xmin
+        self.xmax = xmax
+        self.dt = dt
 
         initial_density = kwargs.get('initial_density', 'stationary')
         boundary_conditions = kwargs.get('boundary_conditions', 'flat')

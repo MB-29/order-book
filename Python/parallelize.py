@@ -16,8 +16,8 @@ args = {
     "book_args": {
         "Nx": 10001,
         "dt": 10,
-        "lower_bound": -10,
-        "upper_bound": 150,
+        "xmin": -10,
+        "xmax": 150,
         "L": 1,
         "D": 0
     },

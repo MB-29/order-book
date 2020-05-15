@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib.animation import FuncAnimation, writers
+import warnings
 
 from linear_discrete_book import LinearDiscreteBook
 from continuous_book import ContinuousBook
@@ -43,7 +44,7 @@ class Simulation:
         self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
         self.n_relax = kwargs.get('n_relax', 1)
-        self.dt = self.tstep/self.n_relax
+        self.dt = self.tstep / self.n_relax
 
         # Space
         self.xmin = kwargs.get('xmin', -1)
@@ -55,14 +56,16 @@ class Simulation:
 
         # Order Book
         self.L = kwargs.get('L', 1e4)
-        self.D = kwargs.get('D', 0.1)
+        self.D = kwargs.get(
+            'D', 0.1) if model_type == 'continuous' else self.dx**2/(2*self.dt)
         book_args = {'xmin': self.xmin,
                      'xmax': self.xmax,
                      'Nx': self.Nx,
                      'L': self.L,
-                     'D': self.D}
-        book_args['dt'] = self.dt
-
+                     'D': self.D,
+                     'dt': self.dt}
+        if model_type == 'discrete':
+            book_args['n_relax'] = self.n_relax
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
@@ -89,8 +92,7 @@ class Simulation:
             assert len(metaorder) == self.Nt
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
-        print(metaorder)
-        self.boundary_rate = np.sqrt(self.D*self.T)/self.boundary_distance
+
         self.n_start = kwargs.get('n_start', 0)
         self.n_end = kwargs.get('n_end', self.Nt)
         self.t_start = self.n_start * self.tstep
@@ -98,24 +100,25 @@ class Simulation:
         self.time_interval_shifted = self.time_interval-self.t_start
 
         # Theoretical values
+        self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
         self.infinity_density = self.book.L * self.book.xmax
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/self.L)
         self.density_shift_th = np.sqrt(
             abs(self.m0)*self.T*self.L)  # impact_th * L
         self.A_low = self.m0/(self.book.L*np.sqrt(self.D * np.pi))
         self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.L)
-        self.participation_rate = self.m0 / \
-            self.J if self.J != 0 else float("inf")
+        self.participation_rate = abs(self.m0) / \
+            (self.D * self.L) if self.D*self.L != 0 else float("inf")
         # self.compute_theoretical_growth()
-        self.alpha = self.D * self.dt / (self.dx * self.dx)
+        self.alpha = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
-            self.participation_rate/(2*np.pi)) * self.impact_th
+            abs(self.participation_rate)/(2*np.pi)) * self.impact_th
 
         # Plot
         self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$t={{{2}}}$, $X = {{{3}}}$ '.format(
-            round(self.m0, 2), round(self.J, 4),  round(self.dt, 5), self.book.xmax)
+            round(self.m0, 2), round(self.J, 4),  round(self.tstep, 5), self.book.xmax)
         self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
-            round(self.impact_th, 2), round(self.boundary_rate, 2), round(self.participation_rate, 2), round(self.dx, 3))
+            round(self.impact_th, 2), round(self.boundary_factor, 2), round(self.participation_rate, 2), round(self.dx, 3))
 
     def compute_vwap(self, best_ask, best_bid):
         return (abs(self.book.best_ask_volume) * best_ask
@@ -297,11 +300,13 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
-                        t_step = {self.tstep:.1e},
+                        tstep = {self.tstep:.1e},
+                        n_relax = {self.n_relax:.1e}.,
                         dt = {self.dt:.1e}.
 
         Space parameters :
                         Price interval = [{self.xmin}, {self.xmax}],
+                        Nx = {self.Nx},
                         dx = {self.dx:.1e}.
 
         Model constants:
@@ -311,53 +316,59 @@ class Simulation:
 
         Metaorder:
                         m0 = {self.m0:.1e},
-                        dq = {self.m0 * self.dt:.1e}.
+                        dq = {self.m0 * self.tstep:.1e}.
 
         Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
                         impact = {self.impact_th:.1e},
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
-                        beta = {self.boundary_rate:.1e},
+                        boundary factor = {self.boundary_factor:.1e},
                         first volume = {self.book.L * self.dx * self.dx:.1e},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
                         """
         return string
 
-def standard_parameters(participation_rate, model_type, Nx=5001):
+
+def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=None, Nt=100):
+    tstep = T / Nt
     r = abs(participation_rate)
-    xmax = 1 if participation_rate > 0 else 0.1
-    xmin = -0.1 if participation_rate > 0 else 1
+    if Nx == None:
+        Nx = 5001 if model_type == 'continuous' else 501
+    boundary_dist = min(abs(xmin), abs(xmax))
+    X = max(abs(xmin), abs(xmax))
     dx = (xmax - xmin) / Nx
     L = 1/(dx * dx)
     if r >= 1:
-        m0 = L / 5
-        D = m0 / (L*r)
+        m0 = (L * X) / (5 * T)
+        D = m0 / (L*participation_rate)
         price_formula = 'best_ask'
     elif r > 0.5:
         price_formula = 'vwap'
-        D = 0.1
-        m0 = L * D * r
+        D = boundary_dist**2/(2 * T)
+        m0 = L * D * participation_rate
     else:
-        price_formula = 'middle'
-        D = min(abs(xmin)**2, abs(xmax)**2)
-        m0 = L * D * r
-
-    if model_type == 'discrete':
-        dx = (xmax - xmin)/float(Nx)
-        dt = dx * dx / (2 * D)
-
+        price_formula = 'vwap'
+        D = boundary_dist**2 / (2 * T)
+        m0 = L * D * participation_rate
+    dt = dx * dx / (2 * D)
+    n_relax = max(int(tstep / dt), 1)
     simulation_args = {
         "model_type": model_type,
-        "T": 1,
-        "Nt": 100,
+        "T": T,
+        "Nt": Nt,
         "price_formula": price_formula,
         "Nx": Nx,
         "xmin": xmin,
         "xmax": xmax,
         "L": L,
         "D": D,
-        "metaorder" : [m0]
+        "metaorder": [m0]
     }
+    if model_type == 'discrete':
+        simulation_args['n_relax'] = n_relax
+        if r < 1 and n_relax < 100:
+            warnings.warn(
+                f'Low number of diffusion steps {n_relax} < 100, try increasing price interval')
 
     return simulation_args

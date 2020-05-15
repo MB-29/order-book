@@ -12,7 +12,7 @@ n_relax = 100
 dt = tstep/n_relax
 
 size = 1
-Nx = 10001
+Nx = 501
 
 n_start, n_end = 0, Nt
 L = 5
@@ -43,13 +43,13 @@ cbook_args = {
     'xmax': size
 }
 
-participation_rate = 200
+participation_rate = 1e7
 # Run
 model_type = 'continuous'
 # model_type = 'discrete'
-standard_args = standard_parameters(participation_rate, model_type, Nx=Nx)
+standard_args = standard_parameters(participation_rate, model_type, Nx=10001)
 print(standard_args)
-args_path = os.path.join('..', 'presets', 'high', 'discrete.json')
+args_path = os.path.join('..', 'presets', 'low', 'continuous.json')
 with open(args_path, 'r') as args_file:
     json_args = json.load(args_file)
 
