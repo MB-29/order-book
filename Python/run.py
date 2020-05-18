@@ -14,11 +14,11 @@ model_type = 'continuous'
 standard_args = standard_parameters(participation_rate, model_type)
 print(f'Standard arguments : {standard_args}')
 
-# Addoise
+# Add noise, to ignore comment out or set sigma = 0
 T, Nt = standard_args['T'], standard_args['Nt']
-sigma, hurst = 10, 0.75
+sigma, hurst = 1, 0.75
 noise = fgn(n=Nt, hurst=hurst, length=T)
-m0 = 100
+m0 = standard_args['metaorder'][0]
 standard_args['metaorder'] = m0 + sigma * m0 / \
     (standard_args['T']/standard_args['Nt'] ** hurst) * noise
 

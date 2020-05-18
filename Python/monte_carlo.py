@@ -50,7 +50,7 @@ class MonteCarlo:
         self.generate_noise()
         args = self.simulation_args
         for k in tqdm(range(self.N_samples)):
-            args['metaorder_args']['metaorder'] = self.noisy_metaorders[:, k]
+            args['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
