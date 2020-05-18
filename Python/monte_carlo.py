@@ -1,6 +1,6 @@
 import numpy as np
 from fbm import fgn
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from simulation import Simulation
 
 
