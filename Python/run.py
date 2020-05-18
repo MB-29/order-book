@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import os
+from fbm import fgn
 
 from simulation import Simulation, standard_parameters
 
@@ -13,9 +14,15 @@ model_type = 'continuous'
 standard_args = standard_parameters(participation_rate, model_type)
 print(f'Standard arguments : {standard_args}')
 
+# Addoise
+T, Nt = standard_args['T'], standard_args['Nt']
+sigma, hurst = 10, 0.75
+noise = fgn(n=Nt, hurst=hurst, length=T)
+m0 = 100
+standard_args['metaorder'] = m0 + sigma * m0 / \
+    (standard_args['T']/standard_args['Nt'] ** hurst) * noise
+
 simulation = Simulation(**standard_args)
-
-
 print(simulation)
 
 fig = plt.figure(figsize=(12, 6))
