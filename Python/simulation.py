@@ -109,16 +109,13 @@ class Simulation:
         self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.L)
         self.participation_rate = abs(self.m0) / \
             (self.D * self.L) if self.D*self.L != 0 else float("inf")
-        # self.compute_theoretical_growth()
         self.alpha = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.participation_rate)/(2*np.pi)) * self.impact_th
 
         # Plot
-        self.parameters_string = r'$m_0={{{0}}}$, $J={{{1}}}$, d$t={{{2}}}$, $X = {{{3}}}$ '.format(
-            round(self.m0, 2), round(self.J, 4),  round(self.tstep, 5), self.book.xmax)
-        self.constant_string = r'$\Delta p={{{0}}}$, $\beta={{{1}}}$, $r={{{2}}}$, d$x={{{3}}}$'.format(
-            round(self.impact_th, 2), round(self.boundary_factor, 2), round(self.participation_rate, 2), round(self.dx, 3))
+        self.parameters_string = fr'$m_0={self.m0:.2e}$, $J={self.J:.2f}$, d$t={self.dt:.2e}$'
+        self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.participation_rate:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
     def compute_vwap(self, best_ask, best_bid):
         return (abs(self.book.best_ask_volume) * best_ask
@@ -339,6 +336,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
     X = max(abs(xmin), abs(xmax))
     dx = (xmax - xmin) / Nx
     L = 1/(dx * dx)
+    if r == float('inf'):
+        D = 0
+        m0 = 1
     if r >= 1:
         m0 = (L * X) / (5 * T)
         D = m0 / (L*participation_rate)
@@ -351,8 +351,8 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         price_formula = 'vwap'
         D = boundary_dist**2 / (2 * T)
         m0 = L * D * participation_rate
-    dt = dx * dx / (2 * D)
-    n_relax = max(int(tstep / dt), 1)
+    dt = dx * dx / (2 * D) if D != 0 else float('inf')
+    n_relax = max(int(tstep / dt), 1) if dt < float('inf') else 0
     simulation_args = {
         "model_type": model_type,
         "T": T,

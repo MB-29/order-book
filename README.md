@@ -53,13 +53,19 @@ cd Python
 python run.py
 ```
 
+### Automatic parameters settings
+
+Function `standard_parameters` from `simulation.py` returns a dictionary of 'standard' parameters for one given participation rate r and one model type.
+
+
 ## Run a Monte Carlo simulation with a noisy meta-order
 
-Use one of the order book parameter presets from `./presets/` and set noise parameters in file `run_noisy.py` then run
+Perform a Monte Carlo simulation with an instance of class `MonteCarl`from `monte_carlo.py`.
 
-```bash
-cd Python
-python run_noisy.py
+```Python
+noisy_simulation = MonteCarlo(N_samples, noise_args, simulation_args)
+noisy_simulation.run()
+output = noisy_simulation.gather_results()
 ```
 
 ## Output

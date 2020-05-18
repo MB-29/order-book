@@ -5,64 +5,14 @@ import os
 
 from simulation import Simulation, standard_parameters
 
-T = 1
-Nt = 100
-time_interval, tstep = np.linspace(0, T, num=Nt, retstep=True)
-n_relax = 100
-dt = tstep/n_relax
+participation_rate = float('inf')
 
-size = 1
-Nx = 501
-
-n_start, n_end = 0, Nt
-L = 5
-m0 = 0.1
-D = 0.5
-metaorder_args = {
-    'metaorder': [m0],
-    'm0': m0,
-    'n_start': n_start,
-    'n_end': n_end,
-}
-
-dbook_args = {
-    'Nx': Nx,
-    'xmin': -size/10,
-    'xmax': size,
-    'initial_density': 'empty',
-    'L': L,
-    'n_relax': n_relax
-}
-
-cbook_args = {
-    'dt': T/float(Nt),
-    'D': D,
-    'L': L,
-    'Nx': Nx,
-    'xmin': -size,
-    'xmax': size
-}
-
-participation_rate = 1e7
 # Run
 model_type = 'continuous'
 # model_type = 'discrete'
-standard_args = standard_parameters(participation_rate, model_type, Nx=10001)
-print(standard_args)
-args_path = os.path.join('..', 'presets', 'low', 'continuous.json')
-with open(args_path, 'r') as args_file:
-    json_args = json.load(args_file)
+standard_args = standard_parameters(participation_rate, model_type)
+print(f'Standard arguments : {standard_args}')
 
-book_args = dbook_args if model_type == 'discrete' else cbook_args
-args = {'Nt': Nt,
-        'T': T,
-        'book_args': book_args,
-        'metaorder_args': metaorder_args,
-        'model_type': model_type,
-        'price_formula': 'vwap'}
-
-# simulation = Simulation(**args)
-# simulation = Simulation(**json_args)
 simulation = Simulation(**standard_args)
 
 
