@@ -17,7 +17,7 @@ Nx = 5001
 n_start, n_end = 0, Nt
 L = 200
 m0 = 1
-D = 0.25 
+D = 0.25
 metaorder_args = {
     'metaorder': [m0],
     'm0': m0,
