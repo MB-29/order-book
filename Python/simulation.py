@@ -43,8 +43,8 @@ class Simulation:
         self.Nt = kwargs.get('Nt', 100)
         self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
-        self.n_relax = kwargs.get('n_relax', 1)
-        self.dt = self.tstep / self.n_relax
+        self.obs_rate = kwargs.get('obs_rate', 1)
+        self.dt = self.tstep / self.obs_rate
 
         # Space
         self.xmin = kwargs.get('xmin', -1)
@@ -65,7 +65,7 @@ class Simulation:
                      'D': self.D,
                      'dt': self.dt}
         if model_type == 'discrete':
-            book_args['n_relax'] = self.n_relax
+            book_args['n_relax'] = max(int(self.obs_rate), 1)
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
@@ -298,7 +298,7 @@ class Simulation:
                         T = {self.T},
                         Nt = {self.Nt},
                         tstep = {self.tstep:.1e},
-                        n_relax = {self.n_relax:.1e}.,
+                        obs_rate = {self.obs_rate:.1e}.,
                         dt = {self.dt:.1e}.
 
         Space parameters :
@@ -339,9 +339,10 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
     if r == float('inf'):
         D = 0
         m0 = 1
-    if r >= 1:
+    elif r >= 1:
         m0 = (L * X) / (5 * T)
-        D = m0 / (L*participation_rate)
+        D = m0 / (L*r)
+        print(f'D = {D}')
         price_formula = 'best_ask'
     elif r > 0.5:
         price_formula = 'vwap'
@@ -352,7 +353,7 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         D = boundary_dist**2 / (2 * T)
         m0 = L * D * participation_rate
     dt = dx * dx / (2 * D) if D != 0 else float('inf')
-    n_relax = max(int(tstep / dt), 1) if dt < float('inf') else 0
+    obs_rate = tstep / dt
     simulation_args = {
         "model_type": model_type,
         "T": T,
@@ -366,9 +367,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "metaorder": [m0]
     }
     if model_type == 'discrete':
-        simulation_args['n_relax'] = n_relax
-        if r < 1 and n_relax < 100:
+        simulation_args['obs_rate'] = obs_rate
+        if r < 1 and obs_rate < 100:
             warnings.warn(
-                f'Low number of diffusion steps {n_relax} < 100, try increasing price interval')
+                f'Low number of diffusion steps {obs_rate} < 100, try increasing price interval')
 
     return simulation_args

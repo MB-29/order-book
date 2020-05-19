@@ -38,13 +38,6 @@ class ContinuousBook:
         self.J = D * L
         self.resolution_volume = L * (self.dx)**2
 
-        # Set prices
-        # self.best_bid_index = Nx//2
-        # self.best_ask_index = Nx//2 + 1
-        # self.best_bid = 0
-        # self.best_ask = self.X[self.best_ask_index]
-        self.dq = 0
-
         # Density function
         if self.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
@@ -55,6 +48,9 @@ class ContinuousBook:
         # +1 / -1 ensure corresponding volume isn't partially consumed
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
+        
+        # Metaorder
+        self.dq = 0
 
     def initial_density(self, x):
         return -self.L * x
@@ -122,8 +118,9 @@ class ContinuousBook:
 
         self.execute_metaorder(self.dq)
         # Update density values with one iteration of the numerical scheme
-        self.density = theta_scheme_iteration(
-            self.density, self.dx, self.dt, self.D, self.L)
+        if self.D != 0:
+            self.density = theta_scheme_iteration(
+                self.density, self.dx, self.dt, self.D, self.L)
         self.update_prices()
 
     # ================== ANIMATION ==================

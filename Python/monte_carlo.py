@@ -49,6 +49,8 @@ class MonteCarlo:
     def run(self):
         self.generate_noise()
         args = self.simulation_args
+        self.simulation = Simulation(**args)
+        print(self.simulation)
         for k in tqdm(range(self.N_samples)):
             args['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
@@ -112,4 +114,9 @@ class MonteCarlo:
     def gather_results(self):
 
         return {'mean': self.price_mean,
-                'variance': self.price_variance}
+                'variance': self.price_variance,
+                'sigma': self.sigma,
+                'N_samples': self.N_samples,
+                'm0': self.m0,
+                'hurst': self.hurst,
+                'params': self.simulation_args}
