@@ -34,7 +34,7 @@ This part of the code aims at solving order density reaction-diffusion equation 
 
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 
-## Metaorder
+<!-- ## Metaorder
 A metaorder is defined by a dictionary of parameters of the form
 ```python
 metaorder_args = {
@@ -43,7 +43,7 @@ metaorder_args = {
     'n_start' : n_start,
     'n_end' : n_end
 }
-```
+``` -->
 
 ## Run a sample simulation
 Set parameters in `run.py` then run
@@ -60,7 +60,7 @@ Function `standard_parameters` from `simulation.py` returns a dictionary of 'sta
 
 ## Run a Monte Carlo simulation with a noisy meta-order
 
-Perform a Monte Carlo simulation with an instance of class `MonteCarl`from `monte_carlo.py`.
+Perform a Monte Carlo simulation with an instance of class `MonteCarlo` from `monte_carlo.py`.
 
 ```Python
 noisy_simulation = MonteCarlo(N_samples, noise_args, simulation_args)

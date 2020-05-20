@@ -16,18 +16,10 @@ class Simulation:
         """
 
         Arguments:
-            book_args {dictionary} -- Arguments for the instance of order book.
-            T {float} -- Time horizon
-            Nt {int} -- Number of time steps
-            metaorder_args {dictionary} -- Sets metaorder variables.
-            Metaorder trading intensity is defined by key 'metaorder' whose value
-            must be an array either of size 1, in which case it stands for the value of a constant
-            metaorder, or of size Nt.
-            Key 'm0' denotes the temporal mean of the metaorder.
-            Keys 'n_start' and 'n_end' set the start and end steps.
-
-        Keyword Arguments:
-            model_type {str} -- 'discrete' or 'continuous' (default: 'discrete')
+            model_type {str} -- 'discrete' or 'continuous' 
+            metaorder {array} -- Meta-order intensity values.
+                                An array of size 1 will be converted into a
+                                constant meta-order with the corresponding value.
         """
 
         # Model type
@@ -278,7 +270,6 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-
         self.book.dq = self.metaorder[n] * self.tstep
         self.best_asks[n] = self.book.best_ask
         self.best_bids[n] = self.book.best_bid
@@ -340,7 +331,7 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
     if r == float('inf'):
         price_formula = side_formula
         D = 0
-        m0 = 1
+        m0 = (L * X) / (5 * T)
     elif r >= 1:
         m0 = (L * X) / (5 * T)
         D = m0 / (L*r)
