@@ -335,7 +335,6 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
     elif r >= 1:
         m0 = (L * X) / (5 * T)
         D = m0 / (L*r)
-        print(f'D = {D}')
         price_formula = side_formula
     elif r > 0.5:
         price_formula = 'vwap'
