@@ -14,7 +14,7 @@ class MonteCarlo:
         """
         Arguments:
             N_samples {int} -- number of samples
-            noise_args {dictionary} -- {'sigma' : noise size, 'hurst' : hurst exponent}
+            noise_args {dictionary} -- {'m0' : noise mean, sigma' : noise size, 'hurst' : hurst exponent}
             simulation_args {dictionary} -- see class Simulation
         """
 

@@ -57,7 +57,7 @@ class Simulation:
                      'D': self.D,
                      'dt': self.dt}
         if model_type == 'discrete':
-            book_args['n_relax'] = max(int(self.obs_rate), 1)
+            book_args['obs_rate'] = self.obs_rate
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
         self.dx = self.book.dx
@@ -360,9 +360,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "metaorder": [m0]
     }
     if model_type == 'discrete':
-        simulation_args['obs_rate'] = obs_rate
         if r < 1 and obs_rate < 100:
             warnings.warn(
                 f'Low number of diffusion steps {obs_rate} < 100, try increasing price interval')
+        simulation_args['obs_rate'] = obs_rate
 
     return simulation_args

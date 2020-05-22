@@ -15,7 +15,7 @@ class DiscreteBook:
 
         self.xmin = self.order_args['xmin']
         self.xmax = self.order_args['xmax']
-        self.n_relax = self.order_args['n_relax']
+        self.obs_rate = self.order_args['obs_rate']
         self.Nx = self.order_args['Nx']
         self.X, self.dx = np.linspace(self.xmin, self.xmax, num=self.Nx, retstep=True)
         self.dt = self.order_args['dt']
@@ -44,7 +44,7 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
-
+        self.n_relax = int(self.obs_rate)
         self.execute_metaorder(self.dq)
         for t in range(self.n_relax):
             self.stochastic_timestep()
@@ -107,9 +107,9 @@ class DiscreteBook:
         self.volume_ax.plot([0, 0], [
             -y_max, y_max], color='black', lw=0.5, ls='dashed')
         self.ask_bars = self.volume_ax.bar(
-            self.X, self.ask_orders.volumes, label='Ask', color='blue', width=0.1, animated='True')
+            self.X, self.ask_orders.volumes, align='edge', label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
-            self.X, self.bid_orders.volumes, label='Bid', color='red', width=0.1, animated='True')
+            self.X, self.bid_orders.volumes, align='edge', label='Bid', color='red', width=-0.1, animated='True')
         self.best_ask_axis, = self.volume_ax.plot(
             [], [], color='blue', ls='dashed', lw=1, label='best ask')
         self.best_bid_axis, = self.volume_ax.plot(
