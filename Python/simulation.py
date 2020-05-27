@@ -221,7 +221,6 @@ class Simulation:
         Arguments:
             fig {pyplot figure} -- The figure the animation is displayed in
         """
-        save = False
         self.set_animation(fig)
         self.animation = FuncAnimation(
             fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
@@ -229,7 +228,7 @@ class Simulation:
             Writer = writers['ffmpeg']
             writer = Writer(fps=15, metadata=dict(
                 artist='Me'), bitrate=1800)
-            self.animation.save('animation.mp4', writer=writer)
+            self.animation.save('../animation.mp4', writer=writer)
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
