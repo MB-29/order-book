@@ -34,16 +34,30 @@ This part of the code aims at solving order density reaction-diffusion equation 
 
 Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
 
-<!-- ## Metaorder
-A metaorder is defined by a dictionary of parameters of the form
+## Simulation parameters
+
+An instance of class `Simulation` is created with the following arguments
 ```python
-metaorder_args = {
-    'metaorder' : [m0],
-    'm0' : m0,
-    'n_start' : n_start,
-    'n_end' : n_end
+{
+	"model_type": model_type,
+	"T": T,
+	"Nt": Nt,
+	"price_formula": price_formula,
+	"Nx": Nx,
+	"xmin": xmin,
+	"xmax": xmax,
+	"L": L,
+	"D": D,
+	"metaorder": [m0],
+	"n_start" : n_start,
+	"n_end" : n_end.
 }
-``` -->
+```
+
+Class `Simulation` provides a function `standard_parameters` that generates standard parameters given a participation rate and a model type.
+
+## Meta-orders
+Input meta-order by setting the field `metaorder` in the previous parameters with an array. The array may either be of size Nt, or of size one, in which case its value is understood as that of a constant metaoroder.
 
 ## Run a sample simulation
 Set parameters in `run.py` then run
@@ -71,11 +85,8 @@ output = noisy_simulation.gather_results()
 ## Output
 
 ### Discrete book animation
-![Discrete book animation](demo/histogram.gif)
-### Price evolution
-![Price impact vs theory](demo/vs_theory.png)
-### Noisy meta-order
-![Noisy meta-order](demo/monte_carlo.png)
+![Discrete book animation](demo/medium_participation.gif)
+
 
 ## Requirements
 * Python 3
