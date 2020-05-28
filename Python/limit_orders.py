@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit, int64, float64
 
 
 class LimitOrders:
@@ -48,15 +49,6 @@ class LimitOrders:
         self.set_boundary_conditions(boundary_conditions)
 
     def initialize_volumes(self, initial_density):
-
-        # Initialize price
-        # initial_price_index_dic = {
-        #     'stationary': self.Nx//2,
-        #     'linear': self.Nx//2,
-        #     'empty': self.boundary_index % self.Nx
-        # }
-        # self.best_price_index = initial_price_index_dic.get(initial_density)
-        # self.best_price = self.X[self.best_price_index]
 
         # Initialize volume
         self.volumes = np.zeros(self.Nx, dtype=int)
@@ -153,21 +145,22 @@ class LimitOrders:
 
         # 2D array where rows correspond to the price range, and column are respectively
         # the number of jumps left and jumps right
-        jumps = np.zeros((self.Nx, 2), dtype=int)
-        for index, order_volume in enumerate(self.volumes):
-            jumps_left = np.random.binomial(order_volume, 0.5)
-            jumps[index, :] = [jumps_left, order_volume - jumps_left]
+        # jumps = np.zeros((self.Nx, 2), dtype=int)
+        # for index, order_volume in enumerate(self.volumes):
+        #     jumps_left = np.random.binomial(order_volume, 0.5)
+        #     jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
-        boundary_volume = self.volumes[self.boundary_index] + \
-            self.boundary_flow * (self.dx)**2
-        boundary_jumps = np.random.binomial(boundary_volume, 0.5)
+        # boundary_volume = self.volumes[self.boundary_index] + \
+        #     self.boundary_flow * (self.dx)**2
+        # boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
-        # Set boundary flow
-        boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
-        boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
-        jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
-        jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
-        flow = jumps_right - jumps_left
+        # # Set boundary flow
+        # boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
+        # boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
+        # jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
+        # jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
+        # flow = jumps_right - jumps_left
+        flow = get_flow(self.volumes, self.dx, self.boundary_index, self.boundary_flow)
         # flow[n] is the algebraic number of particles crossing from n-1 to n
 
         # update volumes : dV/dt = -dj/dx
@@ -230,3 +223,25 @@ class LimitOrders:
         lower = min(self.best_price_index, price_index)
         upper = max(self.best_price_index, price_index)
         return np.sum(self.volumes[lower: upper+1])
+
+
+@njit((int64[:], float64, int64, float64))
+def get_flow(volumes, dx, boundary_index, boundary_flow):
+    Nx = len(volumes)
+    # 2D array where rows correspond to the price range, and column are respectively
+    # the number of jumps left and jumps right
+    jumps = np.zeros((Nx, 2), dtype=int64)
+    for index, order_volume in enumerate(volumes):
+        jumps_left = np.random.binomial(order_volume, 0.5)
+        jumps[index, :] = [jumps_left, order_volume - jumps_left]
+
+    boundary_volume = volumes[boundary_index] + boundary_flow * (dx)**2
+    boundary_jumps = np.random.binomial(boundary_volume, 0.5)
+
+    # Set boundary flow
+    boundary_jumps_left = boundary_jumps if boundary_index == -1 else 0
+    boundary_jumps_right = boundary_jumps if boundary_index == 0 else 0
+    jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
+    jumps_right = np.concatenate( (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]) )
+    return jumps_right - jumps_left
+    # flow[n] is the algebraic number of particles crossing from n-1 to n

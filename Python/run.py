@@ -3,10 +3,11 @@ import numpy as np
 import json
 import os
 from fbm import fgn
+import time 
 
 from simulation import Simulation, standard_parameters
 
-participation_rate = 1e5
+participation_rate = 1e2
 
 # Run
 model_type = 'continuous'
@@ -26,7 +27,10 @@ simulation = Simulation(**standard_args)
 print(simulation)
 
 fig = plt.figure(figsize=(12, 6))
-simulation.run(animation=True, fig=fig)
+tic = time.perf_counter()
+simulation.run(animation=False, fig=fig)
+toc = time.perf_counter()
+print(f'Execution time : {toc - tic}')
 plt.show()
 
 fig2 = plt.figure(figsize=(10, 6))
