@@ -5,7 +5,7 @@ class LimitOrders:
     """Orders of one side - bid or ask - with their volume depending on the price and stochastic dynamics.
     """
 
-    def __init__(self, dt, lambd, nu, side, lower_bound, upper_bound, Nx=1000, L=None, **kwargs):
+    def __init__(self, dt, lambd, nu, side, xmin, xmax, Nx=1000, L=None, **kwargs):
         """
 
         Arguments:
@@ -15,18 +15,18 @@ class LimitOrders:
             side {string} -- Either 'BID' or ASK'
 
         Keyword Arguments:
-            lower_bound {float} -- Price interval lower bound
-            upper_bound {float} -- Price interval upper bound
+            xmin {float} -- Price interval lower bound
+            xmax {float} -- Price interval upper bound
             Nx {int} -- Number of space (price) subintervals
         """
 
         # Structural constants
         self.Nx = Nx
+        self.dx = (xmax - xmin)/float(Nx)
+        self.X = np.linspace(xmin, xmax, num=Nx)
+        self.xmin = xmin
+        self.xmax = xmax
         self.dt = dt
-        self.dx = (upper_bound - lower_bound)/float(Nx)
-        self.X = np.linspace(lower_bound, upper_bound, num=Nx)
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
 
         initial_density = kwargs.get('initial_density', 'stationary')
         boundary_conditions = kwargs.get('boundary_conditions', 'flat')
@@ -50,13 +50,13 @@ class LimitOrders:
     def initialize_volumes(self, initial_density):
 
         # Initialize price
-        initial_price_index_dic = {
-            'stationary': self.Nx//2,
-            'linear': self.Nx//2,
-            'empty': self.boundary_index % self.Nx
-        }
-        self.best_price_index = initial_price_index_dic.get(initial_density)
-        self.best_price = self.X[self.best_price_index]
+        # initial_price_index_dic = {
+        #     'stationary': self.Nx//2,
+        #     'linear': self.Nx//2,
+        #     'empty': self.boundary_index % self.Nx
+        # }
+        # self.best_price_index = initial_price_index_dic.get(initial_density)
+        # self.best_price = self.X[self.best_price_index]
 
         # Initialize volume
         self.volumes = np.zeros(self.Nx, dtype=int)
@@ -71,6 +71,7 @@ class LimitOrders:
         self.volumes = volumes_function(self.X)
 
         self.total_volume = np.sum(self.volumes)
+        self.update_best_price()
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):

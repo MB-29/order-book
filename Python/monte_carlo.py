@@ -14,7 +14,7 @@ class MonteCarlo:
         """
         Arguments:
             N_samples {int} -- number of samples
-            noise_args {dictionary} -- {'sigma' : noise size, 'hurst' : hurst exponent}
+            noise_args {dictionary} -- {'m0' : noise mean, sigma' : noise size, 'hurst' : hurst exponent}
             simulation_args {dictionary} -- see class Simulation
         """
 
@@ -49,8 +49,10 @@ class MonteCarlo:
     def run(self):
         self.generate_noise()
         args = self.simulation_args
+        self.simulation = Simulation(**args)
+        print(self.simulation)
         for k in tqdm(range(self.N_samples)):
-            args['metaorder_args']['metaorder'] = self.noisy_metaorders[:, k]
+            args['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
@@ -112,4 +114,9 @@ class MonteCarlo:
     def gather_results(self):
 
         return {'mean': self.price_mean,
-                'variance': self.price_variance}
+                'variance': self.price_variance,
+                'sigma': self.sigma,
+                'N_samples': self.N_samples,
+                'm0': self.m0,
+                'hurst': self.hurst,
+                'params': self.simulation_args}
