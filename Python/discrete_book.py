@@ -77,12 +77,11 @@ class DiscreteBook:
         best_bid_index = self.bid_orders.best_price_index
         if best_ask_index > best_bid_index:
             return
-
-        # Tradable orders are those in price range [best_ask, best_bid]
-        traded_volume = min(self.ask_orders.get_available_volume(
-            best_bid_index), self.bid_orders.get_available_volume(best_ask_index))
+        
+        executed_volumes = np.minimum(self.ask_orders.volumes, self.bid_orders.volumes)
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.consume_best_orders(traded_volume)
+            orders.volumes -= executed_volumes
+            orders.total_volume -= executed_volumes.sum()
 
     # ------------------ Metaorder ------------------
 
