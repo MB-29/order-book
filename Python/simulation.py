@@ -23,11 +23,7 @@ class Simulation:
 
         # Model type
         assert model_type in ['discrete', 'continuous']
-
-        model_choice = {
-            'discrete': LinearDiscreteBook,
-            'continuous': ContinuousBook
-        }
+        self.model_type = model_type
 
         # Time
         self.T = kwargs.get('T', 1)
@@ -43,24 +39,6 @@ class Simulation:
         self.dx = self.price_range / self.Nx
         self.boundary_distance = min(abs(self.xmin), self.xmax)
 
-        # Order Book
-        self.L = kwargs.get('L', 1e4)
-        self.D = kwargs['D']
-        book_args = {'xmin': self.xmin,
-                     'xmax': self.xmax,
-                     'Nx': self.Nx,
-                     'L': self.L,
-                     'D': self.D,
-                     'dt': self.dt}
-        # Allow a certain number of timesteps for he Smoluchowski random walk
-        # to reach diffusion : impose n_diff such that
-        # D = dx**2 / (dt / n_diff)
-        if model_type == 'discrete':
-            self.n_diff = int(self.dt * self. D/ (self.dx)**2)
-            book_args['n_diff'] = self.n_diff
-        self.book = model_choice.get(model_type)(**book_args)
-        self.J = self.book.J
-
         # Prices
         self.asks = np.zeros(self.Nt)
         self.bids = np.zeros(self.Nt)
@@ -74,6 +52,7 @@ class Simulation:
             'vwap': lambda a, b: self.compute_vwap(a, b)
         }
         self.compute_price = price_formula_choice[self.price_formula]
+
 
         # Meta-order
         self.n_start = kwargs.get('n_start', 0)
@@ -92,9 +71,39 @@ class Simulation:
         self.t_end = self.n_end * self.dt
         self.time_interval_shifted = self.time_interval-self.t_start
 
+        self.set_order_book(model_type, kwargs)
+        self.theoretical_values()
+
+    def set_order_book(self, model_type, arg_dic):
+
+        model_choice = {
+            'discrete': LinearDiscreteBook,
+            'continuous': ContinuousBook
+        }
+
+        # Order Book
+        self.D = arg_dic['D']
+        self.L = arg_dic.get('L', 1e4)
+        self.J = self.D * self.L
+        book_args = {'xmin': self.xmin,
+                     'xmax': self.xmax,
+                     'Nx': self.Nx,
+                     'L': self.L,
+                     'D': self.D,
+                     'dt': self.dt}
+        # Allow a certain number of timesteps for the Smoluchowski random walk
+        # to reach diffusion : impose n_diff such that
+        # D = dx**2 / (dt / n_diff)
+        if model_type == 'discrete':
+            self.n_diff = int(self.dt * self. D/ (self.dx)**2)
+            book_args['n_diff'] = self.n_diff
+        self.book = model_choice.get(model_type)(**book_args)
+
+
+    def theoretical_values(self):
         # Theoretical values
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
-        self.infinity_density = self.book.L * self.book.xmax
+        self.infinity_density = self.L * self.xmax
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/self.L)
         self.density_shift_th = np.sqrt(
             abs(self.m0)*self.T*self.L)  # impact_th * L
@@ -110,7 +119,7 @@ class Simulation:
         self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
-        if model_type == 'discrete':
+        if self.model_type == 'discrete':
             if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
                     f'Low number of diffusion steps {self.n_diff} < 100,'
