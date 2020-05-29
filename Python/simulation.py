@@ -32,10 +32,8 @@ class Simulation:
         # Time
         self.T = kwargs.get('T', 1)
         self.Nt = kwargs.get('Nt', 100)
-        self.time_interval, self.tstep = np.linspace(
+        self.time_interval, self.dt = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
-        self.obs_rate = kwargs.get('obs_rate', 1)
-        self.dt = self.tstep / self.obs_rate
 
         # Space
         self.xmin = kwargs.get('xmin', -1)
@@ -47,20 +45,21 @@ class Simulation:
 
         # Order Book
         self.L = kwargs.get('L', 1e4)
-        # In the case of a discrete simulation, diffusion constant is that of a Smoluchowski random walk
-        self.D = kwargs.get(
-            'D', 0.1) if model_type == 'continuous' else self.dx**2/(2*self.dt)
+        self.D = kwargs['D']
         book_args = {'xmin': self.xmin,
                      'xmax': self.xmax,
                      'Nx': self.Nx,
                      'L': self.L,
                      'D': self.D,
                      'dt': self.dt}
+        # Allow a certain number of timesteps for he Smoluchowski random walk
+        # to reach diffusion : impose n_diff such that
+        # D = dx**2 / (dt / n_diff)
         if model_type == 'discrete':
-            book_args['obs_rate'] = self.obs_rate
+            self.n_diff = int(self.dt * self. D/ (self.dx)**2)
+            book_args['n_diff'] = self.n_diff
         self.book = model_choice.get(model_type)(**book_args)
         self.J = self.book.J
-        self.dx = self.book.dx
 
         # Prices
         self.best_asks = np.zeros(self.Nt)
@@ -75,8 +74,8 @@ class Simulation:
             'vwap': lambda a, b: self.compute_vwap(a, b)
         }
         self.compute_price = price_formula_choice[self.price_formula]
-        
-        # Metaorder
+
+        # Meta-order
         self.n_start = kwargs.get('n_start', 0)
         self.n_end = kwargs.get('n_end', self.Nt)
 
@@ -89,8 +88,8 @@ class Simulation:
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
-        self.t_start = self.n_start * self.tstep
-        self.t_end = self.n_end * self.tstep
+        self.t_start = self.n_start * self.dt
+        self.t_end = self.n_end * self.dt
         self.time_interval_shifted = self.time_interval-self.t_start
 
         # Theoretical values
@@ -102,7 +101,7 @@ class Simulation:
         self.participation_rate = self.m0 / \
             (self.D * self.L) if self.D*self.L != 0 else float("inf")
         self.r = abs(self.participation_rate)
-        self.alpha = self.D * self.tstep / (self.dx * self.dx)
+        self.alpha = self.D * self.dt / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
 
@@ -112,17 +111,17 @@ class Simulation:
 
         # Warnings and errors
         if model_type == 'discrete':
-            if self.r < 1 and self.obs_rate < 100:
+            if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
-                    f'Low number of diffusion steps {self.obs_rate} < 100,'
+                    f'Low number of diffusion steps {self.n_diff} < 100,'
                     'try increasing spatial resolution.')
-            if self.obs_rate < 1 and self.r < float('inf'):
+            if self.n_diff < 1 and self.r < float('inf'):
                 raise ValueError(
                     'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
                     'Try decreasing participation rate')
-            if self.obs_rate > 200:
+            if self.n_diff > 200:
                 raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.obs_rate)}.')
+                    f'Many diffusion steps : ~ {int(self.n_diff)}.')
 
     def compute_vwap(self, best_ask, best_bid):
         return (abs(self.book.best_ask_volume) * best_ask
@@ -144,7 +143,7 @@ class Simulation:
 
         for n in range(self.Nt):
             # Update metaorder intensity
-            self.book.dq = self.metaorder[n] * self.tstep
+            self.book.dq = self.metaorder[n] * self.dt
             self.best_asks[n] = self.book.best_ask
             self.best_bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
@@ -158,7 +157,8 @@ class Simulation:
         """
         A = self.m0/(self.book.L*np.sqrt(self.D * np.pi)
                      ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
-        growth = A * np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
+        growth = A * \
+            np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
         return growth
         # self.growth_th_low = self.prices[self.n_start] + self.A_low * \
         #     np.sqrt(
@@ -222,7 +222,7 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        self.book.dq = self.metaorder[n] * self.tstep
+        self.book.dq = self.metaorder[n] * self.dt
         self.best_asks[n] = self.book.best_ask
         self.best_bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
@@ -240,8 +240,8 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
-                        tstep = {self.tstep:.1e},
-                        obs_rate = {self.obs_rate:.1e}.,
+                        dt = {self.dt:.1e},
+                        n_diff = {self.n_diff:.1e}.,
                         dt = {self.dt:.1e}.
 
         Space parameters :
@@ -256,7 +256,7 @@ class Simulation:
 
         Metaorder:
                         m0 = {self.m0:.1e},
-                        dq = {self.m0 * self.tstep:.1e}.
+                        dq = {self.m0 * self.dt:.1e}.
                         n_start, n_end = ({self.n_start}, {self.n_end}).
 
         Theoretical values:
@@ -280,7 +280,7 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         model_type {string} -- 'discrete' or 'continuous'
 
     """
-    tstep = T / Nt
+    dt = T / Nt
     r = abs(participation_rate)
     if Nx == None:
         Nx = 5001 if model_type == 'continuous' else 501
@@ -293,7 +293,7 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         price_formula = side_formula
         D = 0
         m0 = (L * X) / (5 * T)
-    elif r >= 1:
+    elif r >= 5:
         m0 = (L * X) / (5 * T)
         D = m0 / (L*r)
         price_formula = side_formula
@@ -306,9 +306,6 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         D = boundary_dist**2 / (2 * T)
         m0 = L * D * participation_rate
 
-    # Ensures diffusion constant is consistent with that of Smoluchowski random walk
-    dt = dx * dx / (2 * D) if D != 0 else float('inf')
-    obs_rate = tstep / dt
     simulation_args = {
         "model_type": model_type,
         "T": T,
@@ -321,6 +318,4 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "D": D,
         "metaorder": [m0]
     }
-    if model_type == 'discrete':
-        simulation_args['obs_rate'] = obs_rate
     return simulation_args

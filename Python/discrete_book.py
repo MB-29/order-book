@@ -4,7 +4,7 @@ from limit_orders import LimitOrders
 
 
 class DiscreteBook:
-    """Models an order book in the framework of LLOB agent model.
+    """Models an order book in the framework of Latent Order Book agent model.
     """
 
     def __init__(self, **order_args):
@@ -15,10 +15,9 @@ class DiscreteBook:
 
         self.xmin = self.order_args['xmin']
         self.xmax = self.order_args['xmax']
-        self.obs_rate = self.order_args['obs_rate']
+        self.n_diff = self.order_args['n_diff']
         self.Nx = self.order_args['Nx']
         self.X, self.dx = np.linspace(self.xmin, self.xmax, num=self.Nx, retstep=True)
-        self.dt = self.order_args['dt']
         self.lambd = self.order_args['lambd']
         self.nu = self.order_args['nu']
         self.D = self.order_args['D']
@@ -43,9 +42,8 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
-        self.n_relax = int(self.obs_rate)
         self.execute_metaorder(self.dq)
-        for t in range(self.n_relax):
+        for n in range(self.n_diff):
             self.stochastic_timestep()
             self.order_reaction()
             self.update_price()
