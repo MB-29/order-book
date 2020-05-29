@@ -161,6 +161,7 @@ class LimitOrders:
             indices = [self.boundary_index]
         self.best_price_index = indices[end_index]
         self.best_price = self.X[self.best_price_index]
+        self.best_price_volume = self.volumes[self.best_price_index]
         return self.best_price_index
 
     def consume_best_orders(self, volume):
