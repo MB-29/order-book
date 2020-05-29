@@ -79,7 +79,7 @@ class Simulation:
         # Metaorder
         self.n_start = kwargs.get('n_start', 0)
         self.n_end = kwargs.get('n_end', self.Nt)
-        
+
         if len(metaorder) == 1:
             self.m0 = metaorder[0]
             self.metaorder = np.zeros(self.Nt)
@@ -106,8 +106,8 @@ class Simulation:
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
 
-        # Plot
-        self.parameters_string = fr'$m_0={self.m0:.2e}$, $J={self.J:.2f}$, d$t={self.dt:.2e}$'
+        # Strings
+        self.parameters_string = fr'$m_0={self.m0:.2e}$, $J={self.J:.2f}$, d$t={self.dt:.2e}$ '
         self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
@@ -166,74 +166,6 @@ class Simulation:
         # self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
         #     self.time_interval_shifted[self.n_start:self.n_end])
         # self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
-
-    # ================== PLOTS ==================
-
-    def plot_price(self, ax, symlog=False, low=False, high=False):
-        """
-
-        Arguments:
-            ax {matplotlib ax} --
-
-        Keyword Arguments:
-            symlog {bool} -- Use symlog scale (default: {False})
-            low {bool} -- Plot low participation regime theoretical impact (default: {False})
-            high {bool} -- Plot high participation regime theoretical impact (default: {False})
-        """
-
-        # Lines
-        ax.plot(self.time_interval_shifted,
-                self.prices, label=f'price ({self.price_formula})', color='yellow')
-        ax.plot(self.time_interval_shifted,
-                self.best_asks, label='best ask', color='blue', ls='--')
-        ax.plot(self.time_interval_shifted,
-                self.best_bids, label='best bid', color='red', ls='--')
-        if low:
-            ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
-                    self.growth_th_low, label='low regime', lw=1, color='green')
-        if high:
-            ax.plot(self.time_interval_shifted[self.n_start:self.n_end],
-                    self.growth_th_high, label='high regime', lw=1, color='magenta')
-
-        # Scale
-        if symlog:
-            ax.set_yscale('symlog', linthreshy=1e-1)
-            ax.set_xscale('symlog', linthreshx=self.tstep)
-
-        ax.legend(loc='lower right')
-        ax.set_title(self.parameters_string)
-
-        return ax
-
-    def plot_err(self, ax, relative=False, symlog=False):
-        """
-
-        Arguments:
-            ax {matplotlib ax} --
-
-        Keyword Arguments:
-            relative {bool} -- Plot relative error
-            symlog {bool} -- Use symlog scale (default: {False})
-        """
-        self.growth_error_abs = self.prices[self.n_start:self.n_end] - \
-            self.growth_th
-
-        self.growth_error_rel = self.growth_error_abs/self.growth_th
-        self.growth_error = self.growth_error_rel if relative else self.growth_error_abs
-        # Curves
-        label = 'relative error' if relative else 'absolute error'
-        ax.plot(self.time_interval_shifted[self.n_start: self.n_end],
-                self.growth_error, label=label)
-
-        # Scale
-        if symlog:
-            ax.set_yscale('symlog', linthreshy=1e-1)
-            ax.set_xscale('symlog', linthreshx=self.tstep)
-
-        ax.legend(loc='lower right')
-        ax.set_title('Error')
-
-        return ax
 
     # ================== ANIMATION ==================
 

@@ -44,7 +44,8 @@ class MonteCarlo:
         self.scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
         self.noisy_metaorders = self.m0 + self.scale * self.noise
         print(
-            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
+            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} '
+            'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
         self.generate_noise()
@@ -58,58 +59,10 @@ class MonteCarlo:
             self.price_samples[:, k] = self.simulation.prices
 
         self.compute_statistics()
-        self.compute_theory()
 
     def compute_statistics(self):
         self.price_mean = self.price_samples.mean(axis=1)
         self.price_variance = self.price_samples.var(axis=1)
-
-    def compute_theory(self):
-
-        self.growth_th_low = self.simulation.A_low * \
-            np.sqrt(
-                self.time_interval)
-        self.growth_th_high = self.simulation.A_high * \
-            np.sqrt(
-                self.time_interval)
-
-    def plot_price(self, ax, scale='linear', low=False, high=False):
-
-        # Lines
-        ax.plot(self.time_interval,
-                self.price_mean, label='mean price')
-
-        self.simulation.compute_theoretical_growth()
-        if low:
-            ax.plot(self.time_interval,
-                    self.growth_th_low, label='low regime', lw=1, color='green')
-        if high:
-            ax.plot(self.time_interval,
-                    self.growth_th_high + self.price_mean[0], label='high regime', lw=1, color='orange')
-
-        # Scale
-        ax.set_yscale(scale)
-        ax.set_xscale(scale)
-
-        ax.legend()
-        # ax.set_title('Price evolution')
-
-        return ax
-
-    def plot_variance(self, ax, scale='linear'):
-
-        # Lines
-        ax.plot(self.time_interval[10:],
-                self.price_variance[10:], label='price variance')
-
-        # Scale
-        ax.set_yscale(scale)
-        ax.set_xscale(scale)
-
-        ax.legend()
-        # ax.set_title('Variance evolution')
-
-        return ax
 
     def gather_results(self):
 
