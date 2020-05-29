@@ -5,8 +5,6 @@ import warnings
 from linear_discrete_book import LinearDiscreteBook
 from continuous_book import ContinuousBook
 
-# TODO record best ask and best bid instead of price ?
-
 
 class Simulation:
     """Implements a simulation of Latent Order Book time evolution.
@@ -20,6 +18,7 @@ class Simulation:
             metaorder {array} -- Meta-order intensity values.
                                 An array of size 1 will be converted into a
                                 constant meta-order with the corresponding value.
+            kwargs -- T, Nt, xmin, xmax, Nx, L, D, price_formula
         """
 
         # Model type
@@ -48,6 +47,7 @@ class Simulation:
 
         # Order Book
         self.L = kwargs.get('L', 1e4)
+        # In the case of a discrete simulation, diffusion constant is that of a Smoluchowski random walk
         self.D = kwargs.get(
             'D', 0.1) if model_type == 'continuous' else self.dx**2/(2*self.dt)
         book_args = {'xmin': self.xmin,
@@ -75,18 +75,20 @@ class Simulation:
             'vwap': lambda a, b: self.compute_vwap(a, b)
         }
         self.compute_price = price_formula_choice[self.price_formula]
-
+        
         # Metaorder
+        self.n_start = kwargs.get('n_start', 0)
+        self.n_end = kwargs.get('n_end', self.Nt)
+        
         if len(metaorder) == 1:
-            self.metaorder = np.full(self.Nt, metaorder)
             self.m0 = metaorder[0]
+            self.metaorder = np.zeros(self.Nt)
+            self.metaorder[self.n_start:self.n_end].fill(self.m0)
         else:
             assert len(metaorder) == self.Nt
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
-        self.n_start = kwargs.get('n_start', 0)
-        self.n_end = kwargs.get('n_end', self.Nt)
         self.t_start = self.n_start * self.tstep
         self.t_end = self.n_end * self.tstep
         self.time_interval_shifted = self.time_interval-self.t_start
@@ -97,17 +99,30 @@ class Simulation:
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/self.L)
         self.density_shift_th = np.sqrt(
             abs(self.m0)*self.T*self.L)  # impact_th * L
-        self.A_low = self.m0/(self.book.L*np.sqrt(self.D * np.pi))
-        self.A_high = np.sqrt(2)*np.sqrt(self.m0/self.L)
-        self.participation_rate = abs(self.m0) / \
+        self.participation_rate = self.m0 / \
             (self.D * self.L) if self.D*self.L != 0 else float("inf")
+        self.r = abs(self.participation_rate)
         self.alpha = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
-            abs(self.participation_rate)/(2*np.pi)) * self.impact_th
+            abs(self.r)/(2*np.pi)) * self.impact_th
 
         # Plot
         self.parameters_string = fr'$m_0={self.m0:.2e}$, $J={self.J:.2f}$, d$t={self.dt:.2e}$'
-        self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.participation_rate:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
+        self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
+
+        # Warnings and errors
+        if model_type == 'discrete':
+            if self.r < 1 and self.obs_rate < 100:
+                warnings.warn(
+                    f'Low number of diffusion steps {self.obs_rate} < 100,'
+                    'try increasing spatial resolution.')
+            if self.obs_rate < 1 and self.r < float('inf'):
+                raise ValueError(
+                    'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
+                    'Try decreasing participation rate')
+            if self.obs_rate > 200:
+                raise ValueError(
+                    f'Many diffusion steps : ~ {int(self.obs_rate)}.')
 
     def compute_vwap(self, best_ask, best_bid):
         return (abs(self.book.best_ask_volume) * best_ask
@@ -138,13 +153,19 @@ class Simulation:
 
     # ================== COMPUTATIONS ==================
 
-    def compute_theoretical_growth(self):
-        self.growth_th_low = self.prices[self.n_start] + self.A_low * \
-            np.sqrt(
-            self.time_interval_shifted[self.n_start:self.n_end])
-        self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
-            self.time_interval_shifted[self.n_start:self.n_end])
-        self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
+    def get_growth_th(self):
+        """Return theoretical price impact, starting from price 0
+        """
+        A = self.m0/(self.book.L*np.sqrt(self.D * np.pi)
+                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
+        growth = A * np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
+        return growth
+        # self.growth_th_low = self.prices[self.n_start] + self.A_low * \
+        #     np.sqrt(
+        #     self.time_interval_shifted[self.n_start:self.n_end])
+        # self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
+        #     self.time_interval_shifted[self.n_start:self.n_end])
+        # self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
 
     # ================== PLOTS ==================
 
@@ -234,8 +255,8 @@ class Simulation:
         """Create subplot axes, lines and texts
         """
         lims = {}
-        if self.participation_rate < 0.4:
-            lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
+        # if self.r < 0.4:
+        #     lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
 
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(1, 2, 2)
@@ -304,6 +325,7 @@ class Simulation:
         Metaorder:
                         m0 = {self.m0:.1e},
                         dq = {self.m0 * self.tstep:.1e}.
+                        n_start, n_end = ({self.n_start}, {self.n_end}).
 
         Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
@@ -318,6 +340,14 @@ class Simulation:
 
 
 def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=None, Nt=100):
+    """Returns standard argument dictionary for a Simulation instance for
+    a given participation rate and a model type
+
+    Arguments:
+        participation_rate {float} 
+        model_type {string} -- 'discrete' or 'continuous'
+
+    """
     tstep = T / Nt
     r = abs(participation_rate)
     if Nx == None:
@@ -343,6 +373,8 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         price_formula = 'vwap'
         D = boundary_dist**2 / (2 * T)
         m0 = L * D * participation_rate
+
+    # Ensures diffusion constant is consistent with that of Smoluchowski random walk
     dt = dx * dx / (2 * D) if D != 0 else float('inf')
     obs_rate = tstep / dt
     simulation_args = {
@@ -358,9 +390,5 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "metaorder": [m0]
     }
     if model_type == 'discrete':
-        if r < 1 and obs_rate < 100:
-            warnings.warn(
-                f'Low number of diffusion steps {obs_rate} < 100, try increasing price interval')
         simulation_args['obs_rate'] = obs_rate
-
     return simulation_args

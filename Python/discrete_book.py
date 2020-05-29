@@ -22,7 +22,6 @@ class DiscreteBook:
         self.lambd = self.order_args['lambd']
         self.nu = self.order_args['nu']
         self.D = self.order_args['D']
-        # self.D = (self.dx)**2/(2*self.dt)
 
         # Theoretical values
         self.L = self.order_args['L']
@@ -50,6 +49,7 @@ class DiscreteBook:
             self.stochastic_timestep()
             self.order_reaction()
             self.update_price()
+        self.update_price()
 
     def stochastic_timestep(self):
 
@@ -67,9 +67,6 @@ class DiscreteBook:
         self.best_bid = self.X[self.bid_orders.best_price_index + 1]
         self.best_ask_volume = self.ask_orders.volumes[self.ask_orders.best_price_index]
         self.best_bid_volume = self.bid_orders.volumes[self.bid_orders.best_price_index]
-        # self.price_index = (self.ask_orders.best_price_index +
-        #                     self.bid_orders.best_price_index)//2
-        # self.price = self.X[self.price_index]
 
     # ------------------ Reaction ------------------
 
