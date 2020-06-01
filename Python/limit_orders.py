@@ -14,10 +14,10 @@ class LimitOrders:
             lambd {float} -- Lambda parameter.
             nu {float} -- Nu parameter.
             side {string} -- Either 'BID' or ASK'
-
-        Keyword Arguments:
             xmin {float} -- Price interval lower bound
             xmax {float} -- Price interval upper bound
+
+        Keyword Arguments:
             Nx {int} -- Number of space (price) subintervals
         """
 

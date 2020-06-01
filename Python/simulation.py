@@ -3,7 +3,9 @@ from matplotlib.animation import FuncAnimation, writers
 import warnings
 
 from linear_discrete_book import LinearDiscreteBook
+from discrete_book import DiscreteBook
 from continuous_book import ContinuousBook
+from multi_discrete_book import MultiDiscreteBook
 
 
 class Simulation:
@@ -44,6 +46,15 @@ class Simulation:
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
 
+        # Orders
+        self.L = kwargs['L']
+        self.D = kwargs['D']
+        self.nu = kwargs.get('nu', 0)
+        self.lambd = self.L * np.sqrt(self.nu * self.D)
+        self.J = self.D * self.L
+        self.book = self.set_order_book(model_type)
+
+        # Price
         self.price_formula = kwargs.get('price_formula', 'middle')
         price_formula_choice = {
             'middle': lambda a, b: (a+b)/2,
@@ -52,7 +63,6 @@ class Simulation:
             'vwap': lambda a, b: self.compute_vwap(a, b)
         }
         self.compute_price = price_formula_choice[self.price_formula]
-
 
         # Meta-order
         self.n_start = kwargs.get('n_start', 0)
@@ -71,34 +81,58 @@ class Simulation:
         self.t_end = self.n_end * self.dt
         self.time_interval_shifted = self.time_interval-self.t_start
 
-        self.set_order_book(model_type, kwargs)
-        self.theoretical_values()
+        # self.theoretical_values()
 
-    def set_order_book(self, model_type, arg_dic):
-
-        model_choice = {
-            'discrete': LinearDiscreteBook,
-            'continuous': ContinuousBook
-        }
-
+    def set_order_book(self, model_type):
+        
         # Order Book
-        self.D = arg_dic['D']
-        self.L = arg_dic.get('L', 1e4)
-        self.J = self.D * self.L
         book_args = {'xmin': self.xmin,
                      'xmax': self.xmax,
                      'Nx': self.Nx,
+                     'dt': self.dt,
                      'L': self.L,
                      'D': self.D,
-                     'dt': self.dt}
+                     'lambd': self.lambd,
+                     'nu': self.nu
+                     }
         # Allow a certain number of timesteps for the Smoluchowski random walk
         # to reach diffusion : impose n_diff such that
         # D = dx**2 / (dt / n_diff)
+        self.n_diff = int(self.dt * self. D / (self.dx)**2)
         if model_type == 'discrete':
-            self.n_diff = int(self.dt * self. D/ (self.dx)**2)
             book_args['n_diff'] = self.n_diff
-        self.book = model_choice.get(model_type)(**book_args)
 
+        if not np.isscalar(self.L):
+            return MultiDiscreteBook(**book_args)
+
+        linear = (self.nu == 0)
+        model_name = 'linear_' + model_type if linear else model_type
+
+        model_choice = {
+            'discrete': DiscreteBook,
+            'linear_discrete': LinearDiscreteBook,
+            'linear_continuous': ContinuousBook,
+        }
+
+
+
+        return model_choice.get(model_name)(**book_args)
+
+    def set_multi_order_book(self, model_type, L_list, lambd_list, nu_list):
+
+        N_actors = len(L_list)
+        assert N_actors == len(
+            nu_list), 'Provide a consistent number of parameters.'
+        assert N_actors == len(
+            lambd_list), 'Provide a consistent number of parameters.'
+
+        book_list = []
+
+        for n in range(N_actors):
+            L = L_list[n]
+            lambd = lambd_list[n]
+            nu = nu_list[n]
+        return book_list
 
     def theoretical_values(self):
         # Theoretical values
@@ -108,14 +142,14 @@ class Simulation:
         self.density_shift_th = np.sqrt(
             abs(self.m0)*self.T*self.L)  # impact_th * L
         self.participation_rate = self.m0 / \
-            (self.D * self.L) if self.D*self.L != 0 else float("inf")
+            (self.D * self.L) if self.D != 0 else float("inf")
         self.r = abs(self.participation_rate)
         self.alpha = self.D * self.dt / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
 
         # Strings
-        self.parameters_string = fr'$m_0={self.m0:.2e}$, $J={self.J:.2f}$, d$t={self.dt:.2e}$ '
+        self.parameters_string = fr'$m_0={self.m0:.2e}$, d$t={self.dt:.2e}$ '
         self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
@@ -151,6 +185,7 @@ class Simulation:
             return
 
         for n in range(self.Nt):
+            print(n)
             # Update metaorder intensity
             self.book.dq = self.metaorder[n] * self.dt
             self.asks[n] = self.book.best_ask
@@ -211,11 +246,11 @@ class Simulation:
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
-        self.price_ax.set_ylim(
-            (- self.impact_th, 1.5 * self.impact_th))
+        # self.price_ax.set_ylim(
+        #     (- self.impact_th, 1.5 * self.impact_th))
         self.price_ax.set_xlim((0, self.T))
 
-        fig.suptitle(self.parameters_string + self.constant_string)
+        # fig.suptitle(self.parameters_string + self.constant_string)
 
     def init_animation(self):
         """Init function called by FuncAnimation
@@ -259,9 +294,9 @@ class Simulation:
                         dx = {self.dx:.1e}.
 
         Model constants:
-                        D = {self.book.D:.1e},
+                        D = {self.D:.1e},
                         J = {self.J:.1e},
-                        L = {self.book.L:.1e}.
+                        L = {self.L:.1e}.
 
         Metaorder:
                         m0 = {self.m0:.1e},
@@ -274,7 +309,7 @@ class Simulation:
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
                         boundary factor = {self.boundary_factor:.1e},
-                        first volume = {self.book.L * self.dx * self.dx:.1e},
+                        first volume = {self.L * self.dx * self.dx:.1e},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
                         """
         return string
@@ -323,8 +358,11 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "Nx": Nx,
         "xmin": xmin,
         "xmax": xmax,
-        "L": L,
+        # "L": L,
+        "L": np.array([L, 100*L]),
         "D": D,
-        "metaorder": [m0]
+        "metaorder": [m0],
+        # 'nu': 0
+        'nu': np.array([0, 0.01])
     }
     return simulation_args
