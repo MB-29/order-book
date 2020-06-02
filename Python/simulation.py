@@ -118,22 +118,6 @@ class Simulation:
 
         return model_choice.get(model_name)(**book_args)
 
-    def set_multi_order_book(self, model_type, L_list, lambd_list, nu_list):
-
-        N_actors = len(L_list)
-        assert N_actors == len(
-            nu_list), 'Provide a consistent number of parameters.'
-        assert N_actors == len(
-            lambd_list), 'Provide a consistent number of parameters.'
-
-        book_list = []
-
-        for n in range(N_actors):
-            L = L_list[n]
-            lambd = lambd_list[n]
-            nu = nu_list[n]
-        return book_list
-
     def theoretical_values(self):
         # Theoretical values
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
@@ -185,7 +169,6 @@ class Simulation:
             return
 
         for n in range(self.Nt):
-            print(n)
             # Update metaorder intensity
             self.book.dq = self.metaorder[n] * self.dt
             self.asks[n] = self.book.best_ask
@@ -248,6 +231,8 @@ class Simulation:
         self.price_ax.legend()
         # self.price_ax.set_ylim(
         #     (- self.impact_th, 1.5 * self.impact_th))
+        self.price_ax.set_ylim(
+            (self.xmin, self.xmax))
         self.price_ax.set_xlim((0, self.T))
 
         # fig.suptitle(self.parameters_string + self.constant_string)
@@ -358,11 +343,11 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "Nx": Nx,
         "xmin": xmin,
         "xmax": xmax,
-        # "L": L,
-        "L": np.array([L, 100*L]),
         "D": D,
         "metaorder": [m0],
+        # "L": L,
+        "L": np.array([L]),
         # 'nu': 0
-        'nu': np.array([0, 0.01])
+        'nu': np.array([0.1])
     }
     return simulation_args

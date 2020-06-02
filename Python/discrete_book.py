@@ -138,7 +138,7 @@ class DiscreteBook:
             a_bar.set_height(ask_vol)
             b_bar.set_height(bid_vol)
 
-        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
-        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
+        # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
+        # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
 
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]

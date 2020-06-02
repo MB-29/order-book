@@ -29,7 +29,7 @@ simulation = Simulation(**standard_args)
 
 fig = plt.figure(figsize=(12, 6))
 tic = time.perf_counter()
-simulation.run(animation=False, fig=fig, save=False)
+simulation.run(animation=True, fig=fig, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
 plt.show()
