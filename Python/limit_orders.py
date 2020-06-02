@@ -42,8 +42,7 @@ class LimitOrders:
         self.lambd = lambd
         self.nu = nu
         self.D = (self.dx)**2/(2*self.dt)
-        self.L = lambd / np.sqrt(nu * self.D) if not L else L
-        self.J = self.D * self.L
+        self.L = L
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
@@ -85,22 +84,18 @@ class LimitOrders:
 
     # ------------------ Stochastic evolution ------------------
 
-    def stochastic_timestep(self):
-        self.order_arrivals()
-        self.order_cancellation()
-        self.order_jumps()
-
     def order_arrivals(self):
         """Process order deposition stochastic step.
+        In order to work properly, method update_price() should be called before this one,
+        so that the size of the arrivals vector is correct.
         """
-
-        self.update_best_price()
 
         # Orders are deposited at each side through a lambda intensity Poisson point process
         lam = self.lambd * self.dt * self.dx
 
-        # Number of reachable price points for a given side
+        # Number of arrival points for a given side
         size = self.Nx - self.best_price_index % self.Nx if self.side == 'ASK' else self.best_price_index + 1
+        padding_size = size - self.Nx if self.side == 'ASK' else self.Nx - size
         arrivals = np.random.poisson(lam=lam, size=size)
 
         # No orders are deposited on the rest of the points : pad with 0
@@ -108,11 +103,12 @@ class LimitOrders:
                    0) if self.side == 'ASK' else (0, self.Nx - size)
         arrivals = np.pad(arrivals, padding,
                           mode='constant', constant_values=0)
+        # self.volumes = get_arrivals(self.volumes, lam, size, padding_size)
 
         # Add deposited orders
         self.volumes += arrivals
-        self.total_volume += np.sum(arrivals)
-        return arrivals
+        # self.total_volume += np.sum(arrivals)
+        # return arrivals
 
     def order_cancellation(self):
         """Process order cancellation stochastic step.
@@ -145,7 +141,8 @@ class LimitOrders:
 
         # 2D array where rows correspond to the price range, and column are respectively
         # the number of jumps left and jumps right
-        flow = get_flow(self.volumes, self.dx, self.boundary_index, self.boundary_flow)
+        flow = get_flow(self.volumes, self.dx,
+                        self.boundary_index, self.boundary_flow)
         # flow[n] is the algebraic number of particles crossing from n-1 to n
 
         # update volumes : dV/dt = -dj/dx
@@ -211,7 +208,7 @@ class LimitOrders:
         return np.sum(self.volumes[lower: upper+1])
 
 
-@njit((int64[:], float64, int64, float64))
+@njit(int64[:](int64[:], float64, int64, float64))
 def get_flow(volumes, dx, boundary_index, boundary_flow):
     Nx = len(volumes)
     # 2D array where rows correspond to the price range, and column are respectively
@@ -231,3 +228,15 @@ def get_flow(volumes, dx, boundary_index, boundary_flow):
     jumps_right = np.concatenate( (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]) )
     return jumps_right - jumps_left
     # flow[n] is the algebraic number of particles crossing from n-1 to n
+
+
+@njit(int64[:](int64[:], float64, int64, int64))
+def get_arrivals(volumes, lam, size, padding_size):
+
+    # Number of arrival points for a given side
+    arrivals = np.random.poisson(lam=lam, size=size)
+    padding = np.zeros(abs(padding_size), dtype=int64)
+    arrays = (padding, arrivals) if padding_size < 0 else (arrivals, padding)
+    arrivals = np.concatenate(arrays)
+
+    return np.add(volumes, arrivals)

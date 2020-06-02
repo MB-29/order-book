@@ -8,7 +8,7 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    def __init__(self, dt, D, L, xmin, xmax, Nx=1000):
+    def __init__(self, dt, D, L, lambd, nu, xmin, xmax, Nx=1000):
         """
 
         Arguments:

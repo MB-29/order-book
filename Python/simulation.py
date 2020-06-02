@@ -101,6 +101,7 @@ class Simulation:
         self.n_diff = int(self.dt * self. D / (self.dx)**2)
         if model_type == 'discrete':
             book_args['n_diff'] = self.n_diff
+            print(f'n_diff = {self.n_diff}')
 
         if not np.isscalar(self.L):
             return MultiDiscreteBook(**book_args)
@@ -345,9 +346,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "xmax": xmax,
         "D": D,
         "metaorder": [m0],
-        # "L": L,
-        "L": np.array([L]),
-        # 'nu': 0
-        'nu': np.array([0.1])
+        "L": L,
+        # "L": np.array([L]),
+        'nu': 0
+        # 'nu': np.array([0.1])
     }
     return simulation_args
