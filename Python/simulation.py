@@ -20,7 +20,7 @@ class Simulation:
             metaorder {array} -- Meta-order intensity values.
                                 An array of size 1 will be converted into a
                                 constant meta-order with the corresponding value.
-            kwargs -- T, Nt, xmin, xmax, Nx, L, D, price_formula
+            kwargs -- T, Nt, xmin, xmax, Nx, L, D, price_formula, ...
         """
 
         # Model type
@@ -34,8 +34,8 @@ class Simulation:
             0, self.T, num=self.Nt, retstep=True)
 
         # Space
-        self.xmin = kwargs.get('xmin', -1)
-        self.xmax = kwargs.get('xmax', 1)
+        self.xmin = kwargs['xmin']
+        self.xmax = kwargs['xmax']
         self.price_range = self.xmax - self.xmin
         self.Nx = kwargs.get('Nx', 100)
         self.dx = self.price_range / self.Nx
@@ -52,7 +52,7 @@ class Simulation:
         self.nu = kwargs.get('nu', 0)
         self.lambd = self.L * np.sqrt(self.nu * self.D)
         self.J = self.D * self.L
-        self.book = self.set_order_book(model_type)
+        self.book = self.set_order_book(model_type, kwargs)
 
         # Price
         self.price_formula = kwargs.get('price_formula', 'middle')
@@ -83,28 +83,31 @@ class Simulation:
 
         # self.theoretical_values()
 
-    def set_order_book(self, model_type):
+    def set_order_book(self, model_type, args):
         
         # Order Book
-        book_args = {'xmin': self.xmin,
-                     'xmax': self.xmax,
-                     'Nx': self.Nx,
-                     'dt': self.dt,
-                     'L': self.L,
-                     'D': self.D,
-                     'lambd': self.lambd,
-                     'nu': self.nu
-                     }
+        # book_args = {'xmin': self.xmin,
+        #              'xmax': self.xmax,
+        #              'Nx': self.Nx,
+        #              'dt': self.dt,
+        #              'L': self.L,
+        #              'D': self.D,
+        #              'lambd': self.lambd,
+        #              'nu': self.nu
+        #              }
         # Allow a certain number of timesteps for the Smoluchowski random walk
         # to reach diffusion : impose n_diff such that
-        # D = dx**2 / (dt / n_diff)
-        self.n_diff = int(self.dt * self. D / (self.dx)**2)
+        # D =  dx**2 / (2 * dt / n_diff)
+        args['dt'] = self.dt
+        args['lambd'] = self.lambd
+        print(f'lambda * dt = {self.lambd * self.dt}')
+        self.n_diff = int(2* self.dt * self. D / (self.dx)**2)
         if model_type == 'discrete':
-            book_args['n_diff'] = self.n_diff
+            args['n_diff'] = self.n_diff
             print(f'n_diff = {self.n_diff}')
 
         if not np.isscalar(self.L):
-            return MultiDiscreteBook(**book_args)
+            return MultiDiscreteBook(**args)
 
         linear = (self.nu == 0)
         model_name = 'linear_' + model_type if linear else model_type
@@ -115,9 +118,7 @@ class Simulation:
             'linear_continuous': ContinuousBook,
         }
 
-
-
-        return model_choice.get(model_name)(**book_args)
+        return model_choice.get(model_name)(**args)
 
     def theoretical_values(self):
         # Theoretical values
@@ -139,6 +140,7 @@ class Simulation:
 
         # Warnings and errors
         if self.model_type == 'discrete':
+            
             if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
                     f'Low number of diffusion steps {self.n_diff} < 100,'

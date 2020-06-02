@@ -15,7 +15,17 @@ model_type = 'continuous'
 model_type = 'discrete'
 standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
 print(f'Standard arguments : {standard_args}')
-standard_args['nu'] = 0.01
+standard_args['nu'] = 0.1
+standard_args = {
+    'Nx' : 500,
+    'xmin' : -1,
+    'xmax' : 1,
+    'nu' : 0.1,
+    'L' : 10000,
+    'D' : 0.01,
+    'model_type' : 'discrete'
+}
+# standard_args['L'] = 1000000 
 
 # Add noise. To ignore noise, comment out or set m1 = 0 
 # T, Nt = standard_args['T'], standard_args['Nt']
@@ -28,9 +38,9 @@ standard_args['nu'] = 0.01
 simulation = Simulation(**standard_args)
 # print(simulation)
 
-fig = plt.figure(figsize=(12, 6))
+# fig = plt.figure(figsize=(12, 6))
 tic = time.perf_counter()
-simulation.run(animation=True, fig=fig, save=False)
+simulation.run(animation=False, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
 plt.show()

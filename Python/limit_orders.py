@@ -23,11 +23,11 @@ class LimitOrders:
 
         # Structural constants
         self.Nx = Nx
-        self.dx = (xmax - xmin)/float(Nx)
-        self.X = np.linspace(xmin, xmax, num=Nx)
+        self.X, self.dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
         self.xmin = xmin
         self.xmax = xmax
         self.dt = dt
+        self.t_diff = dt / kwargs['n_diff']
 
         initial_density = kwargs.get('initial_density', 'stationary')
         boundary_conditions = kwargs.get('boundary_conditions', 'flat')
@@ -41,7 +41,7 @@ class LimitOrders:
         # Model parameters
         self.lambd = lambd
         self.nu = nu
-        self.D = (self.dx)**2/(2*self.dt)
+        self.D = (self.dx)**2/(2*self.t_diff)
         self.L = L
 
         self.initialize_volumes(initial_density)
@@ -96,18 +96,18 @@ class LimitOrders:
         # Number of arrival points for a given side
         size = self.Nx - self.best_price_index % self.Nx if self.side == 'ASK' else self.best_price_index + 1
         padding_size = size - self.Nx if self.side == 'ASK' else self.Nx - size
-        arrivals = np.random.poisson(lam=lam, size=size)
+        # arrivals = np.random.poisson(lam=lam, size=size)
+        # arrivals = get_arr(lam, size)
 
         # No orders are deposited on the rest of the points : pad with 0
-        padding = (self.Nx - size,
-                   0) if self.side == 'ASK' else (0, self.Nx - size)
-        arrivals = np.pad(arrivals, padding,
-                          mode='constant', constant_values=0)
-        # self.volumes = get_arrivals(self.volumes, lam, size, padding_size)
+        # padding = (self.Nx - size,
+        #            0) if self.side == 'ASK' else (0, self.Nx - size)
+        # arrivals = np.pad(arrivals, padding,
+        #                   mode='constant', constant_values=0)
+        self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
 
         # Add deposited orders
-        self.volumes += arrivals
-        # self.total_volume += np.sum(arrivals)
+        self.total_volume = np.sum(self.volumes)
         # return arrivals
 
     def order_cancellation(self):
@@ -141,13 +141,13 @@ class LimitOrders:
 
         # 2D array where rows correspond to the price range, and column are respectively
         # the number of jumps left and jumps right
-        flow = get_flow(self.volumes, self.dx,
+        self.volumes = add_flow(self.volumes, self.dx,
                         self.boundary_index, self.boundary_flow)
         # flow[n] is the algebraic number of particles crossing from n-1 to n
 
         # update volumes : dV/dt = -dj/dx
-        self.volumes = self.volumes - np.diff(flow)
-        self.total_volume += flow[0] - flow[self.Nx]
+        # self.volumes = self.volumes - np.diff(flow)
+        # self.total_volume += flow[0] - flow[self.Nx]
 
     # ------------------ Price ------------------
 
@@ -209,7 +209,7 @@ class LimitOrders:
 
 
 @njit(int64[:](int64[:], float64, int64, float64))
-def get_flow(volumes, dx, boundary_index, boundary_flow):
+def add_flow(volumes, dx, boundary_index, boundary_flow):
     Nx = len(volumes)
     # 2D array where rows correspond to the price range, and column are respectively
     # the number of jumps left and jumps right
@@ -231,7 +231,7 @@ def get_flow(volumes, dx, boundary_index, boundary_flow):
 
 
 @njit(int64[:](int64[:], float64, int64, int64))
-def get_arrivals(volumes, lam, size, padding_size):
+def add_arrivals(volumes, lam, size, padding_size):
 
     # Number of arrival points for a given side
     arrivals = np.random.poisson(lam=lam, size=size)
@@ -240,3 +240,9 @@ def get_arrivals(volumes, lam, size, padding_size):
     arrivals = np.concatenate(arrays)
 
     return np.add(volumes, arrivals)
+
+@njit(int64[:](float64, int64))
+def get_arr(lam, size):
+
+    # Number of arrival points for a given side
+    return np.random.poisson(lam=lam, size=size)

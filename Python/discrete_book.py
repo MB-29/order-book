@@ -39,22 +39,22 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
-        self.execute_metaorder(self.dq)
+        # self.execute_metaorder(self.dq)
         self.evolve()
 
     def evolve(self):
         for n in range(self.n_diff):
             self.stochastic_timestep()
-            self.order_reaction()
-            self.update_price()
+            # self.order_reaction()
+            # self.update_price()
         self.update_price()
 
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.order_arrivals()
-            orders.order_cancellation()
+            # orders.order_arrivals()
+            # orders.order_cancellation()
             orders.order_jumps()
-            orders.update_best_price()
+            # orders.update_best_price()
 
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
