@@ -226,7 +226,7 @@ def get_flow(volumes, dx, boundary_index, boundary_flow):
     # Set boundary flow
     boundary_jumps_left = boundary_jumps if boundary_index == -1 else 0
     boundary_jumps_right = boundary_jumps if boundary_index == 0 else 0
-    jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
+    jumps_left = np.concatenate((jumps[:, 0], np.array([boundary_jumps_left], dtype=int64)))
     jumps_right = np.concatenate( (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]) )
     return jumps_right - jumps_left
     # flow[n] is the algebraic number of particles crossing from n-1 to n
