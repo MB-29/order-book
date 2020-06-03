@@ -62,8 +62,8 @@ class Simulation:
         self.J = self.book.J
 
         # Prices
-        self.best_asks = np.zeros(self.Nt)
-        self.best_bids = np.zeros(self.Nt)
+        self.asks = np.zeros(self.Nt)
+        self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
 
         self.price_formula = kwargs.get('price_formula', 'middle')
@@ -144,8 +144,8 @@ class Simulation:
         for n in range(self.Nt):
             # Update metaorder intensity
             self.book.dq = self.metaorder[n] * self.dt
-            self.best_asks[n] = self.book.best_ask
-            self.best_bids[n] = self.book.best_bid
+            self.asks[n] = self.book.best_ask
+            self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
             self.book.timestep()
@@ -223,16 +223,16 @@ class Simulation:
         if n % 10 == 0:
             print(f'Step {n}')
         self.book.dq = self.metaorder[n] * self.dt
-        self.best_asks[n] = self.book.best_ask
-        self.best_bids[n] = self.book.best_bid
+        self.asks[n] = self.book.best_ask
+        self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
             self.book.best_ask, self.book.best_bid)
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(
-            self.time_interval[:n+1], self.best_asks[:n+1])
+            self.time_interval[:n+1], self.asks[:n+1])
         self.best_bid_line.set_data(
-            self.time_interval[:n+1], self.best_bids[:n+1])
+            self.time_interval[:n+1], self.bids[:n+1])
         return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):

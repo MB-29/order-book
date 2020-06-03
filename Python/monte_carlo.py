@@ -32,6 +32,8 @@ class MonteCarlo:
         self.gamma = 2*(1 - self.hurst)
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
+        self.ask_samples = np.zeros((self.Nt, N_samples))
+        self.bid_samples = np.zeros((self.Nt, N_samples))
 
     def generate_noise(self):
 
@@ -57,17 +59,28 @@ class MonteCarlo:
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
+            self.ask_samples[:, k] = self.simulation.asks
+            self.bid_samples[:, k] = self.simulation.bids
 
         self.compute_statistics()
 
     def compute_statistics(self):
         self.price_mean = self.price_samples.mean(axis=1)
+        self.ask_mean = self.ask_samples.mean(axis=1)
+        self.bid_mean = self.bid_samples.mean(axis=1)
+
         self.price_variance = self.price_samples.var(axis=1)
+        self.ask_variance = self.ask_samples.var(axis=1)
+        self.bid_variance = self.bid_samples.var(axis=1)
 
     def gather_results(self):
 
-        return {'mean': self.price_mean,
-                'variance': self.price_variance,
+        return {'price_mean': self.price_mean,
+                'price_variance': self.price_variance,
+                'ask_mean': self.ask_mean,
+                'ask_variance': self.ask_variance,
+                'bid_mean': self.bid_mean,
+                'bid_variance': self.bid_variance,
                 'sigma': self.sigma,
                 'N_samples': self.N_samples,
                 'm0': self.m0,
