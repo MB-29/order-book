@@ -19,6 +19,7 @@ standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
 L, nu = np.array([100000,20000]), np.array([1, 0])
+m0 = 10000
 standard_args = {
     'Nx' : 500,
     'xmin' : -1,
@@ -26,7 +27,8 @@ standard_args = {
     'nu' : nu,
     'L' : L,
     'D' : 0.01,
-    'model_type' : 'discrete'
+    'model_type' : 'discrete',
+    'metaorder': [m0]
 }
 # standard_args['L'] = 1000000 
 
@@ -43,19 +45,19 @@ simulation = Simulation(**standard_args)
 
 tic = time.perf_counter()
 fig = plt.figure(figsize=(12, 6))
-simulation.run(animation=True, fig=fig, save=True)
+simulation.run(animation=True, fig=fig, save=False)
 # simulation.run(animation=False, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
 plt.show()
 
-# fig2 = plt.figure(figsize=(10, 6))
-# ax1 = fig2.add_subplot(2, 1, 1)
+fig2 = plt.figure(figsize=(10, 6))
+ax1 = fig2.add_subplot(2, 1, 1)
 
-# ax1.plot(simulation.time_interval_shifted, simulation.prices, label='price')
-# # ax1.plot(simulation.time_interval_shifted[simulation.n_start: simulation.n_end],
-# #          simulation.get_growth_th(), label='theoretical')
-# ax1.set_xscale('log')
-# ax1.set_yscale('log')
-# ax1.legend()
-# plt.show()
+ax1.plot(simulation.time_interval_shifted, simulation.prices, label='price')
+# ax1.plot(simulation.time_interval_shifted[simulation.n_start: simulation.n_end],
+#          simulation.get_growth_th(), label='theoretical')
+ax1.set_xscale('log')
+ax1.set_yscale('log')
+ax1.legend()
+plt.show()
