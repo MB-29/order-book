@@ -16,12 +16,15 @@ model_type = 'discrete'
 standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
 print(f'Standard arguments : {standard_args}')
 standard_args['nu'] = 0.1
+L, nu = 100000, 1
+L, nu = 20000, 0
+L, nu = np.array([100000,20000]), np.array([1, 0])
 standard_args = {
     'Nx' : 500,
     'xmin' : -1,
     'xmax' : 1,
-    'nu' : 0.1,
-    'L' : 10000,
+    'nu' : nu,
+    'L' : L,
     'D' : 0.01,
     'model_type' : 'discrete'
 }
@@ -40,7 +43,7 @@ simulation = Simulation(**standard_args)
 
 tic = time.perf_counter()
 fig = plt.figure(figsize=(12, 6))
-simulation.run(animation=True, fig=fig, save=False)
+simulation.run(animation=True, fig=fig, save=True)
 # simulation.run(animation=False, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')

@@ -27,8 +27,7 @@ class DiscreteBook:
         self.dq = 0
 
         # Animation
-        self.y_max = 1.5 * \
-            max(abs(self.xmin), abs(self.xmax)) * self.L * self.dx
+        self.y_max = max(abs(self.xmin), abs(self.xmax)) * self.L * self.dx
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -132,11 +131,9 @@ class DiscreteBook:
 
         self.timestep()
 
-        lists = zip(self.ask_bars, self.bid_bars,
-                    self.get_ask_volumes(), self.get_bid_volumes())
-        for a_bar, b_bar, ask_vol, bid_vol in lists:
-            a_bar.set_height(ask_vol)
-            b_bar.set_height(bid_vol)
+        for index in range(self.Nx):
+            self.ask_bars[index].set_height(self.get_ask_volumes()[index])
+            self.bid_bars[index].set_height(self.get_bid_volumes()[index])
 
         # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
         # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])

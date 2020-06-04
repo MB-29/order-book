@@ -6,7 +6,7 @@ use_numba = True
 
 
 class LimitOrders:
-    """Orders of one side - bid or ask - with their volume depending on the price and stochastic dynamics.
+    """Orders volumes of one side - bid or ask - with stochastic dynamics.
     """
 
     def __init__(self, dt, lambd, nu, side, xmin, xmax, Nx=1000, L=None, **kwargs):
