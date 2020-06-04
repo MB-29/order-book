@@ -1,5 +1,8 @@
 import numpy as np
-from numba import njit, int64, float64
+from numba import vectorize, njit, int64, float64
+
+use_numba = True
+# use_numba = False
 
 
 class LimitOrders:
@@ -96,24 +99,30 @@ class LimitOrders:
         # Number of arrival points for a given side
         size = self.Nx - self.best_price_index % self.Nx if self.side == 'ASK' else self.best_price_index + 1
         padding_size = size - self.Nx if self.side == 'ASK' else self.Nx - size
-        # arrivals = np.random.poisson(lam=lam, size=size)
-        # arrivals = get_arr(lam, size)
+        if use_numba:
+            self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
+            return
+        arrivals = np.random.poisson(lam=lam, size=size)
 
         # No orders are deposited on the rest of the points : pad with 0
-        # padding = (self.Nx - size,
-        #            0) if self.side == 'ASK' else (0, self.Nx - size)
-        # arrivals = np.pad(arrivals, padding,
-        #                   mode='constant', constant_values=0)
-        self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
+        padding = (self.Nx - size,
+                   0) if self.side == 'ASK' else (0, self.Nx - size)
+        arrivals = np.pad(arrivals, padding,
+                          mode='constant', constant_values=0)
+        self.volumes += arrivals
 
         # Add deposited orders
-        self.total_volume = np.sum(self.volumes)
+        # self.total_volume = np.sum(self.volumes)
         # return arrivals
 
     def order_cancellation(self):
         """Process order cancellation stochastic step.
         """
         scale = 1/self.nu
+        if use_numba:
+            self.volumes = substract_cancellations(
+                self.volumes, scale, self.dt)
+            return
 
         # Vectorize get_cancellation function and apply it to price volumes array
         get_cancellation_vec = np.vectorize(
@@ -123,7 +132,8 @@ class LimitOrders:
         # Subtract cancelled orders
         self.volumes = np.subtract(self.volumes, cancellations)
         self.total_volume -= np.sum(cancellations)
-        return cancellations
+
+        # return cancellations
 
     def get_cancellation(self, volume, scale):
         """Compute the number of cancellations for a given volume of orders,
@@ -141,13 +151,29 @@ class LimitOrders:
 
         # 2D array where rows correspond to the price range, and column are respectively
         # the number of jumps left and jumps right
-        self.volumes = add_flow(self.volumes, self.dx,
-                        self.boundary_index, self.boundary_flow)
+        if use_numba:
+            self.volumes = add_flow(self.volumes, self.dx,
+                                    self.boundary_index, self.boundary_flow)
+            return
+        jumps = np.zeros((self.Nx, 2), dtype=int)
+        for index, order_volume in enumerate(self.volumes):
+            jumps_left = np.random.binomial(order_volume, 0.5)
+            jumps[index, :] = [jumps_left, order_volume - jumps_left]
+
+        boundary_volume = self.volumes[self.boundary_index] + \
+            self.boundary_flow * (self.dx)**2
+        boundary_jumps = np.random.binomial(boundary_volume, 0.5)
+
+        # Set boundary flow
+        boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
+        boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
+        jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
+        jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
+        flow = jumps_right - jumps_left
         # flow[n] is the algebraic number of particles crossing from n-1 to n
 
         # update volumes : dV/dt = -dj/dx
-        # self.volumes = self.volumes - np.diff(flow)
-        # self.total_volume += flow[0] - flow[self.Nx]
+        self.volumes = self.volumes - np.diff(flow)
 
     # ------------------ Price ------------------
 
@@ -241,8 +267,21 @@ def add_arrivals(volumes, lam, size, padding_size):
 
     return np.add(volumes, arrivals)
 
-@njit(int64[:](float64, int64))
-def get_arr(lam, size):
 
-    # Number of arrival points for a given side
-    return np.random.poisson(lam=lam, size=size)
+@njit(int64[:](int64[:], float64, float64))
+def substract_cancellations(volumes, scale, dt):
+    total_volume = np.sum(volumes)
+    life_times = np.random.exponential(scale=scale, size=total_volume)
+    cancellations = np.zeros(volumes.size, dtype=int64)
+    volume_index = 0
+    for index, order_volume in enumerate(volumes):
+        cancellations[index] = np.sum(
+            np.where(life_times[volume_index: volume_index+order_volume] < dt, 1, 0))
+        volume_index += order_volume
+    return volumes - cancellations
+
+# @vectorize(int64(int64, float64, float64))
+# def get_cancellations(volume, scale, dt):
+#     life_times = np.random.exponential(scale=scale, size=volume)
+#     cancellations = np.where(life_times < dt, 1, 0)
+#     return np.sum(cancellations)
