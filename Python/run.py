@@ -7,22 +7,22 @@ import time
 
 from simulation import Simulation, standard_parameters
 
-participation_rate = 1e2
+participation_rate = 500
 # participation_rate = float('inf')
 
 # Run
 model_type = 'continuous'
 model_type = 'discrete'
-standard_args = standard_parameters(participation_rate, model_type)
+standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
 print(f'Standard arguments : {standard_args}')
 
-# Add noise, to ignore comment out or set sigma = 0
-# T, Nt = standard_args['T'], standard_args['Nt']
-# sigma, hurst = 0, 0.75
-# noise = fgn(n=Nt, hurst=hurst, length=T)
-# m0 = standard_args['metaorder'][0]
-# standard_args['metaorder'] = m0 + sigma * m0 / \
-#     (standard_args['T']/standard_args['Nt'] ** hurst) * noise
+# Add noise. To ignore noise, comment out or set m1 = 0 
+T, Nt = standard_args['T'], standard_args['Nt']
+m0 = standard_args['metaorder'][0]
+m1, hurst = m0, 0.75
+noise = fgn(n=Nt, hurst=hurst, length=T)
+standard_args['metaorder'] = m1 / \
+    (standard_args['T']/standard_args['Nt'] ** hurst) * noise
 
 simulation = Simulation(**standard_args)
 print(simulation)
