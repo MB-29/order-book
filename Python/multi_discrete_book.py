@@ -6,8 +6,13 @@ from discrete_book import DiscreteBook
 from linear_discrete_book import LinearDiscreteBook
 
 class MultiDiscreteBook(DiscreteBook) :
+    """A multi-actor order book.
+    """
 
     def __init__(self, **multi_book_args):
+        """
+        :param multi_book_args: Packs book arguments where L and nu are arrays
+        """
         L_list = multi_book_args['L']
         lambd_list = multi_book_args['lambd']
         nu_list = multi_book_args['nu']
@@ -23,6 +28,7 @@ class MultiDiscreteBook(DiscreteBook) :
             self.xmin, self.xmax, num=self.Nx, retstep=True)
         self.L = multi_book_args['L']
 
+        
         for n in range(self.N_actors):
             L = L_list[n]
             lambd = lambd_list[n]
@@ -58,16 +64,21 @@ class MultiDiscreteBook(DiscreteBook) :
             
     
     def execute_metaorder(self, trade_volume):
+        """Execute a meta-order on the total order book, by consuming the volumes
+        of the various books in the order of proximity.
+        :param trade_volume: algebraic volume to execute
+        """
         executed_volume = 0
-        increment = 1
-        while increment > 0 :
-            increment = 0
+        traded = True
+        while traded  :
+            traded = False
+            #Each book is considered at each loop, and executed if possible
             for book in self.actor_books:
                 volume = book.best_ask_volume if trade_volume > 0 else -book.best_bid_volume
                 if abs(volume) + executed_volume > abs(trade_volume) :
                     continue
                 book.execute_metaorder(volume)
                 executed_volume += abs(volume)
-                increment = abs(volume)
+                traded = True
     
 

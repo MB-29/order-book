@@ -10,10 +10,12 @@ class MonteCarlo:
 
     def __init__(self, N_samples, noise_args, simulation_args):
         """
-        Arguments:
-            N_samples {int} -- number of samples
-            noise_args {dictionary} -- {'m0' : noise mean, m1' : noise size, 'hurst' : hurst exponent}
-            simulation_args {dictionary} -- see class Simulation
+        :param N_samples: [description]
+        :type N_samples: int
+        :param noise_args: {'m0': noise mean , 'm1': noise std, 'hurst': hurst exponent}
+        :type noise_args: dictionary
+        :param simulation_args: See class Simulation
+        :type simulation_args: dictionary
         """
 
         self.N_samples = N_samples
@@ -63,6 +65,7 @@ class MonteCarlo:
         self.compute_statistics()
 
     def compute_statistics(self):
+
         self.price_mean = self.price_samples.mean(axis=1)
         self.ask_mean = self.ask_samples.mean(axis=1)
         self.bid_mean = self.bid_samples.mean(axis=1)

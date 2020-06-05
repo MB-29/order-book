@@ -6,22 +6,26 @@ use_numba = True
 
 
 class LimitOrders:
-    """Orders volumes of one side - bid or ask - with stochastic dynamics.
-    """
+    """Orders volumes of one side - bid or ask - with stochastic dynamics."""
 
-    def __init__(self, dt, lambd, nu, side, xmin, xmax, Nx=1000, L=None, **kwargs):
-        """
-
-        Arguments:
-            dt {float} -- Time subinterval.
-            lambd {float} -- Lambda parameter.
-            nu {float} -- Nu parameter.
-            side {string} -- Either 'BID' or ASK'
-            xmin {float} -- Price interval lower bound
-            xmax {float} -- Price interval upper bound
-
-        Keyword Arguments:
-            Nx {int} -- Number of space (price) subintervals
+    def __init__(self, dt, lambd, nu, side, xmin, xmax, L=None,  Nx=1000, **kwargs):
+        """     
+        :param dt: Size of time subinterval
+        :type dt: float
+        :param lambd: Lambda parameter
+        :type lambd: float
+        :param nu: Nu parameter
+        :type nu: float
+        :param side: Either 'BID' or ASK'
+        :type side: string
+        :param xmin: Price interval lower bound
+        :type xmin: float
+        :param xmax: Price interval upper bound
+        :type xmax: float
+        :param L: Order densiyt slope, defaults to None
+        :type L: float, optional
+        :param Nx: Number of space (price) subintervals, defaults to 1000
+        :type Nx: int, optional
         """
 
         # Structural constants
@@ -45,7 +49,7 @@ class LimitOrders:
         self.lambd = lambd
         self.nu = nu
         self.D = (self.dx)**2/(2*self.t_diff)
-        self.L = L
+        self.L = L if L != None else lambd / np.sqrt(nu * self.D)
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
@@ -64,11 +68,11 @@ class LimitOrders:
             lambda x: int(self.dx * density_function(x)))
         self.volumes = volumes_function(self.X)
 
-        self.total_volume = np.sum(self.volumes)
         self.update_best_price()
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):
+
         if self.sign * x > 0:
             return 0
         x_crit = np.sqrt(self.D/self.nu)
@@ -87,10 +91,11 @@ class LimitOrders:
 
     # ------------------ Stochastic evolution ------------------
 
-    def order_arrivals(self):
+    def order_deposition(self):
         """Process order deposition stochastic step.
         In order to work properly, method update_price() should be called before this one,
-        so that the size of the arrivals vector is correct.
+        so that the size of the deposition price range is correct.
+
         """
 
         # Orders are deposited at each side through a lambda intensity Poisson point process
@@ -109,15 +114,12 @@ class LimitOrders:
                    0) if self.side == 'ASK' else (0, self.Nx - size)
         arrivals = np.pad(arrivals, padding,
                           mode='constant', constant_values=0)
-        self.volumes += arrivals
 
         # Add deposited orders
-        # self.total_volume = np.sum(self.volumes)
-        # return arrivals
+        self.volumes += arrivals
 
     def order_cancellation(self):
-        """Process order cancellation stochastic step.
-        """
+        """Process order cancellation stochastic step."""
         scale = 1/self.nu
         if use_numba:
             self.volumes = substract_cancellations(
@@ -131,13 +133,11 @@ class LimitOrders:
 
         # Subtract cancelled orders
         self.volumes = np.subtract(self.volumes, cancellations)
-        self.total_volume -= np.sum(cancellations)
-
-        # return cancellations
 
     def get_cancellation(self, volume, scale):
         """Compute the number of cancellations for a given volume of orders,
         according to an exponential law of given scale.
+
         """
         if volume == 0:
             return 0
@@ -146,14 +146,14 @@ class LimitOrders:
         return np.sum(cancellations)
 
     def order_jumps(self):
-        """Process order jumps stochastic step.
-        """
+        """Process order jumps stochastic step."""
 
         # 2D array where rows correspond to the price range, and column are respectively
         # the number of jumps left and jumps right
         if use_numba:
             self.volumes = add_flow(self.volumes, self.dx,
                                     self.boundary_index, self.boundary_flow)
+
             return
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
@@ -187,14 +187,13 @@ class LimitOrders:
         self.best_price_volume = self.volumes[self.best_price_index]
         return self.best_price_index
 
-    def consume_best_orders(self, volume):
+    def execute_best_orders(self, volume):
         """Consume a given quantity of orders at the book's best price, which is updated at each step
 
-        Arguments:
-            volume {int} -- Quantity of orders to be consumed
+        :param volume: Order volume to execute
+        :type volume: int
+        :raises ValueError: In the case the book lacks liquidity
 
-        Raises:
-            ValueError: In the case the book lacks liquidity
         """
 
         if volume == 0:
@@ -203,8 +202,6 @@ class LimitOrders:
         index_increment = -self.sign
 
         trade_volume = abs(volume)
-        if trade_volume > self.total_volume:
-            raise ValueError(f'{self.side} book lacks liquidity.')
 
         while trade_volume > 0:
             liquidity = self.volumes[self.best_price_index]
@@ -219,12 +216,12 @@ class LimitOrders:
             if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
                 raise ValueError(f'Market lacks {self.side} liquidity')
 
-        self.total_volume -= volume
         self.best_price = self.X[self.best_price_index]
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def get_available_volume(self, price_index):
-        """Compute order volume between prices of indices price_index and best_price
+        """Compute order volume between prices of indices price_index and self.best_price
+
         """
         price = self.X[price_index]
         if self.sign * (price - self.best_price) > 0:
@@ -236,6 +233,23 @@ class LimitOrders:
 
 @njit(int64[:](int64[:], float64, int64, float64))
 def add_flow(volumes, dx, boundary_index, boundary_flow):
+    """Numba-accelerated function that computes order jump flow.
+
+    :param volumes: Order volumes
+    :type volumes: int64[:]
+    :param dx: Size of the price subinterval
+    :type dx: float64
+    :param boundary_index: Depending on the size ASK or BID,
+    :type boundary_index: int64
+    :param boundary_index: The algebraic index of the exterior boundary.
+        -1 or O depending on the size ASK or BID
+    :type boundary_index: int64
+    :param boundary_flow: The corresponding flow
+    :type boundary_flow: float64
+    :returns: Updated volumes
+    :rtype: int64[:]
+
+    """
     Nx = len(volumes)
     # 2D array where rows correspond to the price range, and column are respectively
     # the number of jumps left and jumps right
@@ -250,38 +264,70 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
     # Set boundary flow
     boundary_jumps_left = boundary_jumps if boundary_index == -1 else 0
     boundary_jumps_right = boundary_jumps if boundary_index == 0 else 0
-    jumps_left = np.concatenate((jumps[:, 0], np.array([boundary_jumps_left], dtype=int64)))
-    jumps_right = np.concatenate( (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]) )
-    return jumps_right - jumps_left
+    jumps_left = np.concatenate(
+        (jumps[:, 0], np.array([boundary_jumps_left], dtype=int64)))
+    jumps_right = np.concatenate(
+        (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]))
+    flow = jumps_right - jumps_left
     # flow[n] is the algebraic number of particles crossing from n-1 to n
+
+    # update volumes according to dV/dt = -dj/dx
+    volumes -= np.diff(flow)
+    return volumes
 
 
 @njit(int64[:](int64[:], float64, int64, int64))
 def add_arrivals(volumes, lam, size, padding_size):
+    """Numba-accelerated function that computes and adds the arrivals of the orders, which 
+    are deposited with a Poissonian law in the corresponding price range.
+
+    :param volumes: Order volumes
+    :type volumes: int64[:]
+    :param lam: Deposition intensity
+    :type lam: float64
+    :param size: Size of the deposition price range.
+    :type size: int64[:]
+    :param padding_size: Complementary size. Its sign indicates whether
+        padding should be applied before or after the deposition price range.
+    :type padding_size: int64
+    :returns: Updated volumes
+    :rtype: int64[:]
+
+    """
 
     # Number of arrival points for a given side
     arrivals = np.random.poisson(lam=lam, size=size)
     padding = np.zeros(abs(padding_size), dtype=int64)
     arrays = (padding, arrivals) if padding_size < 0 else (arrivals, padding)
     arrivals = np.concatenate(arrays)
-
     return np.add(volumes, arrivals)
 
 
 @njit(int64[:](int64[:], float64, float64))
 def substract_cancellations(volumes, scale, dt):
+    """Numba-accelerated function that computes the cancellations of the orders
+    according to an exponential law.
+
+    :param volumes: Order volumes
+    :type volumes: int64[:]
+    :param scale: time scale for exponential law
+    :type scale: float64
+    :param dt: size of time subinterval
+    :type dt: float64
+    :returns: Updated volumes
+    :rtype: int64[:]
+
+    """
     total_volume = np.sum(volumes)
+    # Draw exponential times once for all orders for performance matters
     life_times = np.random.exponential(scale=scale, size=total_volume)
     cancellations = np.zeros(volumes.size, dtype=int64)
     volume_index = 0
+    # Compare progressively dt to the drawn exponential times, price by price
+    # One loop performs the comparison for the the orders of one price subinterval,
+    # whose count is order_volume
     for index, order_volume in enumerate(volumes):
         cancellations[index] = np.sum(
             np.where(life_times[volume_index: volume_index+order_volume] < dt, 1, 0))
         volume_index += order_volume
     return volumes - cancellations
-
-# @vectorize(int64(int64, float64, float64))
-# def get_cancellations(volume, scale, dt):
-#     life_times = np.random.exponential(scale=scale, size=volume)
-#     cancellations = np.where(life_times < dt, 1, 0)
-#     return np.sum(cancellations)

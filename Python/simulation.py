@@ -14,13 +14,12 @@ class Simulation:
 
     def __init__(self, model_type, metaorder=[0], **kwargs):
         """
-
-        Arguments:
-            model_type {str} -- 'discrete' or 'continuous' 
-            metaorder {array} -- Meta-order intensity values.
-                                An array of size 1 will be converted into a
-                                constant meta-order with the corresponding value.
-            kwargs -- T, Nt, xmin, xmax, Nx, L, D, price_formula, ...
+        :param model_type: 'discrete' or 'continuous'
+        :type model_type: string
+        :param metaorder: Meta-order intensity over time, defaults to [0].
+            If its length is 1 then the it will be converted to
+            a constant meta-order with the corresponding value.
+        :type metaorder: list, optional
         """
 
         # Model type
@@ -81,31 +80,21 @@ class Simulation:
         self.t_end = self.n_end * self.dt
         self.time_interval_shifted = self.time_interval-self.t_start
 
-        # self.theoretical_values()
+        self.theoretical_values()
 
     def set_order_book(self, model_type, args):
-        
-        # Order Book
-        # book_args = {'xmin': self.xmin,
-        #              'xmax': self.xmax,
-        #              'Nx': self.Nx,
-        #              'dt': self.dt,
-        #              'L': self.L,
-        #              'D': self.D,
-        #              'lambd': self.lambd,
-        #              'nu': self.nu
-        #              }
+
         # Allow a certain number of timesteps for the Smoluchowski random walk
         # to reach diffusion : impose n_diff such that
         # D =  dx**2 / (2 * dt / n_diff)
         args['dt'] = self.dt
         args['lambd'] = self.lambd
-        print(f'lambda * dt = {self.lambd * self.dt}')
-        self.n_diff = int(2* self.dt * self. D / (self.dx)**2)
+        self.n_diff = int(2 * self.dt * self. D / (self.dx)**2)
         if model_type == 'discrete':
             args['n_diff'] = self.n_diff
             print(f'n_diff = {self.n_diff}')
 
+        # If L is an array, create a multi-actor book and set self.L to
         if not np.isscalar(self.L):
             return MultiDiscreteBook(**args)
 
@@ -122,25 +111,30 @@ class Simulation:
 
     def theoretical_values(self):
         # Theoretical values
+
+        # Take the dominant slope in the case of a multi-actor book
+        L = np.max(self.L)
+
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
-        self.infinity_density = self.L * self.xmax
-        self.impact_th = np.sqrt(2*abs(self.m0)*self.T/self.L)
+        self.infinity_density = L * self.xmax
+        self.impact_th = np.sqrt(2*abs(self.m0)*self.T/L)
         self.density_shift_th = np.sqrt(
-            abs(self.m0)*self.T*self.L)  # impact_th * L
+            abs(self.m0)*self.T*L)  # impact_th * L
         self.participation_rate = self.m0 / \
-            (self.D * self.L) if self.D != 0 else float("inf")
+            (self.D * L) if self.D != 0 else float("inf")
         self.r = abs(self.participation_rate)
         self.alpha = self.D * self.dt / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
+        self.first_volume = L * self.dx * self.dx
 
         # Strings
-        self.parameters_string = fr'$m_0={self.m0:.2e}$, d$t={self.dt:.2e}$ '
-        self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
+        # self.parameters_string = fr'$m_0={self.m0:.2e}$, d$t={self.dt:.2e}$ '
+        # self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
         if self.model_type == 'discrete':
-            
+
             if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
                     f'Low number of diffusion steps {self.n_diff} < 100,'
@@ -161,10 +155,12 @@ class Simulation:
     def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
 
-        Keyword Arguments:
-            fig {pyplot figure} -- The figure the animation is displayed in
-            animation {bool} -- Set True to display an animation
-            save {bool} -- Set True to save the animation under ./animation.mp4
+        :param fig: The figure the animation is displayed in, defaults to None
+        :type fig: matplotlib figure, optional
+        :param animation: Set True to display an animation, defaults to False
+        :type animation: bool, optional
+        :param save: Set True to save the animation under ./animation.mp4, defaults to False
+        :type save: bool, optional
         """
 
         if animation:
@@ -268,6 +264,10 @@ class Simulation:
         return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
+
+        # In the case of a mutli-actor book, the largest value
+        # for L is used for all variables related to L.
+
         string = f""" Order book simulation.
         Time parameters :
                         T = {self.T},
@@ -283,8 +283,8 @@ class Simulation:
 
         Model constants:
                         D = {self.D:.1e},
-                        J = {self.J:.1e},
-                        L = {self.L:.1e}.
+                        L = {self.L}.
+                        J = {self.J}.
 
         Metaorder:
                         m0 = {self.m0:.1e},
@@ -297,7 +297,7 @@ class Simulation:
                         lower impact = {self.lower_impact},
                         alpha = {self.alpha:.1e},
                         boundary factor = {self.boundary_factor:.1e},
-                        first volume = {self.L * self.dx * self.dx:.1e},
+                        first volume = {self.first_volume:.1f},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
                         """
         return string
@@ -349,8 +349,6 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         "D": D,
         "metaorder": [m0],
         "L": L,
-        # "L": np.array([L]),
         'nu': 0
-        # 'nu': np.array([0.1])
     }
     return simulation_args

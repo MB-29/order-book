@@ -38,7 +38,7 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
-        # self.execute_metaorder(self.dq)
+        self.execute_metaorder(self.dq)
         self.evolve()
 
     def evolve(self):
@@ -50,7 +50,7 @@ class DiscreteBook:
 
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.order_arrivals()
+            orders.order_deposition()
             orders.order_cancellation()
             orders.order_jumps()
             orders.update_best_price()
@@ -80,13 +80,12 @@ class DiscreteBook:
             self.get_ask_volumes(), self.get_bid_volumes())
         for orders in [self.ask_orders, self.bid_orders]:
             orders.volumes -= executed_volumes
-            orders.total_volume -= executed_volumes.sum()
 
     # ------------------ Metaorder ------------------
 
     def execute_metaorder(self, volume):
         orders = self.ask_orders if volume > 0 else self.bid_orders
-        orders.consume_best_orders(volume)
+        orders.execute_best_orders(volume)
 
   # ================== ANIMATION ==================
 

@@ -10,16 +10,23 @@ class ContinuousBook:
 
     def __init__(self, dt, D, L, lambd, nu, xmin, xmax, Nx=1000):
         """
+        :param dt: Size of time subinterval
+        :type dt: float
+        :param D: Diffusion constant
+        :type D: float
+        :param L: Order density slope
+        :type L: float
+        :param lambd: Lambda parameter
+        :type lambd: float
+        :param nu: Nu parameter
+        :type nu: float
+        :param xmin: Price interval lower bound
+        :type xmin: float
+        :param xmax: Price interval upper bound
+        :type xmax: float
+        :param Nx: Number of space (price) subintervals, defaults to 1000
+        :type Nx: int, optional
 
-        Arguments:
-            dt {float} -- Time subinterval
-            D {float} -- Diffusion constant
-            L {float} -- Latent liquidity
-            xmin {float} -- Price interval lower bound
-            xmax {float} -- Price interval upper bound
-
-        Keyword Arguments:
-            Nx {int} -- Number of space (price) subintervals
         """
 
         # Structural constants
@@ -48,7 +55,7 @@ class ContinuousBook:
         # +1 / -1 ensure corresponding volume isn't partially consumed
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
-        
+
         # Metaorder
         self.dq = 0
 
@@ -66,7 +73,7 @@ class ContinuousBook:
                                - self.resolution_volume)[0]
         self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
-        
+
         self.best_ask = self.X[self.best_ask_index - 1]
         self.best_bid = self.X[self.best_bid_index + 1]
 

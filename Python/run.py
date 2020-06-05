@@ -7,15 +7,15 @@ import time
 
 from simulation import Simulation, standard_parameters
 
-participation_rate = 500
+# participation_rate = 1
 # participation_rate = float('inf')
 
 # Run
 model_type = 'continuous'
 model_type = 'discrete'
-standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
-print(f'Standard arguments : {standard_args}')
-standard_args['nu'] = 0.1
+# standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
+# print(f'Standard arguments : {standard_args}')
+# standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
 L, nu = np.array([100000,20000]), np.array([1, 0])
@@ -30,7 +30,6 @@ standard_args = {
     'model_type' : 'discrete',
     'metaorder': [m0]
 }
-# standard_args['L'] = 1000000 
 
 # Add noise. To ignore noise, comment out or set m1 = 0 
 # T, Nt = standard_args['T'], standard_args['Nt']
@@ -41,7 +40,7 @@ standard_args = {
 #     (standard_args['T']/standard_args['Nt'] ** hurst) * noise
 
 simulation = Simulation(**standard_args)
-# print(simulation)
+print(simulation)
 
 tic = time.perf_counter()
 fig = plt.figure(figsize=(12, 6))
@@ -51,13 +50,13 @@ toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
 plt.show()
 
-fig2 = plt.figure(figsize=(10, 6))
-ax1 = fig2.add_subplot(2, 1, 1)
+# fig2 = plt.figure(figsize=(10, 6))
+# ax1 = fig2.add_subplot(2, 1, 1)
 
-ax1.plot(simulation.time_interval_shifted, simulation.prices, label='price')
+# ax1.plot(simulation.time_interval_shifted, simulation.prices, label='price')
 # ax1.plot(simulation.time_interval_shifted[simulation.n_start: simulation.n_end],
 #          simulation.get_growth_th(), label='theoretical')
-ax1.set_xscale('log')
-ax1.set_yscale('log')
-ax1.legend()
-plt.show()
+# ax1.set_xscale('log')
+# ax1.set_yscale('log')
+# ax1.legend()
+# plt.show()
