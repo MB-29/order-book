@@ -12,13 +12,13 @@ from simulation import Simulation, standard_parameters
 
 # Run
 model_type = 'continuous'
-model_type = 'discrete'
+# model_type = 'discrete'
 # standard_args = standard_parameters(participation_rate, model_type, xmin=-1, Nx=8000)
 # print(f'Standard arguments : {standard_args}')
 # standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
-L, nu = np.array([100000,20000]), np.array([1, 0])
+# L, nu = np.array([100000,20000]), np.array([1, 0])
 m0 = 10000
 standard_args = {
     'Nx' : 500,
@@ -27,7 +27,7 @@ standard_args = {
     'nu' : nu,
     'L' : L,
     'D' : 0.01,
-    'model_type' : 'discrete',
+    'model_type' : model_type,
     'metaorder': [m0]
 }
 

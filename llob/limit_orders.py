@@ -8,7 +8,7 @@ use_numba = True
 class LimitOrders:
     """Orders volumes of one side - bid or ask - with stochastic dynamics."""
 
-    def __init__(self, dt, lambd, nu, side, xmin, xmax, L=None,  Nx=1000, **kwargs):
+    def __init__(self, lambd, nu, dt, side, xmin, xmax, L=None,  Nx=1000, **kwargs):
         """     
         :param dt: Size of time subinterval
         :type dt: float

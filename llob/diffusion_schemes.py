@@ -20,18 +20,20 @@ def theta_scheme_iteration(values, dx, dt, D, L, theta=1):
 
     # Finite difference adimensional constant
     alpha = D * dt/(dx*dx)
-    N = len(values)
+
+    Nx = len(values)
+
     # Compute the scheme iteration matrix with a sparse representation
     # (see documentation)
-    main_diagonal = np.full(N, -2*alpha)
-    secondary_diagonal = np.full(N-1, alpha)
+    main_diagonal = np.full(Nx, -2*alpha)
+    secondary_diagonal = np.full(Nx-1, alpha)
 
-    # Add Von Neumann boundary conditions
+    # Add Von Nxeumann boundary conditions
     main_diagonal[0] = -alpha
-    main_diagonal[N-1] = -alpha
-    boundary_terms = np.zeros(N)
+    main_diagonal[Nx-1] = -alpha
+    boundary_terms = np.zeros(Nx)
     boundary_terms[0] = alpha * L * dx
-    boundary_terms[N-1] = - alpha * L * dx
+    boundary_terms[Nx-1] = - alpha * L * dx
 
     # Build matrices and solve
     implicit_diagonals = [1-theta * main_diagonal,
