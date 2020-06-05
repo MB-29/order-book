@@ -27,7 +27,8 @@ class DiscreteBook:
         self.dq = 0
 
         # Animation
-        self.y_max = max(abs(self.xmin), abs(self.xmax)) * self.L * self.dx
+        self.y_max = 1.5 * max(np.max(self.get_ask_volumes()),
+                         np.max(self.get_bid_volumes()))
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -92,21 +93,27 @@ class DiscreteBook:
     def set_animation(self, fig=None, lims=None):
         """Create subplot axes, lines and texts
         """
-
+        # Ax
         self.volume_ax = fig.add_subplot(1, 2, 1)
-        xlims = lims.get('xlim', (self.xmin, self.xmax))
-        self.volume_ax.set_xlim(xlims)
-        self.volume_ax.set_ylim((0, self.y_max))
-        self.volume_ax.plot([0, 0], [
-            -self.y_max, self.y_max], color='black', lw=0.5, ls='dashed')
+
+        # Bars
         self.ask_bars = self.volume_ax.bar(
             self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
             self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-0.1, animated='True')
+        
+        # Lines
+        self.volume_ax.plot([0, 0], [
+            -self.y_max, self.y_max], color='black', lw=0.5, ls='dashed')
         self.best_ask_axis, = self.volume_ax.plot(
             [], [], color='blue', ls='dashed', lw=1, label='best ask')
         self.best_bid_axis, = self.volume_ax.plot(
             [], [], color='red', ls='dashed', lw=1, label='best bid')
+
+        # Settings
+        xlims = lims.get('xlim', (self.xmin, self.xmax))
+        self.volume_ax.set_xlim(xlims)
+        self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
         self.volume_ax.legend()
 
@@ -114,7 +121,6 @@ class DiscreteBook:
         """Init function called by FuncAnimation
         """
 
-        # Lines
         for b in self.ask_bars:
             b.set_height(0)
         for b in self.bid_bars:
@@ -130,6 +136,7 @@ class DiscreteBook:
 
         self.timestep()
 
+        # Update bars
         for index in range(self.Nx):
             self.ask_bars[index].set_height(self.get_ask_volumes()[index])
             self.bid_bars[index].set_height(self.get_bid_volumes()[index])
