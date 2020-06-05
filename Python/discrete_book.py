@@ -4,57 +4,53 @@ from limit_orders import LimitOrders
 
 
 class DiscreteBook:
-    """Models an order book in the framework of LLOB agent model.
+    """Models an order book in the framework of Latent Order Book agent model.
     """
 
     def __init__(self, **order_args):
 
-        self.order_args = order_args
+        order_args = order_args
         self.bid_orders = LimitOrders(**order_args, side='BID')
         self.ask_orders = LimitOrders(**order_args, side='ASK')
 
-        self.xmin = self.order_args['xmin']
-        self.xmax = self.order_args['xmax']
-        self.obs_rate = self.order_args['obs_rate']
-        self.Nx = self.order_args['Nx']
-        self.X, self.dx = np.linspace(self.xmin, self.xmax, num=self.Nx, retstep=True)
-        self.dt = self.order_args['dt']
-        self.lambd = self.order_args['lambd']
-        self.nu = self.order_args['nu']
-        self.D = self.order_args['D']
-        # self.D = (self.dx)**2/(2*self.dt)
-
-        # Theoretical values
-        self.L = self.order_args['L']
-        if not self.L:
-            self.L = self.lambd/(np.sqrt(self.nu * self. D))
-        self.J = self.L * self.D
-        self.price_range = self.xmax - self.xmin
-        self.boundary_distance = min(abs(self.xmin), abs(self.xmax))
+        # Get spatial values
+        self.xmin = order_args['xmin']
+        self.xmax = order_args['xmax']
+        self.n_diff = order_args['n_diff']
+        self.Nx = order_args['Nx']
+        self.X, self.dx = np.linspace(
+            self.xmin, self.xmax, num=self.Nx, retstep=True)
+        self.L = order_args['L']
 
         # Metaorder
         self.update_price()
         self.dq = 0
 
-    def stationary_density(self, x):
+        # Animation
+        self.y_max = max(abs(self.xmin), abs(self.xmax)) * self.L * self.dx
 
-        x_crit = np.sqrt(self.D/self.nu)
-        return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
+    def get_ask_volumes(self):
+        return self.ask_orders.volumes
+
+    def get_bid_volumes(self):
+        return self.bid_orders.volumes
 
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
-        self.n_relax = int(self.obs_rate)
         self.execute_metaorder(self.dq)
-        for t in range(self.n_relax):
+        self.evolve()
+
+    def evolve(self):
+        for n in range(self.n_diff):
             self.stochastic_timestep()
             self.order_reaction()
             self.update_price()
+        self.update_price()
 
     def stochastic_timestep(self):
-
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.order_arrivals()
+            orders.order_deposition()
             orders.order_cancellation()
             orders.order_jumps()
             orders.update_best_price()
@@ -62,14 +58,13 @@ class DiscreteBook:
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        
+
         self.best_ask = self.X[self.ask_orders.best_price_index - 1]
         self.best_bid = self.X[self.bid_orders.best_price_index + 1]
-        self.best_ask_volume = self.ask_orders.volumes[self.ask_orders.best_price_index]
-        self.best_bid_volume = self.bid_orders.volumes[self.bid_orders.best_price_index]
-        # self.price_index = (self.ask_orders.best_price_index +
-        #                     self.bid_orders.best_price_index)//2
-        # self.price = self.X[self.price_index]
+        self.best_ask_volume = self.get_ask_volumes(
+        )[self.ask_orders.best_price_index]
+        self.best_bid_volume = self.get_bid_volumes(
+        )[self.bid_orders.best_price_index]
 
     # ------------------ Reaction ------------------
 
@@ -81,17 +76,16 @@ class DiscreteBook:
         if best_ask_index > best_bid_index:
             return
 
-        # Tradable orders are those in price range [best_ask, best_bid]
-        traded_volume = min(self.ask_orders.get_available_volume(
-            best_bid_index), self.bid_orders.get_available_volume(best_ask_index))
+        executed_volumes = np.minimum(
+            self.get_ask_volumes(), self.get_bid_volumes())
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.consume_best_orders(traded_volume)
+            orders.volumes -= executed_volumes
 
     # ------------------ Metaorder ------------------
 
     def execute_metaorder(self, volume):
         orders = self.ask_orders if volume > 0 else self.bid_orders
-        orders.consume_best_orders(volume)
+        orders.execute_best_orders(volume)
 
   # ================== ANIMATION ==================
 
@@ -101,15 +95,14 @@ class DiscreteBook:
 
         self.volume_ax = fig.add_subplot(1, 2, 1)
         xlims = lims.get('xlim', (self.xmin, self.xmax))
-        y_max = 1.5 * xlims[1] * self.L * self.dx
         self.volume_ax.set_xlim(xlims)
-        self.volume_ax.set_ylim((0, y_max))
+        self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.plot([0, 0], [
-            -y_max, y_max], color='black', lw=0.5, ls='dashed')
+            -self.y_max, self.y_max], color='black', lw=0.5, ls='dashed')
         self.ask_bars = self.volume_ax.bar(
-            self.X, self.ask_orders.volumes, align='edge', label='Ask', color='blue', width=0.1, animated='True')
+            self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
-            self.X, self.bid_orders.volumes, align='edge', label='Bid', color='red', width=-0.1, animated='True')
+            self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-0.1, animated='True')
         self.best_ask_axis, = self.volume_ax.plot(
             [], [], color='blue', ls='dashed', lw=1, label='best ask')
         self.best_bid_axis, = self.volume_ax.plot(
@@ -138,10 +131,10 @@ class DiscreteBook:
         self.timestep()
 
         for index in range(self.Nx):
-            self.ask_bars[index].set_height(self.ask_orders.volumes[index])
-            self.bid_bars[index].set_height(self.bid_orders.volumes[index])
+            self.ask_bars[index].set_height(self.get_ask_volumes()[index])
+            self.bid_bars[index].set_height(self.get_bid_volumes()[index])
 
-        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
-        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
+        # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
+        # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
 
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]

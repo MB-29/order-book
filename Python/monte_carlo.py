@@ -8,14 +8,14 @@ class MonteCarlo:
     """Implements a Monte Carlo simulation of order book dynamics with noisy meta-order
     """
 
-    # TODO : support n_start, n_end
-
     def __init__(self, N_samples, noise_args, simulation_args):
         """
-        Arguments:
-            N_samples {int} -- number of samples
-            noise_args {dictionary} -- {'m0' : noise mean, sigma' : noise size, 'hurst' : hurst exponent}
-            simulation_args {dictionary} -- see class Simulation
+        :param N_samples: [description]
+        :type N_samples: int
+        :param noise_args: {'m0': noise mean , 'm1': noise std, 'hurst': hurst exponent}
+        :type noise_args: dictionary
+        :param simulation_args: See class Simulation
+        :type simulation_args: dictionary
         """
 
         self.N_samples = N_samples
@@ -27,11 +27,13 @@ class MonteCarlo:
         self.simulation_args = simulation_args
 
         self.m0 = noise_args.get('m0', 0)
-        self.sigma = noise_args.get('sigma', 0)
+        self.m1 = noise_args.get('m1', 0)
         self.hurst = noise_args.get('hurst', 0.75)
         self.gamma = 2*(1 - self.hurst)
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
+        self.ask_samples = np.zeros((self.Nt, N_samples))
+        self.bid_samples = np.zeros((self.Nt, N_samples))
 
     def generate_noise(self):
 
@@ -41,10 +43,11 @@ class MonteCarlo:
                 n=self.Nt, hurst=self.hurst, length=self.T)
 
         # Scale and translate
-        self.scale = self.m0 * self.sigma / (self.tstep ** self.hurst)
+        self.scale = self.m1 / (self.tstep ** self.hurst)
         self.noisy_metaorders = self.m0 + self.scale * self.noise
         print(
-            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
+            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} '
+            'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
         self.generate_noise()
@@ -56,66 +59,30 @@ class MonteCarlo:
             self.simulation = Simulation(**args)
             self.simulation.run(animation=False)
             self.price_samples[:, k] = self.simulation.prices
+            self.ask_samples[:, k] = self.simulation.asks
+            self.bid_samples[:, k] = self.simulation.bids
 
         self.compute_statistics()
-        self.compute_theory()
 
     def compute_statistics(self):
+
         self.price_mean = self.price_samples.mean(axis=1)
+        self.ask_mean = self.ask_samples.mean(axis=1)
+        self.bid_mean = self.bid_samples.mean(axis=1)
+
         self.price_variance = self.price_samples.var(axis=1)
-
-    def compute_theory(self):
-
-        self.growth_th_low = self.simulation.A_low * \
-            np.sqrt(
-                self.time_interval)
-        self.growth_th_high = self.simulation.A_high * \
-            np.sqrt(
-                self.time_interval)
-
-    def plot_price(self, ax, scale='linear', low=False, high=False):
-
-        # Lines
-        ax.plot(self.time_interval,
-                self.price_mean, label='mean price')
-
-        self.simulation.compute_theoretical_growth()
-        if low:
-            ax.plot(self.time_interval,
-                    self.growth_th_low, label='low regime', lw=1, color='green')
-        if high:
-            ax.plot(self.time_interval,
-                    self.growth_th_high + self.price_mean[0], label='high regime', lw=1, color='orange')
-
-        # Scale
-        ax.set_yscale(scale)
-        ax.set_xscale(scale)
-
-        ax.legend()
-        # ax.set_title('Price evolution')
-
-        return ax
-
-    def plot_variance(self, ax, scale='linear'):
-
-        # Lines
-        ax.plot(self.time_interval[10:],
-                self.price_variance[10:], label='price variance')
-
-        # Scale
-        ax.set_yscale(scale)
-        ax.set_xscale(scale)
-
-        ax.legend()
-        # ax.set_title('Variance evolution')
-
-        return ax
+        self.ask_variance = self.ask_samples.var(axis=1)
+        self.bid_variance = self.bid_samples.var(axis=1)
 
     def gather_results(self):
 
-        return {'mean': self.price_mean,
-                'variance': self.price_variance,
-                'sigma': self.sigma,
+        return {'price_mean': self.price_mean,
+                'price_variance': self.price_variance,
+                'ask_mean': self.ask_mean,
+                'ask_variance': self.ask_variance,
+                'bid_mean': self.bid_mean,
+                'bid_variance': self.bid_variance,
+                'm1': self.m1,
                 'N_samples': self.N_samples,
                 'm0': self.m0,
                 'hurst': self.hurst,
