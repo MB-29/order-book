@@ -28,7 +28,7 @@ class DiscreteBook:
 
         # Animation
         self.y_max = 1.5 * max(np.max(self.get_ask_volumes()),
-                         np.max(self.get_bid_volumes()))
+                               np.max(self.get_bid_volumes()))
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -40,28 +40,29 @@ class DiscreteBook:
 
     def timestep(self):
         self.execute_metaorder(self.dq)
+        self.update_price()
         self.evolve()
 
     def evolve(self):
         for n in range(self.n_diff):
             self.stochastic_timestep()
+            self.update_price()
             self.order_reaction()
             self.update_price()
-        self.update_price()
 
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.order_deposition()
             orders.order_cancellation()
             orders.order_jumps()
-            orders.update_best_price()
 
     def update_price(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-
-        self.best_ask = self.X[self.ask_orders.best_price_index - 1]
-        self.best_bid = self.X[self.bid_orders.best_price_index + 1]
+        self.best_ask_index = self.ask_orders.best_price_index - 1
+        self.best_bid_index = self.bid_orders.best_price_index + 1
+        self.best_ask = self.X[self.best_ask_index]
+        self.best_bid = self.X[self.best_bid_index]
         self.best_ask_volume = self.get_ask_volumes(
         )[self.ask_orders.best_price_index]
         self.best_bid_volume = self.get_bid_volumes(
@@ -72,15 +73,13 @@ class DiscreteBook:
     def order_reaction(self):
         """Reaction step : tradable orders are executed
         """
-        best_ask_index = self.ask_orders.best_price_index
-        best_bid_index = self.bid_orders.best_price_index
-        if best_ask_index > best_bid_index:
+        if self.best_ask_index > self.best_bid_index:
             return
 
-        executed_volumes = np.minimum(
+        reaction_volumes = np.minimum(
             self.get_ask_volumes(), self.get_bid_volumes())
-        for orders in [self.ask_orders, self.bid_orders]:
-            orders.volumes -= executed_volumes
+        for side_orders in [self.ask_orders, self.bid_orders]:
+            side_orders.execute_orders(reaction_volumes)
 
     # ------------------ Metaorder ------------------
 
@@ -101,7 +100,7 @@ class DiscreteBook:
             self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=0.1, animated='True')
         self.bid_bars = self.volume_ax.bar(
             self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-0.1, animated='True')
-        
+
         # Lines
         self.volume_ax.plot([0, 0], [
             -self.y_max, self.y_max], color='black', lw=0.5, ls='dashed')

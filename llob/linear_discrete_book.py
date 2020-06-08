@@ -17,7 +17,7 @@ class LinearDiscreteBook(DiscreteBook):
 
         DiscreteBook.__init__(self, **order_args)
 
-    # No arrivals or cancellations, only jumps
+    # No arrivals nor cancellations, only jumps
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
             orders.order_jumps()

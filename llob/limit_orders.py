@@ -218,6 +218,21 @@ class LimitOrders:
 
         self.best_price = self.X[self.best_price_index]
         self.best_price_volume = self.volumes[self.best_price_index]
+    
+    def execute_orders(self, volumes):
+        """Execute given order volumes within the limit
+            of the book volumes
+
+        :param volumes: volumes to execute
+        :type volumes: array of floats
+        :return: actually executed volumes
+        :rtype: array
+        """
+
+        trade_volumes = np.minimum(volumes, self.volumes)
+        self.volumes -= trade_volumes.astype(int)
+        return trade_volumes
+
 
     def get_available_volume(self, price_index):
         """Compute order volume between prices of indices price_index and self.best_price
@@ -230,6 +245,7 @@ class LimitOrders:
         upper = max(self.best_price_index, price_index)
         return np.sum(self.volumes[lower: upper+1])
 
+# ================== NUMBA-OPTIMIZED FUNCTIONS ==================
 
 @njit(int64[:](int64[:], float64, int64, float64))
 def add_flow(volumes, dx, boundary_index, boundary_flow):

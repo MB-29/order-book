@@ -92,7 +92,6 @@ class Simulation:
         self.n_diff = int(2 * self.dt * self. D / (self.dx)**2)
         if model_type == 'discrete':
             args['n_diff'] = self.n_diff
-            print(f'n_diff = {self.n_diff}')
 
         # If L is an array, create a multi-actor book and set self.L to
         if not np.isscalar(self.L):
