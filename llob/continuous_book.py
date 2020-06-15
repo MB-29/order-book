@@ -8,7 +8,7 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    def __init__(self, dt, D, L, lambd, nu, xmin, xmax, Nx=1000):
+    def __init__(self, dt, D, L, lambd, nu, xmin, xmax, Nx=1000, **kwargs):
         """
         :param dt: Size of time subinterval
         :type dt: float
@@ -44,7 +44,6 @@ class ContinuousBook:
         self.L = L
         self.J = D * L
         self.resolution_volume = L * (self.dx)**2
-
         # Density function
         if self.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
@@ -125,6 +124,7 @@ class ContinuousBook:
 
         self.execute_metaorder(self.dq)
         # Update density values with one iteration of the numerical scheme
+        self.update_prices()
         if self.D != 0:
             self.density = theta_scheme_iteration(
                 self.density, self.dx, self.dt, self.D, self.L)

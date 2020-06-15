@@ -130,8 +130,6 @@ class DiscreteBook:
     def update_animation(self, n):
         """Update function called by FuncAnimation
         """
-        # Axis
-        y_max = 1.5*self.dx * self.xmax * self.L
 
         self.timestep()
 
@@ -140,7 +138,7 @@ class DiscreteBook:
             self.ask_bars[index].set_height(self.get_ask_volumes()[index])
             self.bid_bars[index].set_height(self.get_bid_volumes()[index])
 
-        # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
-        # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
+        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, self.y_max])
+        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, self.y_max])
 
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]

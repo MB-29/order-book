@@ -83,6 +83,16 @@ class Simulation:
         self.theoretical_values()
 
     def set_order_book(self, model_type, args):
+        """Create an instance of an order book with the given parameters
+
+        :param model_type: 'discrete' or 'continuous'
+        :type model_type: string
+        :param args: book args, see documentation of the corresponding
+        order book class 
+        :type args: dictionary
+        :return: the instance of the order book
+        :rtype: OrderBook object
+        """
 
         # Allow a certain number of timesteps for the Smoluchowski random walk
         # to reach diffusion : impose n_diff such that
@@ -132,8 +142,10 @@ class Simulation:
         # self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
-        if self.model_type == 'discrete':
 
+        if self.boundary_factor > 1:
+            warnings.warn('Boundary effects')
+        if self.model_type == 'discrete':
             if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
                     f'Low number of diffusion steps {self.n_diff} < 100,'
@@ -147,6 +159,8 @@ class Simulation:
                     f'Many diffusion steps : ~ {int(self.n_diff)}.')
 
     def compute_vwap(self, best_ask, best_bid):
+        """Apply vwap formula
+        """
         return (abs(self.book.best_ask_volume) * best_ask
                 + abs(self.book.best_bid_volume) * best_bid)/(
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
@@ -195,9 +209,12 @@ class Simulation:
     # ================== ANIMATION ==================
 
     def run_animation(self, fig, save=False):
-        """
-        Arguments:
-            fig {pyplot figure} -- The figure the animation is displayed in
+        """Run the simulation and display a matplotlib animation
+
+        :param fig: The figure the animation is displayed in, defaults to None
+        :type fig: matplotlib figure, optional
+        :param save: Set True to save the animation under ./animation.mp4, defaults to False
+        :type save: bool, optional
         """
         self.set_animation(fig)
         self.animation = FuncAnimation(
@@ -302,19 +319,14 @@ class Simulation:
         return string
 
 
-def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=None, Nt=100):
+def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=500, Nt=100):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
-
-    Arguments:
-        participation_rate {float} 
-        model_type {string} -- 'discrete' or 'continuous'
+    .. warning:: Participation rates greater than r~2500 will most likely cause an error
+    with the current settings.
 
     """
-    dt = T / Nt
     r = abs(participation_rate)
-    if Nx == None:
-        Nx = 5001 if model_type == 'continuous' else 501
     boundary_dist = min(abs(xmin), abs(xmax))
     X = max(abs(xmin), abs(xmax))
     dx = (xmax - xmin) / Nx
@@ -328,13 +340,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         m0 = (L * X) / (5 * T)
         D = m0 / (L*r)
         price_formula = side_formula
-    elif r > 0.5:
-        price_formula = 'vwap'
-        D = boundary_dist**2/(2 * T)
-        m0 = L * D * participation_rate
     else:
         price_formula = 'vwap'
-        D = boundary_dist**2 / (2 * T)
+        D = 50 * Nt * dx**2 / T
         m0 = L * D * participation_rate
 
     simulation_args = {

@@ -1,5 +1,5 @@
 import numpy as np
-from numba import vectorize, njit, int64, float64
+from numba import njit, int64, float64
 
 use_numba = True
 # use_numba = False

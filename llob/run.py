@@ -8,7 +8,7 @@ import time
 from simulation import Simulation, standard_parameters
 
 # participation_rate = 1
-# participation_rate = float('inf')
+participation_rate = 2500
 
 # Run
 model_type = 'continuous'
@@ -18,7 +18,7 @@ model_type = 'discrete'
 # standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
-L, nu = np.array([100000,20000]), np.array([1, 0])
+# L, nu = np.array([100000,20000]), np.array([1, 0])
 m0 = 200
 # m0 = 0
 standard_args = {
@@ -32,6 +32,7 @@ standard_args = {
     'model_type' : model_type,
     'metaorder': [m0]
 }
+standard_args = standard_parameters(participation_rate, model_type, Nx=1000)
 
 # Add noise. To ignore noise, comment out or set m1 = 0 
 # T, Nt = standard_args['T'], standard_args['Nt']
@@ -46,7 +47,7 @@ print(simulation)
 
 tic = time.perf_counter()
 fig = plt.figure(figsize=(12, 6))
-simulation.run(animation=True, fig=fig, save=True)
+simulation.run(animation=True, fig=fig, save=False)
 # simulation.run(animation=False, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
@@ -58,7 +59,7 @@ ax1 = fig2.add_subplot(2, 1, 1)
 ax1.plot(simulation.time_interval_shifted, simulation.prices, label='price')
 ax1.plot(simulation.time_interval_shifted[simulation.n_start: simulation.n_end],
          simulation.get_growth_th(), label='theoretical')
-ax1.set_xscale('log')
-ax1.set_yscale('log')
+# ax1.set_xscale('log')
+# ax1.set_yscale('log')
 ax1.legend()
 plt.show()
