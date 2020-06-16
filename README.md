@@ -85,7 +85,7 @@ output = noisy_simulation.gather_results()
 ## Output
 
 ### Discrete book animation
-![Discrete book animation](demo/medium_participation.gif)
+![Discrete book animation](demo/execution.gif)
 
 
 ## Requirements

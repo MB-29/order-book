@@ -6,6 +6,13 @@
 Welcome to LLOB's documentation!
 ================================
 
+Examples::
+
+   code
+
+.. image:: _static/execution.gif 
+   :align: center
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

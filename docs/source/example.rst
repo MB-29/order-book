@@ -5,6 +5,7 @@ Example
 Run the code
 **************
 
-`bash
-python run.py`
+.. code-block:: bash 
+
+    python run.py
 

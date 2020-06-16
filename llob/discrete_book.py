@@ -39,11 +39,15 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self):
+        """Step forward.
+        """
         self.execute_metaorder(self.dq)
         self.update_price()
         self.evolve()
 
     def evolve(self):
+        """System evolution step : orders stochastic dynamics, reaction, and price update.
+        """
         for n in range(self.n_diff):
             self.stochastic_timestep()
             self.update_price()
@@ -51,12 +55,16 @@ class DiscreteBook:
             self.update_price()
 
     def stochastic_timestep(self):
+        """Stochastic dynamics step.
+        """
         for orders in [self.ask_orders, self.bid_orders]:
             orders.order_deposition()
             orders.order_cancellation()
             orders.order_jumps()
 
     def update_price(self):
+        """Update order best price for both sides of the book.
+        """
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
         self.best_ask_index = self.ask_orders.best_price_index - 1
@@ -71,7 +79,7 @@ class DiscreteBook:
     # ------------------ Reaction ------------------
 
     def order_reaction(self):
-        """Reaction step : tradable orders are executed
+        """Order reaction step : matched orders are executed.
         """
         if self.best_ask_index > self.best_bid_index:
             return
@@ -84,6 +92,11 @@ class DiscreteBook:
     # ------------------ Metaorder ------------------
 
     def execute_metaorder(self, volume):
+        """Execute a meta-order of a given volume.
+
+        :param volume: trade volume, positive for ask order, negative for bid order
+        :type volume: int
+        """
         orders = self.ask_orders if volume > 0 else self.bid_orders
         orders.execute_best_orders(volume)
 

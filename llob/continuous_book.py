@@ -63,7 +63,7 @@ class ContinuousBook:
     # ================== Time evolution ==================
 
     def update_prices(self):
-        """ Update best ask, best bid and market price
+        """ Update best ask, best bid and market price.
         """
         bid_indices = np.where(self.density * self.dx >
                                self.resolution_volume)[0]
@@ -118,7 +118,7 @@ class ContinuousBook:
 
     def timestep(self):
         """
-        Step forward
+        Step forward.
         """
 
         self.execute_metaorder(self.dq)
@@ -132,7 +132,7 @@ class ContinuousBook:
     # ================== ANIMATION ==================
 
     def set_animation(self, fig, lims):
-        """Create subplot axes, lines and texts
+        """Create subplot axes, lines and texts.
         """
         xlims = lims.get('xlim', (self.xmin, self.xmax))
         y_max = self.L * xlims[1]
@@ -154,14 +154,14 @@ class ContinuousBook:
         self.density_ax.set_ylim(-y_max, y_max)
 
     def init_animation(self):
-        """Init function called by FuncAnimation
+        """Init function called by FuncAnimation.
         """
 
         self.density_line.set_data([], [])
         return [self.density_line, self.best_ask_axis, self.best_bid_axis]
 
     def update_animation(self, n):
-        """Update function called by FuncAnimation
+        """Update function called by FuncAnimation.
         """
         # Axis
         y_max = 1.5 * self.xmax * self.L
