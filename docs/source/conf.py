@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
-# print(sys.path)
+sys.path.insert(0, os.path.abspath('/Users/matthieu/Projets/llob/llob/'))
 
 
 # -- Project information -----------------------------------------------------
@@ -42,6 +42,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+autoclass_content = 'both'
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -54,3 +56,5 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+

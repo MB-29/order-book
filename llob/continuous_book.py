@@ -26,7 +26,6 @@ class ContinuousBook:
         :type xmax: float
         :param Nx: Number of space (price) subintervals, defaults to 1000
         :type Nx: int, optional
-
         """
 
         # Structural constants

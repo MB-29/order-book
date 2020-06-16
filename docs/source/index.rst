@@ -10,8 +10,8 @@ Welcome to LLOB's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   discrete
-   continuous
+   example
+   api
 
 
 

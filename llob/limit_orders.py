@@ -22,7 +22,7 @@ class LimitOrders:
         :type xmin: float
         :param xmax: Price interval upper bound
         :type xmax: float
-        :param L: Order densiyt slope, defaults to None
+        :param L: Order density slope, defaults to None
         :type L: float, optional
         :param Nx: Number of space (price) subintervals, defaults to 1000
         :type Nx: int, optional
