@@ -33,16 +33,18 @@ class MultiDiscreteBook(DiscreteBook):
             L = L_list[n]
             lambd = lambd_list[n]
             nu = nu_list[n]
-            linear = nu == 0
+            linear = (nu == 0)
             model = LinearDiscreteBook if linear else DiscreteBook
             multi_book_args['L'] = L
             multi_book_args['lambd'] = lambd
             multi_book_args['nu'] = nu
             self.books.append(model(**multi_book_args))
 
-        self.dq = 0
-
         self.update_price()
+
+        # Ordre execution
+        self.dq = 0
+        self.trading_proportions = np.zeros(self.N_actors)        
 
         self.y_max = np.sum([actor_book.y_max for actor_book in self.books])
 
@@ -78,11 +80,13 @@ class MultiDiscreteBook(DiscreteBook):
             return
         executed_volume = 0
         traded = True
+        self.trading_proportions.fill(0)
         while traded:
             traded = False
             # Each book is considered at each loop, and executed
             # within the limit of the available volumes
-            for actor_book in self.books:
+            for index in range(self.N_actors):
+                actor_book = self.books[index]
                 volume = actor_book.best_ask_volume if trade_volume > 0 else - \
                     actor_book.best_bid_volume
                 if abs(volume) + executed_volume > abs(trade_volume):
@@ -90,9 +94,11 @@ class MultiDiscreteBook(DiscreteBook):
                 actor_book.execute_metaorder(volume)
                 executed_volume += abs(volume)
                 traded = True
+                self.trading_proportions[index] += volume
 
     def order_reaction(self):
-        """Reaction step : tradable orders are executed
+        """Reaction step : matched orders are executed, regardless of
+        the book type their are matched with. 
         """
         if self.best_ask_index > self.best_bid_index:
             return
@@ -101,23 +107,23 @@ class MultiDiscreteBook(DiscreteBook):
             self.get_ask_volumes(), self.get_bid_volumes())
         for side in ['ask', 'bid']:
             side_volumes = getattr(self, f'get_{side}_volumes')()
-            limiting_volume = side_volumes <= reaction_volumes
+            # Mask array indicating where side's volumes are lower that the other side's
+            limiting_volume = np.array(side_volumes <= reaction_volumes)
             for actor_book in self.books:
+                # 
                 actor_side_orders = getattr(actor_book, f'{side}_orders')
-                actor_proportion = actor_side_orders.volumes / side_volumes
+                actor_proportion = np.array(actor_side_orders.volumes / side_volumes)
+                # print(f'side {side}, L {actor_book.L}, fraction {np.nanmean(actor_proportion[limiting_volume])}')
+                # Execute all the side's liquidity where side is lacking volume, 
+                # else execute a proportional fraction of the other side's liquidit
                 executed_volumes = np.where(
                     limiting_volume, reaction_volumes, actor_proportion * reaction_volumes)
                 actor_side_orders.execute_orders(executed_volumes)
-        # for actor_book in self.books:
-        #     for side_orders in [actor_book.ask_orders, actor_book.bid_orders]:
-        #         actor_proportion = side_orders.volumes
-        #         executed_volume = side_orders.execute_orders(reaction_volumes)
-        #         reaction_volumes -= executed_volume
 
     # ================== ANIMATION ==================
 
     # Override animation methods to enable a visual
-    # distniction between the various actors
+    # distinction between the various actors
 
     def set_animation(self, fig=None, lims=None):
         """Create subplot axes, lines and texts
@@ -125,7 +131,17 @@ class MultiDiscreteBook(DiscreteBook):
         # Ax
         self.volume_ax = fig.add_subplot(1, 2, 1)
         self.volume_ax.set_ylim((0, self.y_max))
+        self.volume_ax.set_title('Order volumes')
         width = max(1/self.Nx, 0.02)
+
+        # Lines
+        # Lines
+        self.volume_ax.plot([0, 0], [
+            -self.y_max, self.y_max], color='black', lw=0.5, ls='dashed')
+        self.best_ask_axis, = self.volume_ax.plot(
+            [], [], color='blue', ls='dashed', lw=1, label='best ask')
+        self.best_bid_axis, = self.volume_ax.plot(
+            [], [], color='red', ls='dashed', lw=1, label='best bid')
 
         # Bars
         self.ask_bars = []
@@ -207,6 +223,13 @@ class MultiDiscreteBook(DiscreteBook):
                     self.books[actor_index].get_bid_volumes()[x_index])
                 heights[x_index] += padding + bar.get_height()
                 result.append(bar)
+        
+        self.best_ask_axis.set_data(
+                    [self.best_ask, self.best_ask], [0, self.y_max])
+        self.best_bid_axis.set_data(
+            [self.best_bid, self.best_bid], [0, self.y_max])
+        
+        result.extend([self.best_ask_axis, self.best_bid_axis])
 
         # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
         # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
