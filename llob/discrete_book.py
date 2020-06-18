@@ -10,21 +10,22 @@ class DiscreteBook:
     def __init__(self, **order_args):
 
         order_args = order_args
-        self.bid_orders = LimitOrders(**order_args, side='BID')
-        self.ask_orders = LimitOrders(**order_args, side='ASK')
+        self.bid_orders = LimitOrders(**order_args, side='bid')
+        self.ask_orders = LimitOrders(**order_args, side='ask')
 
         # Get spatial values
         self.xmin = order_args['xmin']
         self.xmax = order_args['xmax']
-        self.n_diff = order_args['n_diff']
         self.Nx = order_args['Nx']
         self.X, self.dx = np.linspace(
             self.xmin, self.xmax, num=self.Nx, retstep=True)
-        self.L = order_args['L']
 
-        # Metaorder
+        # Elementary timestep
+        self.D = order_args['D']
+        self.dt = (self.dx)**2 / (2 * self.D)
+
+        # Set prices
         self.update_price()
-        self.dq = 0
 
         # Animation
         self.y_max = max(np.max(self.get_bid_volumes()),
@@ -38,29 +39,28 @@ class DiscreteBook:
 
     # ================== TIME EVOLUTION ==================
 
-    def timestep(self):
+    def timestep(self, tstep, volume):
         """Step forward.
         """
-        self.execute_metaorder(self.dq)
-        self.update_price()
-        self.evolve()
+        n_steps = int(tstep / self.dt)
+        assert n_steps > 0, "Observation time step is lower than the system's elementary timestep"
 
-    def evolve(self):
-        """System evolution step : orders stochastic dynamics, reaction, and price update.
-        """
-        for n in range(self.n_diff):
+        self.execute_metaorder(volume)
+        for n in range(n_steps):
+            self.update_price()
             self.stochastic_timestep()
             self.update_price()
             self.order_reaction()
             self.update_price()
 
+
     def stochastic_timestep(self):
         """Stochastic dynamics step.
         """
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.order_deposition()
-            orders.order_cancellation()
-            orders.order_jumps()
+            orders.deposition()
+            orders.cancellation()
+            orders.jumps()
 
     def update_price(self):
         """Update order best price for both sides of the book.
@@ -147,11 +147,11 @@ class DiscreteBook:
 
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars]
 
-    def update_animation(self, n):
+    def update_animation(self, tstep, volume):
         """Update function called by FuncAnimation
         """
 
-        self.timestep()
+        self.timestep(tstep, volume)
 
         # Update bars
         for index in range(self.Nx):

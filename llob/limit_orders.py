@@ -8,15 +8,13 @@ use_numba = True
 class LimitOrders:
     """Orders volumes of one side - bid or ask - with stochastic dynamics."""
 
-    def __init__(self, lambd, nu, dt, side, xmin, xmax, L=None,  Nx=1000, **kwargs):
+    def __init__(self, lambd, nu, D, side, xmin, xmax, Nx, L=None, **kwargs):
         """     
-        :param dt: Size of time subinterval
-        :type dt: float
         :param lambd: Lambda parameter
         :type lambd: float
         :param nu: Nu parameter
         :type nu: float
-        :param side: Either 'BID' or ASK'
+        :param side: Either 'bid' or ask'
         :type side: string
         :param xmin: Price interval lower bound
         :type xmin: float
@@ -33,22 +31,23 @@ class LimitOrders:
         self.X, self.dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
         self.xmin = xmin
         self.xmax = xmax
-        self.dt = dt
-        self.t_diff = dt / kwargs['n_diff']
+
+        #Smoluchowski random walk : D =  dx**2 / (2 * dt)
+        self.dt = (self.dx)**2 / (2 * D)
 
         initial_density = kwargs.get('initial_density', 'stationary')
         boundary_conditions = kwargs.get('boundary_conditions', 'flat')
 
         # Order side
         self.side = side
-        assert (side in ['ASK', 'BID'])
-        self.sign = -1 if side == 'ASK' else 1
-        self.boundary_index = -1 if side == 'ASK' else 0
+        assert (side in ['ask', 'bid'])
+        self.sign = -1 if side == 'ask' else 1
+        self.boundary_index = -1 if side == 'ask' else 0
 
         # Model parameters
         self.lambd = lambd
         self.nu = nu
-        self.D = (self.dx)**2/(2*self.t_diff)
+        self.D = D
         self.L = L if L != None else lambd / np.sqrt(nu * self.D)
 
         self.initialize_volumes(initial_density)
@@ -91,19 +90,18 @@ class LimitOrders:
 
     # ------------------ Stochastic evolution ------------------
 
-    def order_deposition(self):
+    def deposition(self):
         """Process order deposition stochastic step.
         In order to work properly, method update_price() should be called before this one,
         so that the size of the deposition price range is correct.
-
         """
 
         # Orders are deposited at each side through a lambda intensity Poisson point process
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ASK' else self.best_price_index + 1
-        padding_size = size - self.Nx if self.side == 'ASK' else self.Nx - size
+        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask' else self.best_price_index + 1
+        padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
         if use_numba:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
             return
@@ -111,14 +109,14 @@ class LimitOrders:
 
         # No orders are deposited on the rest of the points : pad with 0
         padding = (self.Nx - size,
-                   0) if self.side == 'ASK' else (0, self.Nx - size)
+                   0) if self.side == 'ask' else (0, self.Nx - size)
         arrivals = np.pad(arrivals, padding,
                           mode='constant', constant_values=0)
 
         # Add deposited orders
         self.volumes += arrivals
 
-    def order_cancellation(self):
+    def cancellation(self):
         """Process order cancellation stochastic step."""
         scale = 1/self.nu
         if use_numba:
@@ -145,7 +143,7 @@ class LimitOrders:
         cancellations = np.where(life_times < self.dt, 1, 0)
         return np.sum(cancellations)
 
-    def order_jumps(self):
+    def jumps(self):
         """Process order jumps stochastic step."""
 
         # 2D array where rows correspond to the price range, and column are respectively
@@ -165,8 +163,8 @@ class LimitOrders:
         boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
         # Set boundary flow
-        boundary_jumps_left = boundary_jumps if self.side == 'ASK' else 0
-        boundary_jumps_right = boundary_jumps if self.side == 'BID' else 0
+        boundary_jumps_left = boundary_jumps if self.side == 'ask' else 0
+        boundary_jumps_right = boundary_jumps if self.side == 'bid' else 0
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
         flow = jumps_right - jumps_left
@@ -178,7 +176,7 @@ class LimitOrders:
     # ------------------ Price ------------------
 
     def update_best_price(self):
-        end_index = 0 if self.side == 'ASK' else -1
+        end_index = 0 if self.side == 'ask' else -1
         indices = np.nonzero(self.volumes)[0]
         if indices.size == 0:
             indices = [self.boundary_index]
@@ -253,10 +251,10 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
     :type volumes: int64[:]
     :param dx: Size of the price subinterval
     :type dx: float64
-    :param boundary_index: Depending on the size ASK or BID,
+    :param boundary_index: Depending on the size ask or bid,
     :type boundary_index: int64
     :param boundary_index: The algebraic index of the exterior boundary.
-        -1 or O depending on the size ASK or BID
+        -1 or O depending on the size ask or bid
     :type boundary_index: int64
     :param boundary_flow: The corresponding flow
     :type boundary_flow: float64

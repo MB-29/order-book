@@ -8,10 +8,8 @@ class ContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
-    def __init__(self, dt, D, L, lambd, nu, xmin, xmax, Nx=1000, **kwargs):
+    def __init__(self, D, L, lambd, nu, xmin, xmax, Nx=1000, **kwargs):
         """
-        :param dt: Size of time subinterval
-        :type dt: float
         :param D: Diffusion constant
         :type D: float
         :param L: Order density slope
@@ -29,7 +27,6 @@ class ContinuousBook:
         """
 
         # Structural constants
-        self.dt = dt
         self.xmin = xmin
         self.xmax = xmax
         self.price_range = (xmax - xmin)/2
@@ -53,9 +50,6 @@ class ContinuousBook:
         # +1 / -1 ensure corresponding volume isn't partially consumed
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
-
-        # Metaorder
-        self.dq = 0
 
     def initial_density(self, x):
         return -self.L * x
@@ -116,17 +110,17 @@ class ContinuousBook:
         self.best_ask_volume = self.density[self.best_ask_index + 1]
         self.best_bid_volume = self.density[self.best_bid_index - 1]
 
-    def timestep(self):
+    def timestep(self, tstep, volume):
         """
         Step forward.
         """
 
-        self.execute_metaorder(self.dq)
+        self.execute_metaorder(volume)
         # Update density values with one iteration of the numerical scheme
         self.update_prices()
         if self.D != 0:
             self.density = theta_scheme_iteration(
-                self.density, self.dx, self.dt, self.D, self.L)
+                self.density, self.dx, tstep, self.D, self.L)
         self.update_prices()
 
     # ================== ANIMATION ==================
@@ -160,13 +154,13 @@ class ContinuousBook:
         self.density_line.set_data([], [])
         return [self.density_line, self.best_ask_axis, self.best_bid_axis]
 
-    def update_animation(self, n):
+    def update_animation(self, tstep, volume):
         """Update function called by FuncAnimation.
         """
         # Axis
         y_max = 1.5 * self.xmax * self.L
 
-        self.timestep()
+        self.timestep(tstep, volume)
         self.density_line.set_data(self.X, self.density)
         self.best_ask_axis.set_data(
             [self.best_ask, self.best_ask], [-y_max, y_max])

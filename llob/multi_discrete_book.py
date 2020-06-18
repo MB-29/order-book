@@ -20,15 +20,18 @@ class MultiDiscreteBook(DiscreteBook):
         self.N_actors = len(L_list)
         self.books = []
 
-        # Get spatial values
+        # Spatial values
         self.xmin = multi_book_args['xmin']
         self.xmax = multi_book_args['xmax']
-        self.n_diff = multi_book_args['n_diff']
         self.Nx = multi_book_args['Nx']
         self.X, self.dx = np.linspace(
             self.xmin, self.xmax, num=self.Nx, retstep=True)
-        self.L = multi_book_args['L']
 
+        # Elementary timestep
+        self.D = multi_book_args['D']
+        self.dt = (self.dx)**2 / (2 * self.D)
+
+        # The create the various books
         for n in range(self.N_actors):
             L = L_list[n]
             lambd = lambd_list[n]
@@ -42,8 +45,7 @@ class MultiDiscreteBook(DiscreteBook):
 
         self.update_price()
 
-        # Ordre execution
-        self.dq = 0
+        # Measures
         self.actor_trades = np.zeros(self.N_actors)
 
         self.y_max = np.sum([actor_book.y_max for actor_book in self.books])
@@ -100,7 +102,6 @@ class MultiDiscreteBook(DiscreteBook):
             for actor_book in self.books:
                 actor_side_orders = getattr(actor_book, f'{side}_orders')
                 actor_proportion = actor_side_orders.volumes / side_volumes
-                # print(f'side {side}, L {actor_book.L}, fraction {np.nanmean(actor_proportion[limiting_volume])}')
                 # Execute all the side's liquidity where side is lacking volume,
                 # else execute a proportional fraction of the other side's liquidit
                 executed_volumes = np.where(
@@ -126,7 +127,7 @@ class MultiDiscreteBook(DiscreteBook):
             actor_proportion = actor_price_volume / total_price_volume
             actor_trade_volume = actor_proportion * trade_volume
             actor_book.execute_metaorder(actor_trade_volume)
-            self.actor_trades[actor_index] = actor_trade_volume
+            self.actor_trades[actor_index] = actor_proportion
 
     def get_measures(self):
         measures = {
@@ -206,16 +207,13 @@ class MultiDiscreteBook(DiscreteBook):
                 result.append(bar)
         return result
 
-    def update_animation(self, n):
+    def update_animation(self, tstep, volume):
         """Update function called by FuncAnimation
         """
-        # Axis
-        y_max = 1.5*self.dx * self.xmax * self.L
-        padding = 5
-        self.timestep()
+        self.timestep(tstep, volume)
 
-        # self.ask_bars[index].set_height(self.get_ask_volumes()[index])
-        # self.bid_bars[index].set_height(self.get_bid_volumes()[index])
+        padding = 5
+
         # Update ask bars
         result = []
         heights = np.zeros(self.Nx)
@@ -246,9 +244,4 @@ class MultiDiscreteBook(DiscreteBook):
             [self.best_bid, self.best_bid], [0, self.y_max])
 
         result.extend([self.best_ask_axis, self.best_bid_axis])
-
-        # self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, y_max])
-        # self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, y_max])
-        # result = [bar for bar in actor_ask_bars for actor_ask_bars in self.ask_bars] + \
-        #     [bar for bar in actor_bid_bars for actor_bid_bars in self.bid_bars]
         return result

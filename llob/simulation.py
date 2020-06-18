@@ -29,7 +29,7 @@ class Simulation:
         # Time
         self.T = kwargs.get('T', 1)
         self.Nt = kwargs.get('Nt', 100)
-        self.time_interval, self.dt = np.linspace(
+        self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
 
         # Space
@@ -81,8 +81,8 @@ class Simulation:
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
-        self.t_start = self.n_start * self.dt
-        self.t_end = self.n_end * self.dt
+        self.t_start = self.n_start * self.tstep
+        self.t_end = self.n_end * self.tstep
         self.time_interval_shifted = self.time_interval-self.t_start
 
         self.theoretical_values()
@@ -99,14 +99,7 @@ class Simulation:
         :rtype: OrderBook object
         """
 
-        # Allow a certain number of timesteps for the Smoluchowski random walk
-        # to reach diffusion : impose n_diff such that
-        # D =  dx**2 / (2 * dt / n_diff)
-        args['dt'] = self.dt
         args['lambd'] = self.lambd
-        self.n_diff = int(2 * self.dt * self. D / (self.dx)**2)
-        if model_type == 'discrete':
-            args['n_diff'] = self.n_diff
 
         # If L is an array, create a multi-actor book
         if self.is_multi_book:
@@ -129,6 +122,7 @@ class Simulation:
         # Take the dominant slope in the case of a multi-actor book
         L = np.max(self.L)
 
+        self.n_steps = int(2 * self.D * self.tstep / (self.dx ** 2))
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
         self.infinity_density = L * self.xmax
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/L)
@@ -137,31 +131,27 @@ class Simulation:
         self.participation_rate = self.m0 / \
             (self.D * L) if self.D != 0 else float("inf")
         self.r = abs(self.participation_rate)
-        self.alpha = self.D * self.dt / (self.dx * self.dx)
+        self.scheme_constant = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
         self.first_volume = L * self.dx * self.dx
-
-        # Strings
-        # self.parameters_string = fr'$m_0={self.m0:.2e}$, d$t={self.dt:.2e}$ '
-        # self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
 
         # Warnings and errors
 
         if self.boundary_factor > 1:
             warnings.warn('Boundary effects')
         if self.model_type == 'discrete':
-            if self.r < 1 and self.n_diff < 100:
+            if self.r < 1 and self.n_steps < 100:
                 warnings.warn(
-                    f'Low number of diffusion steps {self.n_diff} < 100,'
+                    f'Low number of diffusion steps {self.n_steps} < 100,'
                     'try increasing spatial resolution.')
-            if self.n_diff < 1 and self.r < float('inf'):
+            if self.n_steps < 1 and self.r < float('inf'):
                 raise ValueError(
                     'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
                     'Try decreasing participation rate')
-            if self.n_diff > 200:
+            if self.n_steps > 200:
                 raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.n_diff)}.')
+                    f'Many diffusion steps : ~ {int(self.n_steps)}.')
 
     def compute_vwap(self, best_ask, best_bid):
         """Apply vwap formula
@@ -187,7 +177,7 @@ class Simulation:
 
         for n in range(self.Nt):
             # Update metaorder intensity
-            self.book.dq = self.metaorder[n] * self.dt
+            volume = self.metaorder[n] * self.tstep
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
@@ -195,14 +185,14 @@ class Simulation:
             for key, value in self.book.get_measures().items():
                 if key in self.measured_quantities:
                     self.measures[key].append(value)
-            self.book.timestep()
+            self.book.timestep(self.tstep, volume)
 
     # ================== COMPUTATIONS ==================
 
     def get_growth_th(self):
         """Return theoretical price impact, starting from price 0
         """
-        A = self.m0/(self.book.L*np.sqrt(self.D * np.pi)
+        A = self.m0/(self.L*np.sqrt(self.D * np.pi)
                      ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
         growth = A * \
             np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
@@ -274,7 +264,7 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        self.book.dq = self.metaorder[n] * self.dt
+        volume = self.metaorder[n] * self.tstep
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
@@ -285,7 +275,7 @@ class Simulation:
             self.time_interval[:n+1], self.asks[:n+1])
         self.best_bid_line.set_data(
             self.time_interval[:n+1], self.bids[:n+1])
-        return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
+        return self.book.update_animation(self.tstep, volume) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
 
@@ -296,9 +286,8 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
-                        dt = {self.dt:.1e},
-                        n_diff = {self.n_diff:.1e}.,
-                        dt = {self.dt:.1e}.
+                        tstep = {self.tstep:.1e},
+                        n_steps = {self.n_steps:.1e}.
 
         Space parameters :
                         Price interval = [{self.xmin}, {self.xmax}],
@@ -307,20 +296,21 @@ class Simulation:
 
         Model constants:
                         D = {self.D:.1e},
+                        lambda = {self.lambd},
                         nu = {self.nu},
                         L = {self.L},
                         J = {self.J}.
 
         Metaorder:
                         m0 = {self.m0:.1e},
-                        dq = {self.m0 * self.dt:.1e}.
+                        dq = {self.m0 * self.tstep:.1e}.
                         n_start, n_end = ({self.n_start}, {self.n_end}).
 
         Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
                         impact = {self.impact_th:.1e},
                         lower impact = {self.lower_impact},
-                        alpha = {self.alpha:.1e},
+                        alpha = {self.scheme_constant:.1e},
                         boundary factor = {self.boundary_factor:.1e},
                         first volume = {self.first_volume:.1f},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
