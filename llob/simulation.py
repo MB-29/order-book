@@ -40,13 +40,18 @@ class Simulation:
         self.dx = self.price_range / self.Nx
         self.boundary_distance = min(abs(self.xmin), self.xmax)
 
-        # Prices
+        # Prices and measures
         self.asks = np.zeros(self.Nt)
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
+        self.measured_quantities = kwargs.get('measures', [])
+        self.measures = {}
+        for quantity in self.measured_quantities:
+            self.measures[quantity] = []
 
         # Orders
         self.L = kwargs['L']
+        self.is_multi_book = (not np.isscalar(self.L))
         self.D = kwargs['D']
         self.nu = kwargs.get('nu', 0)
         self.lambd = self.L * np.sqrt(self.nu * self.D)
@@ -103,8 +108,8 @@ class Simulation:
         if model_type == 'discrete':
             args['n_diff'] = self.n_diff
 
-        # If L is an array, create a multi-actor book and set self.L to
-        if not np.isscalar(self.L):
+        # If L is an array, create a multi-actor book
+        if self.is_multi_book:
             return MultiDiscreteBook(**args)
 
         linear = (self.nu == 0)
@@ -187,6 +192,9 @@ class Simulation:
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
+            for key, value in self.book.get_measures().items():
+                if key in self.measured_quantities:
+                    self.measures[key].append(value)
             self.book.timestep()
 
     # ================== COMPUTATIONS ==================
@@ -299,7 +307,8 @@ class Simulation:
 
         Model constants:
                         D = {self.D:.1e},
-                        L = {self.L}.
+                        nu = {self.nu},
+                        L = {self.L},
                         J = {self.J}.
 
         Metaorder:

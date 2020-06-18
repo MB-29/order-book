@@ -198,9 +198,10 @@ class LimitOrders:
 
         if volume == 0:
             return
+        if self.best_price_index in {0, self.Nx}:
+            raise ValueError(f'Market lacks {self.side} liquidity')
 
         index_increment = -self.sign
-
         trade_volume = abs(volume)
 
         while trade_volume > 0:
@@ -215,9 +216,6 @@ class LimitOrders:
 
             if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
                 raise ValueError(f'Market lacks {self.side} liquidity')
-
-        self.best_price = self.X[self.best_price_index]
-        self.best_price_volume = self.volumes[self.best_price_index]
     
     def execute_orders(self, volumes):
         """Execute given order volumes within the limit
