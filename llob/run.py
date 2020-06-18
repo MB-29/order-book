@@ -18,9 +18,9 @@ model_type = 'discrete'
 # standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
-L, nu = np.array([100000,20000]), np.array([1, 0])
-m0 = 200
-# m0 = 0
+L, nu = np.array([1000000,20000]), np.array([5, 0])
+m0 = 1000
+m0 = 0
 standard_args = {
     'Nx' : 100,
     'xmin' : -1,
