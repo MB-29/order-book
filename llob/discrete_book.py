@@ -27,8 +27,8 @@ class DiscreteBook:
         self.dq = 0
 
         # Animation
-        self.y_max = 1.5 * max(np.max(self.get_ask_volumes()),
-                               np.max(self.get_bid_volumes()))
+        self.y_max = max(np.max(self.get_bid_volumes()),
+                         np.max(self.get_ask_volumes()))
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -67,10 +67,10 @@ class DiscreteBook:
         """
         for orders in [self.ask_orders, self.bid_orders]:
             orders.update_best_price()
-        self.best_ask_index = self.ask_orders.best_price_index - 1
-        self.best_bid_index = self.bid_orders.best_price_index + 1
-        self.best_ask = self.X[self.best_ask_index]
-        self.best_bid = self.X[self.best_bid_index]
+        self.best_ask_index = self.ask_orders.best_price_index
+        self.best_bid_index = self.bid_orders.best_price_index
+        self.best_ask = self.X[self.best_ask_index - 1]
+        self.best_bid = self.X[self.best_bid_index + 1]
         self.best_ask_volume = self.get_ask_volumes(
         )[self.ask_orders.best_price_index]
         self.best_bid_volume = self.get_bid_volumes(
@@ -99,6 +99,13 @@ class DiscreteBook:
         """
         orders = self.ask_orders if volume > 0 else self.bid_orders
         orders.execute_best_orders(volume)
+
+    def get_measures(self):
+        measures = {
+            'bid': self.best_bid,
+            'ask': self.best_ask
+        }
+        return measures
 
   # ================== ANIMATION ==================
 
@@ -151,7 +158,9 @@ class DiscreteBook:
             self.ask_bars[index].set_height(self.get_ask_volumes()[index])
             self.bid_bars[index].set_height(self.get_bid_volumes()[index])
 
-        self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, self.y_max])
-        self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, self.y_max])
+        self.best_ask_axis.set_data(
+            [self.best_ask, self.best_ask], [0, self.y_max])
+        self.best_bid_axis.set_data(
+            [self.best_bid, self.best_bid], [0, self.y_max])
 
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]
