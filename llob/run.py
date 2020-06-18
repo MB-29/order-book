@@ -7,8 +7,8 @@ import time
 
 from simulation import Simulation, standard_parameters
 
+# participation_rate = 1
 participation_rate = 2500
-participation_rate = float('inf')
 
 # Run
 model_type = 'continuous'
@@ -18,9 +18,9 @@ model_type = 'discrete'
 # standard_args['nu'] = 0.1
 L, nu = 100000, 1
 L, nu = 20000, 0
-# L, nu = np.array([100000,20000]), np.array([1, 0])
-m0 = 200
-# m0 = 0
+L, nu = np.array([1000000,20000]), np.array([5, 0])
+m0 = 1000
+m0 = 0
 standard_args = {
     'Nx' : 100,
     'xmin' : -1,
@@ -32,14 +32,13 @@ standard_args = {
     'model_type' : model_type,
     'metaorder': [m0]
 }
-standard_args = standard_parameters(participation_rate, model_type, Nx=1000, xmin=-1)
 
 # Add noise. To ignore noise, comment out or set m1 = 0 
 # T, Nt = standard_args['T'], standard_args['Nt']
-# m0 = standard_args['metaorder'][0] 
+# m0 = standard_args['metaorder'][0]
 # m1, hurst = m0, 0.75
 # noise = fgn(n=Nt, hurst=hurst, length=T)
-# standard_args['metaorder'] = m0 /100 + m1 / \
+# standard_args['metaorder'] = m1 / \
 #     (standard_args['T']/standard_args['Nt'] ** hurst) * noise
 
 simulation = Simulation(**standard_args)
