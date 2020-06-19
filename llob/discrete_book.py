@@ -43,11 +43,10 @@ class DiscreteBook:
         """Step forward.
         """
         n_steps = int(tstep / self.dt)
-        assert n_steps > 0, "Observation time step is lower than the system's elementary timestep"
 
         self.execute_metaorder(volume)
+        self.update_price()
         for n in range(n_steps):
-            self.update_price()
             self.stochastic_timestep()
             self.update_price()
             self.order_reaction()
@@ -100,12 +99,9 @@ class DiscreteBook:
         orders = self.ask_orders if volume > 0 else self.bid_orders
         orders.execute_best_orders(volume)
 
-    def get_measures(self):
-        measures = {
-            'bid': self.best_bid,
-            'ask': self.best_ask
-        }
-        return measures
+    def get_measure(self, quantity):
+        value = getattr(self, quantity)
+        return value
 
   # ================== ANIMATION ==================
 

@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from fbm import fgn
 from tqdm.auto import tqdm
+
 from simulation import Simulation
 
 
@@ -19,12 +21,18 @@ class MonteCarlo:
         """
 
         self.N_samples = N_samples
-        self.Nt = simulation_args.get('Nt')
-        self.T = simulation_args.get('T')
+        self.Nt = simulation_args['Nt']
+        self.T = simulation_args['T']
         self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
 
+        # Measuers
         self.simulation_args = simulation_args
+        self.measured_quantities = simulation_args.get(
+            'measured_quantities', [])
+        self.measured_samples = {}
+        for quantity in self.measured_quantities:
+            self.measured_samples[quantity] = []
 
         self.m0 = noise_args.get('m0', 0)
         self.m1 = noise_args.get('m1', 0)
@@ -37,6 +45,10 @@ class MonteCarlo:
 
     def generate_noise(self):
 
+        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0)
+        if self.m1 == 0:
+            return
+
         # Standard fractional Gaussian noise
         for sample_index in range(self.N_samples):
             self.noise[:, sample_index] = fgn(
@@ -44,10 +56,10 @@ class MonteCarlo:
 
         # Scale and translate
         self.scale = self.m1 / (self.tstep ** self.hurst)
-        self.noisy_metaorders = self.m0 + self.scale * self.noise
+        self.noisy_metaorders += self.scale * self.noise
         print(
             f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} '
-            'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
+            f'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
         self.generate_noise()
@@ -57,10 +69,15 @@ class MonteCarlo:
         for k in tqdm(range(self.N_samples)):
             args['metaorder'] = self.noisy_metaorders[:, k]
             self.simulation = Simulation(**args)
-            self.simulation.run(animation=False)
+            self.simulation.run()
+ 
             self.price_samples[:, k] = self.simulation.prices
             self.ask_samples[:, k] = self.simulation.asks
             self.bid_samples[:, k] = self.simulation.bids
+
+            for quantity in self.measured_quantities:
+                self.measured_samples[quantity].append(
+                    np.copy(self.simulation.measurements[quantity]))
 
         self.compute_statistics()
 
@@ -74,16 +91,26 @@ class MonteCarlo:
         self.ask_variance = self.ask_samples.var(axis=1)
         self.bid_variance = self.bid_samples.var(axis=1)
 
+        self.measurement_means = {}
+        for quantity in self.measured_quantities:
+            samples = np.array(self.measured_samples[quantity])
+            self.measurement_means[quantity] = np.mean(samples, axis=0)
+
     def gather_results(self):
 
-        return {'price_mean': self.price_mean,
-                'price_variance': self.price_variance,
-                'ask_mean': self.ask_mean,
-                'ask_variance': self.ask_variance,
-                'bid_mean': self.bid_mean,
-                'bid_variance': self.bid_variance,
-                'm1': self.m1,
-                'N_samples': self.N_samples,
-                'm0': self.m0,
-                'hurst': self.hurst,
-                'params': self.simulation_args}
+        result = {'price_mean': self.price_mean,
+                  'price_variance': self.price_variance,
+                  'ask_mean': self.ask_mean,
+                  'ask_variance': self.ask_variance,
+                  'bid_mean': self.bid_mean,
+                  'bid_variance': self.bid_variance,
+                  'm1': self.m1,
+                  'N_samples': self.N_samples,
+                  'm0': self.m0,
+                  'hurst': self.hurst,
+                  'params': self.simulation_args}
+
+        for quantity in self.measured_quantities:
+            result[quantity] = self.measurement_means[quantity]
+        
+        return result

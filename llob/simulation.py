@@ -44,10 +44,10 @@ class Simulation:
         self.asks = np.zeros(self.Nt)
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
-        self.measured_quantities = kwargs.get('measures', [])
-        self.measures = {}
+        self.measured_quantities = kwargs.get('measured_quantities', [])
+        self.measurements = {}
         for quantity in self.measured_quantities:
-            self.measures[quantity] = []
+            self.measurements[quantity] = []
 
         # Orders
         self.L = kwargs['L']
@@ -116,6 +116,8 @@ class Simulation:
 
         return model_choice.get(model_name)(**args)
 
+    # ================== THEORY ==================
+
     def theoretical_values(self):
         # Theoretical values
 
@@ -160,6 +162,17 @@ class Simulation:
                 + abs(self.book.best_bid_volume) * best_bid)/(
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
 
+    def get_growth_th(self):
+        """Return theoretical price impact, starting from price 0
+        """
+        A = self.m0/(self.L*np.sqrt(self.D * np.pi)
+                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
+        growth = A * \
+            np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
+        return growth
+
+    # ================== RUN ==================
+
     def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
 
@@ -177,32 +190,19 @@ class Simulation:
 
         for n in range(self.Nt):
             # Update metaorder intensity
-            volume = self.metaorder[n] * self.tstep
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
-            for key, value in self.book.get_measures().items():
-                if key in self.measured_quantities:
-                    self.measures[key].append(value)
+            self.measure()
+
+            volume = self.metaorder[n] * self.tstep
             self.book.timestep(self.tstep, volume)
 
-    # ================== COMPUTATIONS ==================
-
-    def get_growth_th(self):
-        """Return theoretical price impact, starting from price 0
-        """
-        A = self.m0/(self.L*np.sqrt(self.D * np.pi)
-                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
-        growth = A * \
-            np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
-        return growth
-        # self.growth_th_low = self.prices[self.n_start] + self.A_low * \
-        #     np.sqrt(
-        #     self.time_interval_shifted[self.n_start:self.n_end])
-        # self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
-        #     self.time_interval_shifted[self.n_start:self.n_end])
-        # self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
+    def measure(self):
+        for quantity in self.measured_quantities:
+            value = self.book.get_measure(quantity)
+            self.measurements[quantity].append(np.copy(value))
 
     # ================== ANIMATION ==================
 
