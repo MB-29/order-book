@@ -92,9 +92,11 @@ class MonteCarlo:
         self.bid_variance = self.bid_samples.var(axis=1)
 
         self.measurement_means = {}
+        self.measurement_vars = {}
         for quantity in self.measured_quantities:
             samples = np.array(self.measured_samples[quantity])
             self.measurement_means[quantity] = np.mean(samples, axis=0)
+            self.measurement_vars[quantity] = np.var(samples, axis=0)
 
     def gather_results(self):
 
@@ -111,6 +113,7 @@ class MonteCarlo:
                   'params': self.simulation_args}
 
         for quantity in self.measured_quantities:
-            result[quantity] = self.measurement_means[quantity]
+            result[f'{quantity}_mean'] = self.measurement_means[quantity]
+            result[f'{quantity}_variance'] = self.measurement_vars[quantity]
         
         return result
