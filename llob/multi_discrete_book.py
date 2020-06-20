@@ -46,7 +46,7 @@ class MultiDiscreteBook(DiscreteBook):
         self.update_price()
 
         # Measures
-        self.actor_trades = np.zeros(self.N_actors)
+        self.actor_trades = np.full(self.N_actors, 1/self.N_actors)
 
         self.y_max = np.sum([actor_book.y_max for actor_book in self.books])
 
@@ -112,22 +112,28 @@ class MultiDiscreteBook(DiscreteBook):
         """Execute a meta-order on the total order book, by consuming the volumes
         of the various books in the order of proximity.
         :param trade_volume: algebraic volume to execute
-        :type trade_volume: int
         """
-
-        if trade_volume == 0:
-            return
         side = 'bid' if trade_volume < 0 else 'ask'
-        total_price_volume = getattr(self, f'{side}_volume') 
+        executed_volume = 0
         self.actor_trades.fill(0)
-
-        for actor_index in range(self.N_actors):
-            actor_book = self.books[actor_index]
-            actor_price_volume = getattr(actor_book, f'best_{side}_volume')
-            actor_proportion = actor_price_volume / total_price_volume
-            actor_trade_volume = actor_proportion * trade_volume
-            actor_book.execute_metaorder(actor_trade_volume)
-            self.actor_trades[actor_index] = actor_proportion
+        while True:
+            price_volumes = [getattr(actor_book, f'best_{side}_volume') for actor_book in self.books]
+            total_price_volume = np.sum(price_volumes)
+            if total_price_volume + executed_volume > abs(trade_volume) :
+                break
+            for actor_index, actor_book in enumerate(self.books):
+                actor_volume = price_volumes[actor_index]
+                actor_book = self.books[actor_index]
+                actor_book.execute_metaorder(actor_volume)
+                self.actor_trades[actor_index] += actor_volume
+                actor_book.update_price()
+            executed_volume += total_price_volume
+        for actor_index, actor_book in enumerate(self.books):
+            remaining_volume = abs(trade_volume) - executed_volume
+            actor_volume = price_volumes[actor_index] / total_price_volume * remaining_volume
+            actor_book.execute_metaorder(actor_volume)
+            self.actor_trades[actor_index] += actor_volume
+        self.actor_trades /= abs(trade_volume)
 
     def get_measures(self):
         measures = {
@@ -149,7 +155,7 @@ class MultiDiscreteBook(DiscreteBook):
         self.volume_ax = fig.add_subplot(1, 2, 1)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
-        width = max(1/self.Nx, 0.02)
+        width = max((self.xmax-self.xmin)/self.Nx, 0.02)
 
         # Lines
         # Lines
@@ -212,7 +218,7 @@ class MultiDiscreteBook(DiscreteBook):
         """
         self.timestep(tstep, volume)
 
-        padding = 5
+        padding = 0.01 * self.y_max
 
         # Update ask bars
         result = []
