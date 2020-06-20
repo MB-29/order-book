@@ -18,18 +18,22 @@ model_type = 'discrete'
 # standard_args['nu'] = 0.1
 L, nu = 100000, 20
 # L, nu = 20000, 0
-L, nu = np.array([1000000,10000]), np.array([500, 0])
-m0 = 1000
+L, nu = np.array([1000, 1]), np.array([4, 0])
+m0 = 50
 # m0 = 0
+X = 1000
+xmin, xmax = -X, X
+Nx = int(xmax - xmin)
 standard_args = {
-    'Nx' : 200,
-    'xmin' : -1,
-    'xmax' : 1,
+    'Nx' : Nx,
+    'xmin' : xmin,
+    'xmax' : xmax,
     'nu' : nu,
     'L' : L,
-    'D' : 0.01,
-    'T': 5,
+    'D' : 0.5,
+    'T': 1000,
     'model_type' : model_type,
+    'measured_quantities': ['actor_trades'],
     'metaorder': [m0]
 }
 # standard_args = standard_parameters(participation_rate, model_type, Nx=1000)
@@ -46,12 +50,17 @@ simulation = Simulation(**standard_args)
 print(simulation)
 
 tic = time.perf_counter()
-fig = plt.figure(figsize=(12, 6))
-simulation.run(animation=True, fig=fig, save=False)
-# simulation.run(animation=False, save=False)
+# fig = plt.figure(figsize=(12, 6))
+# simulation.run(animation=True, fig=fig, save=False)
+simulation.run(animation=False, save=False)
 toc = time.perf_counter()
 print(f'Execution time : {toc - tic}')
-plt.show()
+# plt.show()
+
+
+# proportions = simulation.measurements['actor_trades']
+# plt.plot(proportions)
+# plt.show()
 
 # fig2 = plt.figure(figsize=(10, 6))
 # ax1 = fig2.add_subplot(2, 1, 1)

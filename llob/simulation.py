@@ -123,8 +123,8 @@ class Simulation:
 
         # Take the dominant slope in the case of a multi-actor book
         L = np.max(self.L)
-
-        self.n_steps = int(2 * self.D * self.tstep / (self.dx ** 2))
+        self.dt = (self.dx ** 2) / (2 * self.D)
+        self.n_steps = int(self.tstep / self.dt)
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
         self.infinity_density = L * self.xmax
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/L)
@@ -269,6 +269,8 @@ class Simulation:
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
             self.book.best_ask, self.book.best_bid)
+        self.measure()
+
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(
@@ -287,6 +289,7 @@ class Simulation:
                         T = {self.T},
                         Nt = {self.Nt},
                         tstep = {self.tstep:.1e},
+                        dt = {self.dt:.1e},
                         n_steps = {self.n_steps:.1e}.
 
         Space parameters :

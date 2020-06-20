@@ -32,7 +32,7 @@ class LimitOrders:
         self.xmin = xmin
         self.xmax = xmax
 
-        #Smoluchowski random walk : D =  dx**2 / (2 * dt)
+        # Smoluchowski random walk : D =  dx**2 / (2 * dt)
         self.dt = (self.dx)**2 / (2 * D)
 
         initial_density = kwargs.get('initial_density', 'stationary')
@@ -151,7 +151,6 @@ class LimitOrders:
         if use_numba:
             self.volumes = add_flow(self.volumes, self.dx,
                                     self.boundary_index, self.boundary_flow)
-
             return
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
@@ -214,7 +213,7 @@ class LimitOrders:
 
             if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
                 raise ValueError(f'Market lacks {self.side} liquidity')
-    
+
     def execute_orders(self, volumes):
         """Execute given order volumes within the limit
             of the book volumes
@@ -229,7 +228,6 @@ class LimitOrders:
         self.volumes -= trade_volumes.astype(int)
         return trade_volumes
 
-
     def get_available_volume(self, price_index):
         """Compute order volume between prices of indices price_index and self.best_price
 
@@ -242,6 +240,7 @@ class LimitOrders:
         return np.sum(self.volumes[lower: upper+1])
 
 # ================== NUMBA-OPTIMIZED FUNCTIONS ==================
+
 
 @njit(int64[:](int64[:], float64, int64, float64))
 def add_flow(volumes, dx, boundary_index, boundary_flow):

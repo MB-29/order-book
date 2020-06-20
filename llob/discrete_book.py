@@ -96,7 +96,8 @@ class DiscreteBook:
         :param volume: trade volume, positive for ask order, negative for bid order
         :type volume: int
         """
-        orders = self.ask_orders if volume > 0 else self.bid_orders
+        side = 'ask' if volume > 0 else 'bid'
+        orders = getattr(self, f'{side}_orders')
         orders.execute_best_orders(volume)
 
     def get_measure(self, quantity):
