@@ -57,8 +57,8 @@ class DiscreteBook:
         """Stochastic dynamics step.
         """
         for orders in [self.ask_orders, self.bid_orders]:
-            orders.deposition()
             orders.cancellation()
+            orders.deposition()
             orders.jumps()
 
     def update_price(self):
@@ -113,10 +113,11 @@ class DiscreteBook:
         self.volume_ax = fig.add_subplot(1, 2, 1)
 
         # Bars
+        width = max((self.xmax-self.xmin)/self.Nx, 0.02)
         self.ask_bars = self.volume_ax.bar(
-            self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=0.1, animated='True')
+            self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=width, animated='True')
         self.bid_bars = self.volume_ax.bar(
-            self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-0.1, animated='True')
+            self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-width, animated='True')
 
         # Lines
         self.volume_ax.plot([0, 0], [
