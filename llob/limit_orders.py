@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from numba import njit, int64, float64
 
 use_numba = True
@@ -52,6 +53,11 @@ class LimitOrders:
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
+
+        # Warning
+        if self.dt * self.nu >= 1:
+            warnings.warn(
+                'Elementary timestep is too large to guarantee multiplicative cancellation rate.')
 
     def initialize_volumes(self, initial_density):
 
@@ -130,7 +136,7 @@ class LimitOrders:
         cancellations = get_cancellation_vec(self.volumes)
 
         # Subtract cancelled orders
-        self.volumes = np.subtract(self.volumes, cancellations)
+        self.volumes = self.volumes - cancellations
 
     def get_cancellation(self, volume, scale):
         """Compute the number of cancellations for a given volume of orders,
