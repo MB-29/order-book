@@ -114,23 +114,42 @@ class MultiDiscreteBook(DiscreteBook):
         :param trade_volume: algebraic volume to execute
         """
         side = 'bid' if trade_volume < 0 else 'ask'
+        sign = 1 if side =='bid' else -1
+
         executed_volume = 0
         self.actor_trades.fill(0)
-        while True:
-            price_volumes = [getattr(actor_book, f'best_{side}_volume') for actor_book in self.books]
-            total_price_volume = np.sum(price_volumes)
-            if total_price_volume + executed_volume > abs(trade_volume) :
-                break
+        # price_volumes = [getattr(actor_book, f'best_{side}_volume') for actor_book in self.books]
+        price_indices = [getattr(actor_book, f'best_{side}_index') for actor_book in self.books]
+
+        # The execution price is market's best price
+        price_index = getattr(self, f'best_{side}_index')
+        total_price_volume = getattr(self, f'{side}_volume')
+        # Consume best price orders, price step after price step 
+        while executed_volume + total_price_volume < abs(trade_volume):
             for actor_index, actor_book in enumerate(self.books):
-                actor_volume = price_volumes[actor_index]
+                # Ignore actors whose best price is further than
+                # the market's best price
+                actor_price_index = getattr(actor_book, f'best_{side}_index')
+                if actor_price_index != price_index:
+                    continue
+                actor_volume = getattr(actor_book, f'best_{side}_volume')
                 actor_book = self.books[actor_index]
                 actor_book.execute_metaorder(actor_volume)
                 self.actor_trades[actor_index] += actor_volume
-                actor_book.update_price()
-            executed_volume += total_price_volume
+                executed_volume += actor_volume
+            # Increment market price index by one
+            price_index -= sign
+            self.update_price()
+            total_price_volume = getattr(self, f'{side}_volume')
+            price_index = getattr(self, f'best_{side}_index')
+        # At this point best price volume is greater than what needs to be executed.
+        # Exectute each book in proportion to their volume 
+        remaining_volume = abs(trade_volume) - executed_volume
         for actor_index, actor_book in enumerate(self.books):
-            remaining_volume = abs(trade_volume) - executed_volume
-            actor_volume = price_volumes[actor_index] / total_price_volume * remaining_volume
+            if (price_indices[actor_index] - price_index) * sign < 0:
+                continue
+            actor_volume = getattr(actor_book, f'best_{side}_volume')
+            actor_volume = actor_volume / total_price_volume * remaining_volume
             actor_book.execute_metaorder(actor_volume)
             self.actor_trades[actor_index] += actor_volume
         self.actor_trades /= abs(trade_volume)
