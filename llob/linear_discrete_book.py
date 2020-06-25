@@ -20,5 +20,5 @@ class LinearDiscreteBook(DiscreteBook):
     # No arrivals nor cancellations, only jumps
     def stochastic_timestep(self):
         for orders in [self.ask_orders, self.bid_orders]:
-            # orders.jumps()
+            orders.jumps()
             orders.update_best_price()
