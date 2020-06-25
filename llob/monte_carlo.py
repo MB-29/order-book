@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from fbm import fgn
 from tqdm.auto import tqdm
+from retry import retry
 
 from simulation import Simulation
 
@@ -36,8 +37,7 @@ class MonteCarlo:
 
         self.m0 = noise_args.get('m0', 0)
         self.m1 = noise_args.get('m1', 0)
-        self.hurst = noise_args.get('hurst', 0.75)
-        self.gamma = 2*(1 - self.hurst)
+        self.hurst = noise_args['hurst']
         self.noise = np.zeros((self.Nt, N_samples))
         self.price_samples = np.zeros((self.Nt, N_samples))
         self.ask_samples = np.zeros((self.Nt, N_samples))
@@ -45,7 +45,7 @@ class MonteCarlo:
 
     def generate_noise(self):
 
-        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0)
+        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0, dtype=float)
         if self.m1 == 0:
             return
 
@@ -58,7 +58,7 @@ class MonteCarlo:
         self.scale = self.m1 / (self.tstep ** self.hurst)
         self.noisy_metaorders += self.scale * self.noise
         print(
-            f'Generated noise has mean {self.noisy_metaorders.mean().mean():.2f} '
+            f'Generated meta-order has mean {self.noisy_metaorders.mean().mean():.2f} '
             f'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
@@ -68,8 +68,8 @@ class MonteCarlo:
         print(self.simulation)
         for k in tqdm(range(self.N_samples)):
             args['metaorder'] = self.noisy_metaorders[:, k]
-            self.simulation = Simulation(**args)
-            self.simulation.run()
+            
+            try_running(self.simulation, args)
  
             self.price_samples[:, k] = self.simulation.prices
             self.ask_samples[:, k] = self.simulation.asks
@@ -117,3 +117,11 @@ class MonteCarlo:
             result[f'{quantity}_variance'] = self.measurement_vars[quantity]
         
         return result
+
+
+@retry((ValueError, IndexError), tries=10)
+def try_running(simulation, args):
+    """Run a simulation, retrying in case of error.
+    """
+    simulation = Simulation(**args)
+    simulation.run()

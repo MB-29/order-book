@@ -119,8 +119,6 @@ class MultiDiscreteBook(DiscreteBook):
         executed_volume = 0
         self.actor_trades.fill(0)
         # price_volumes = [getattr(actor_book, f'best_{side}_volume') for actor_book in self.books]
-        price_indices = [getattr(actor_book, f'best_{side}_index') for actor_book in self.books]
-
         # The execution price is market's best price
         price_index = getattr(self, f'best_{side}_index')
         total_price_volume = getattr(self, f'{side}_volume')
@@ -134,7 +132,7 @@ class MultiDiscreteBook(DiscreteBook):
                     continue
                 actor_volume = getattr(actor_book, f'best_{side}_volume')
                 actor_book = self.books[actor_index]
-                actor_book.execute_metaorder(actor_volume)
+                actor_book.execute_metaorder(- sign * actor_volume)
                 self.actor_trades[actor_index] += actor_volume
                 executed_volume += actor_volume
             # Increment market price index by one
@@ -146,13 +144,16 @@ class MultiDiscreteBook(DiscreteBook):
         # Exectute each book in proportion to their volume 
         remaining_volume = abs(trade_volume) - executed_volume
         for actor_index, actor_book in enumerate(self.books):
-            if (price_indices[actor_index] - price_index) * sign < 0:
+            actor_price_index = getattr(actor_book, f'best_{side}_index')
+            if actor_price_index != price_index:
                 continue
             actor_volume = getattr(actor_book, f'best_{side}_volume')
             actor_volume = actor_volume / total_price_volume * remaining_volume
             actor_book.execute_metaorder(actor_volume)
             self.actor_trades[actor_index] += actor_volume
         self.actor_trades /= abs(trade_volume)
+        # print(f'after execution, price index = {price_index}')
+
 
     def get_measures(self):
         measures = {
