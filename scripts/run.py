@@ -19,11 +19,10 @@ model_type = 'discrete'
 # standard_args['nu'] = 0.1
 L, nu = 1000, 0.1
 # # L, nu = 20000, 0
-T, Nt = 20000, 500
-L, nu = np.array([500, 1]), np.array([0.1, 0])
-m0 = 50
-# m0 = 0
-X = 1000
+T, Nt = 40000, 1000
+L, nu = np.array([50, 1]), np.array([1, 0])
+m0 = 100
+X = 1800
 xmin, xmax = -20, X-20
 Nx = int(xmax - xmin)
 time_interval, dt = np.linspace(0, T, Nt, retstep=True)
@@ -37,7 +36,7 @@ standard_args = {
     'T': T,
     'Nt': Nt,
     'model_type' : model_type,
-    'measured_quantities': ['actor_trades'],
+    # 'measured_quantities': ['actor_trades'],
     'metaorder': [m0]
 }
 # standard_args = standard_parameters(participation_rate, model_type, Nx=1000)

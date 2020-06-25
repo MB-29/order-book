@@ -27,10 +27,10 @@ model_type = 'discrete'
 # print(f'Standard arguments : {standard_args}')
 # standard_args['nu'] = 0.1
 
-T, Nt = 20000, 500
-L, nu = np.array([500, 1]), np.array([1, 0])
-m0 = 50
-X = 1000
+T, Nt = 15000, 300
+L, nu = np.array([50, 1]), np.array([1, 0])
+m0 = 100
+X = 1800
 xmin, xmax = -20, X-20
 Nx = int(xmax - xmin)
 simulation_args = {
