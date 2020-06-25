@@ -69,7 +69,7 @@ class MonteCarlo:
         for k in tqdm(range(self.N_samples)):
             args['metaorder'] = self.noisy_metaorders[:, k]
             
-            try_running(self.simulation, args)
+            self.try_running(args)
  
             self.price_samples[:, k] = self.simulation.prices
             self.ask_samples[:, k] = self.simulation.asks
@@ -119,9 +119,9 @@ class MonteCarlo:
         return result
 
 
-@retry((ValueError, IndexError), tries=10)
-def try_running(simulation, args):
-    """Run a simulation, retrying in case of error.
-    """
-    simulation = Simulation(**args)
-    simulation.run()
+    @retry((ValueError, IndexError), tries=10)
+    def try_running(self, args):
+        """Run a simulation, retrying in case of error.
+        """
+        self.simulation = Simulation(**args)
+        self.simulation.run()
