@@ -231,7 +231,7 @@ class Simulation:
         #     lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
 
         self.book.set_animation(fig, lims)
-        self.price_ax = fig.add_subplot(1, 2, 2)
+        self.price_ax = fig.add_subplot(2, 1, 2)
         self.price_ax.set_title('Price evolution')
         self.best_ask_line, = self.price_ax.plot(
             [], [], label='Best Ask', color='blue', ls='--')

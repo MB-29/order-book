@@ -172,7 +172,7 @@ class MultiDiscreteBook(DiscreteBook):
         """Create subplot axes, lines and texts
         """
         # Ax
-        self.volume_ax = fig.add_subplot(1, 2, 1)
+        self.volume_ax = fig.add_subplot(2, 1, 1)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
         width = max((self.xmax-self.xmin)/self.Nx, 0.02)

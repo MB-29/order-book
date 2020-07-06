@@ -131,7 +131,7 @@ class ContinuousBook:
         xlims = lims.get('xlim', (self.xmin, self.xmax))
         y_max = self.L * xlims[1]
 
-        self.density_ax = fig.add_subplot(1, 2, 1)
+        self.density_ax = fig.add_subplot(2, 1, 1)
         self.density_ax.set_xlim(xlims)
         self.density_line, = self.density_ax.plot(
             [], [], label='Density', color='gray')
