@@ -4,6 +4,7 @@ from numba import njit, int64, float64
 
 use_numba = True
 # use_numba = False
+deterministic = False
 
 
 class LimitOrders:
@@ -125,6 +126,10 @@ class LimitOrders:
     def cancellation(self):
         """Process order cancellation stochastic step."""
         scale = 1/self.nu
+
+        if deterministic:
+            self.volumes -= self.nu * self.volumes
+            return
         if use_numba:
             self.volumes = substract_cancellations(
                 self.volumes, scale, self.dt)

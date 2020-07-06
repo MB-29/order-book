@@ -110,7 +110,7 @@ class DiscreteBook:
         """Create subplot axes, lines and texts
         """
         # Ax
-        self.volume_ax = fig.add_subplot(1, 2, 1)
+        self.volume_ax = fig.add_subplot(2, 1, 1)
 
         # Bars
         width = max((self.xmax-self.xmin)/self.Nx, 0.02)
