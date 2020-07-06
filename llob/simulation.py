@@ -45,6 +45,7 @@ class Simulation:
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
         self.measured_quantities = kwargs.get('measured_quantities', [])
+        self.measurement_steps = kwargs.get('measurement_steps', 1)
         self.measurements = {}
         for quantity in self.measured_quantities:
             self.measurements[quantity] = []
@@ -115,6 +116,9 @@ class Simulation:
         }
 
         return model_choice.get(model_name)(**args)
+    
+    def get_density(self):
+        return {'bid': self.book.get_ask_volumes(), 'ask': self.book.get_bid_volumes()}
 
     # ================== THEORY ==================
 
@@ -194,12 +198,14 @@ class Simulation:
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
-            self.measure()
+            self.measure(n)
 
             volume = self.metaorder[n] * self.tstep
             self.book.timestep(self.tstep, volume)
 
-    def measure(self):
+    def measure(self, n):
+        if n % self.measurement_steps !=0 :
+            return
         for quantity in self.measured_quantities:
             value = self.book.get_measure(quantity)
             self.measurements[quantity].append(np.copy(value))
@@ -269,7 +275,7 @@ class Simulation:
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
             self.book.best_ask, self.book.best_bid)
-        self.measure()
+        self.measure(n)
 
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])

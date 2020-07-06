@@ -101,6 +101,8 @@ class DiscreteBook:
         orders.execute_best_orders(volume)
 
     def get_measure(self, quantity):
+        if quantity in ['bid_volumes', 'ask_volumes']:
+            return getattr(self, f'get_{quantity}')()
         value = getattr(self, quantity)
         return value
 

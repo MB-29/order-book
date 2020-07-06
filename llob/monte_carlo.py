@@ -11,7 +11,7 @@ class MonteCarlo:
     """Implements a Monte Carlo simulation of order book dynamics with noisy meta-order
     """
 
-    def __init__(self, N_samples, noise_args, simulation_args):
+    def __init__(self, N_samples, noise_args, simulation_args, **kwargs):
         """
         :param N_samples: [description]
         :type N_samples: int
@@ -27,7 +27,7 @@ class MonteCarlo:
         self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
 
-        # Measuers
+        # Measures
         self.simulation_args = simulation_args
         self.measured_quantities = simulation_args.get(
             'measured_quantities', [])
@@ -42,6 +42,9 @@ class MonteCarlo:
         self.price_samples = np.zeros((self.Nt, N_samples))
         self.ask_samples = np.zeros((self.Nt, N_samples))
         self.bid_samples = np.zeros((self.Nt, N_samples))
+
+        self.ask_density_samples = np.zeros((simulation_args['Nx'], N_samples))
+        self.bid_density_samples = np.zeros((simulation_args['Nx'], N_samples))
 
     def generate_noise(self):
 
@@ -78,6 +81,9 @@ class MonteCarlo:
             for quantity in self.measured_quantities:
                 self.measured_samples[quantity].append(
                     np.copy(self.simulation.measurements[quantity]))
+            
+            self.ask_density_samples[:, k] = self.simulation.get_density()['ask']
+            self.bid_density_samples[:, k] = self.simulation.get_density()['bid']
 
         self.compute_statistics()
 
@@ -97,6 +103,9 @@ class MonteCarlo:
             samples = np.array(self.measured_samples[quantity])
             self.measurement_means[quantity] = np.mean(samples, axis=0)
             self.measurement_vars[quantity] = np.var(samples, axis=0)
+        
+        # self.bid_density_mean = np.mean(self.bid_density_samples, axis=1)
+        # self.ask_density_mean = np.mean(self.ask_density_samples, axis=1)
 
     def gather_results(self):
 
@@ -106,6 +115,8 @@ class MonteCarlo:
                   'ask_variance': self.ask_variance,
                   'bid_mean': self.bid_mean,
                   'bid_variance': self.bid_variance,
+                  'bid_density_samples': self.bid_density_samples,
+                  'ask_density_samples': self.ask_density_samples,
                   'm1': self.m1,
                   'N_samples': self.N_samples,
                   'm0': self.m0,
@@ -119,7 +130,7 @@ class MonteCarlo:
         return result
 
 
-    @retry((ValueError, IndexError), tries=10)
+    @retry((ValueError, IndexError), tries=50)
     def try_running(self, args):
         """Run a simulation, retrying in case of error.
         """
