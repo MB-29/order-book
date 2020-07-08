@@ -27,13 +27,17 @@ class MonteCarlo:
         self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
 
-        # Measures
+        # Measurements
         self.simulation_args = simulation_args
-        self.measured_quantities = simulation_args.get(
+        self.measured_quantities = simulation_args.get( 
             'measured_quantities', [])
+        self.sample_measurements = simulation_args.get(
+            'sample_measurements', [])
         self.measured_samples = {}
         for quantity in self.measured_quantities:
             self.measured_samples[quantity] = []
+        self.measurements_steps = simulation_args.get(
+            'measurement_steps', self.Nt)
 
         self.m0 = noise_args.get('m0', 0)
         self.m1 = noise_args.get('m1', 0)
@@ -43,12 +47,10 @@ class MonteCarlo:
         self.ask_samples = np.zeros((self.Nt, N_samples))
         self.bid_samples = np.zeros((self.Nt, N_samples))
 
-        self.ask_density_samples = np.zeros((simulation_args['Nx'], N_samples))
-        self.bid_density_samples = np.zeros((simulation_args['Nx'], N_samples))
-
     def generate_noise(self):
 
-        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0, dtype=float)
+        self.noisy_metaorders = np.full(
+            (self.Nt, self.N_samples), self.m0, dtype=float)
         if self.m1 == 0:
             return
 
@@ -71,9 +73,9 @@ class MonteCarlo:
         print(self.simulation)
         for k in tqdm(range(self.N_samples)):
             args['metaorder'] = self.noisy_metaorders[:, k]
-            
+
             self.try_running(args)
- 
+
             self.price_samples[:, k] = self.simulation.prices
             self.ask_samples[:, k] = self.simulation.asks
             self.bid_samples[:, k] = self.simulation.bids
@@ -81,9 +83,6 @@ class MonteCarlo:
             for quantity in self.measured_quantities:
                 self.measured_samples[quantity].append(
                     np.copy(self.simulation.measurements[quantity]))
-            
-            self.ask_density_samples[:, k] = self.simulation.get_density()['ask']
-            self.bid_density_samples[:, k] = self.simulation.get_density()['bid']
 
         self.compute_statistics()
 
@@ -103,9 +102,6 @@ class MonteCarlo:
             samples = np.array(self.measured_samples[quantity])
             self.measurement_means[quantity] = np.mean(samples, axis=0)
             self.measurement_vars[quantity] = np.var(samples, axis=0)
-        
-        # self.bid_density_mean = np.mean(self.bid_density_samples, axis=1)
-        # self.ask_density_mean = np.mean(self.ask_density_samples, axis=1)
 
     def gather_results(self):
 
@@ -115,8 +111,6 @@ class MonteCarlo:
                   'ask_variance': self.ask_variance,
                   'bid_mean': self.bid_mean,
                   'bid_variance': self.bid_variance,
-                  'bid_density_samples': self.bid_density_samples,
-                  'ask_density_samples': self.ask_density_samples,
                   'm1': self.m1,
                   'N_samples': self.N_samples,
                   'm0': self.m0,
@@ -126,7 +120,13 @@ class MonteCarlo:
         for quantity in self.measured_quantities:
             result[f'{quantity}_mean'] = self.measurement_means[quantity]
             result[f'{quantity}_variance'] = self.measurement_vars[quantity]
-        
+
+        for sample_measurement in self.sample_measurements:
+            time_indices = [
+                k * self.measurements_steps for k in range(self.Nt // self.measurements_steps)]
+            measurement = [getattr(self, f'{sample_measurement}_samples')[time_index: time_index+10, :] for time_index in time_indices]
+            result[sample_measurement] = measurement
+
         return result
 
 
