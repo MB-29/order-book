@@ -36,8 +36,10 @@ class MonteCarlo:
         self.measured_samples = {}
         for quantity in self.measured_quantities:
             self.measured_samples[quantity] = []
-        self.measurements_steps = simulation_args.get(
-            'measurement_steps', self.Nt)
+        self.measurement_indices = simulation_args.get(
+            'measurement_indices', [])
+        self.measurement_slice = simulation_args.get(
+            'measurement_slice', 1)
 
         self.m0 = noise_args.get('m0', 0)
         self.m1 = noise_args.get('m1', 0)
@@ -122,9 +124,7 @@ class MonteCarlo:
             result[f'{quantity}_variance'] = self.measurement_vars[quantity]
 
         for sample_measurement in self.sample_measurements:
-            time_indices = [
-                k * self.measurements_steps for k in range(self.Nt // self.measurements_steps)]
-            measurement = [getattr(self, f'{sample_measurement}_samples')[time_index: time_index+10, :] for time_index in time_indices]
+            measurement = [getattr(self, f'{sample_measurement}_samples')[time_index: time_index+self.measurement_slice, :] for time_index in self.measurement_indices]
             result[sample_measurement] = measurement
 
         return result
