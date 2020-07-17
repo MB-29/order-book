@@ -97,7 +97,7 @@ class LimitOrders:
 
     # ------------------ Stochastic evolution ------------------
 
-    def deposition(self):
+    def deposition(self, price_index):
         """Process order deposition stochastic step.
         In order to work properly, method update_price() should be called before this one,
         so that the size of the deposition price range is correct.
@@ -107,7 +107,7 @@ class LimitOrders:
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask' else self.best_price_index + 1
+        size = self.Nx - price_index if self.side == 'ask' else price_index + 1
         padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
         if use_numba:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)

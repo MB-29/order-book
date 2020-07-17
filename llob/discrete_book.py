@@ -58,7 +58,7 @@ class DiscreteBook:
         """
         for orders in [self.ask_orders, self.bid_orders]:
             orders.cancellation()
-            orders.deposition()
+            orders.deposition((self.best_bid_index + self.best_ask_index)//2)
             orders.jumps()
 
     def update_price(self):
