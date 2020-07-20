@@ -29,7 +29,7 @@ class Simulation:
         # Time
         self.T = kwargs.get('T', 1)
         self.Nt = kwargs.get('Nt', 100)
-        self.time_interval, self.dt = np.linspace(
+        self.time_interval, self.tstep = np.linspace(
             0, self.T, num=self.Nt, retstep=True)
 
         # Space
@@ -40,13 +40,19 @@ class Simulation:
         self.dx = self.price_range / self.Nx
         self.boundary_distance = min(abs(self.xmin), self.xmax)
 
-        # Prices
+        # Prices and measures
         self.asks = np.zeros(self.Nt)
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
+        self.measured_quantities = kwargs.get('measured_quantities', [])
+        self.measurement_steps = kwargs.get('measurement_steps', 1)
+        self.measurements = {}
+        for quantity in self.measured_quantities:
+            self.measurements[quantity] = []
 
         # Orders
         self.L = kwargs['L']
+        self.is_multi_book = (not np.isscalar(self.L))
         self.D = kwargs['D']
         self.nu = kwargs.get('nu', 0)
         self.lambd = self.L * np.sqrt(self.nu * self.D)
@@ -76,26 +82,28 @@ class Simulation:
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
-        self.t_start = self.n_start * self.dt
-        self.t_end = self.n_end * self.dt
+        self.t_start = self.n_start * self.tstep
+        self.t_end = self.n_end * self.tstep
         self.time_interval_shifted = self.time_interval-self.t_start
 
         self.theoretical_values()
 
     def set_order_book(self, model_type, args):
+        """Create an instance of an order book with the given parameters
 
-        # Allow a certain number of timesteps for the Smoluchowski random walk
-        # to reach diffusion : impose n_diff such that
-        # D =  dx**2 / (2 * dt / n_diff)
-        args['dt'] = self.dt
+        :param model_type: 'discrete' or 'continuous'
+        :type model_type: string
+        :param args: book args, see documentation of the corresponding
+        order book class 
+        :type args: dictionary
+        :return: the instance of the order book
+        :rtype: OrderBook object
+        """
+
         args['lambd'] = self.lambd
-        self.n_diff = int(2 * self.dt * self. D / (self.dx)**2)
-        if model_type == 'discrete':
-            args['n_diff'] = self.n_diff
-            print(f'n_diff = {self.n_diff}')
 
-        # If L is an array, create a multi-actor book and set self.L to
-        if not np.isscalar(self.L):
+        # If L is an array, create a multi-actor book
+        if self.is_multi_book:
             return MultiDiscreteBook(**args)
 
         linear = (self.nu == 0)
@@ -108,13 +116,19 @@ class Simulation:
         }
 
         return model_choice.get(model_name)(**args)
+    
+    def get_density(self):
+        return {'bid': self.book.get_ask_volumes(), 'ask': self.book.get_bid_volumes()}
+
+    # ================== THEORY ==================
 
     def theoretical_values(self):
         # Theoretical values
 
         # Take the dominant slope in the case of a multi-actor book
         L = np.max(self.L)
-
+        self.dt = (self.dx ** 2) / (2 * self.D)
+        self.n_steps = int(self.tstep / self.dt)
         self.boundary_factor = np.sqrt(self.D*self.T)/(self.boundary_distance)
         self.infinity_density = L * self.xmax
         self.impact_th = np.sqrt(2*abs(self.m0)*self.T/L)
@@ -123,34 +137,45 @@ class Simulation:
         self.participation_rate = self.m0 / \
             (self.D * L) if self.D != 0 else float("inf")
         self.r = abs(self.participation_rate)
-        self.alpha = self.D * self.dt / (self.dx * self.dx)
+        self.scheme_constant = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(
             abs(self.r)/(2*np.pi)) * self.impact_th
         self.first_volume = L * self.dx * self.dx
 
-        # Strings
-        # self.parameters_string = fr'$m_0={self.m0:.2e}$, d$t={self.dt:.2e}$ '
-        # self.constant_string = fr'$\Delta p={self.impact_th:.2f}$, boundary factor = {self.boundary_factor:.2f}, $r={self.r:.2e}$, $x \in [{self.xmin}, {self.xmax}]$'
-
         # Warnings and errors
-        if self.model_type == 'discrete':
 
-            if self.r < 1 and self.n_diff < 100:
+        if self.boundary_factor > 1:
+            warnings.warn('Boundary effects')
+        if self.model_type == 'discrete':
+            if self.r < 1 and self.n_steps < 100:
                 warnings.warn(
-                    f'Low number of diffusion steps {self.n_diff} < 100,'
+                    f'Low number of diffusion steps {self.n_steps} < 100,'
                     'try increasing spatial resolution.')
-            if self.n_diff < 1 and self.r < float('inf'):
+            if self.n_steps < 1 and self.r < float('inf'):
                 raise ValueError(
                     'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
                     'Try decreasing participation rate')
-            if self.n_diff > 200:
+            if self.n_steps > 200:
                 raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.n_diff)}.')
+                    f'Many diffusion steps : ~ {int(self.n_steps)}.')
 
     def compute_vwap(self, best_ask, best_bid):
+        """Apply vwap formula
+        """
         return (abs(self.book.best_ask_volume) * best_ask
                 + abs(self.book.best_bid_volume) * best_bid)/(
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
+
+    def get_growth_th(self):
+        """Return theoretical price impact, starting from price 0
+        """
+        A = self.m0/(self.L*np.sqrt(self.D * np.pi)
+                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
+        growth = A * \
+            np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
+        return growth
+
+    # ================== RUN ==================
 
     def run(self, fig=None, animation=False, save=False):
         """Run the Nt steps of the simulation
@@ -169,36 +194,31 @@ class Simulation:
 
         for n in range(self.Nt):
             # Update metaorder intensity
-            self.book.dq = self.metaorder[n] * self.dt
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(
                 self.book.best_ask, self.book.best_bid)
-            self.book.timestep()
+            self.measure(n)
 
-    # ================== COMPUTATIONS ==================
+            volume = self.metaorder[n] * self.tstep
+            self.book.timestep(self.tstep, volume)
 
-    def get_growth_th(self):
-        """Return theoretical price impact, starting from price 0
-        """
-        A = self.m0/(self.book.L*np.sqrt(self.D * np.pi)
-                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
-        growth = A * \
-            np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
-        return growth
-        # self.growth_th_low = self.prices[self.n_start] + self.A_low * \
-        #     np.sqrt(
-        #     self.time_interval_shifted[self.n_start:self.n_end])
-        # self.growth_th_high = self.prices[self.n_start] + self.A_high * np.sqrt(
-        #     self.time_interval_shifted[self.n_start:self.n_end])
-        # self.growth_th = self.growth_th_low if self.m0 < self.J else self.growth_th_high
+    def measure(self, n):
+        if n % self.measurement_steps !=0 :
+            return
+        for quantity in self.measured_quantities:
+            value = self.book.get_measure(quantity)
+            self.measurements[quantity].append(np.copy(value))
 
     # ================== ANIMATION ==================
 
     def run_animation(self, fig, save=False):
-        """
-        Arguments:
-            fig {pyplot figure} -- The figure the animation is displayed in
+        """Run the simulation and display a matplotlib animation
+
+        :param fig: The figure the animation is displayed in, defaults to None
+        :type fig: matplotlib figure, optional
+        :param save: Set True to save the animation under ./animation.mp4, defaults to False
+        :type save: bool, optional
         """
         self.set_animation(fig)
         self.animation = FuncAnimation(
@@ -217,7 +237,7 @@ class Simulation:
         #     lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
 
         self.book.set_animation(fig, lims)
-        self.price_ax = fig.add_subplot(1, 2, 2)
+        self.price_ax = fig.add_subplot(2, 1, 2)
         self.price_ax.set_title('Price evolution')
         self.best_ask_line, = self.price_ax.plot(
             [], [], label='Best Ask', color='blue', ls='--')
@@ -250,18 +270,20 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        self.book.dq = self.metaorder[n] * self.dt
+        volume = self.metaorder[n] * self.tstep
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
             self.book.best_ask, self.book.best_bid)
+        self.measure(n)
+
         self.price_line.set_data(
             self.time_interval[:n+1], self.prices[:n+1])
         self.best_ask_line.set_data(
             self.time_interval[:n+1], self.asks[:n+1])
         self.best_bid_line.set_data(
             self.time_interval[:n+1], self.bids[:n+1])
-        return self.book.update_animation(n) + [self.price_line, self.best_ask_line, self.best_bid_line]
+        return self.book.update_animation(self.tstep, volume) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
 
@@ -272,9 +294,9 @@ class Simulation:
         Time parameters :
                         T = {self.T},
                         Nt = {self.Nt},
+                        tstep = {self.tstep:.1e},
                         dt = {self.dt:.1e},
-                        n_diff = {self.n_diff:.1e}.,
-                        dt = {self.dt:.1e}.
+                        n_steps = {self.n_steps:.1e}.
 
         Space parameters :
                         Price interval = [{self.xmin}, {self.xmax}],
@@ -283,19 +305,21 @@ class Simulation:
 
         Model constants:
                         D = {self.D:.1e},
-                        L = {self.L}.
+                        lambda = {self.lambd},
+                        nu = {self.nu},
+                        L = {self.L},
                         J = {self.J}.
 
         Metaorder:
                         m0 = {self.m0:.1e},
-                        dq = {self.m0 * self.dt:.1e}.
+                        dq = {self.m0 * self.tstep:.1e}.
                         n_start, n_end = ({self.n_start}, {self.n_end}).
 
         Theoretical values:
                         Participation rate = {self.participation_rate:.1e},
                         impact = {self.impact_th:.1e},
                         lower impact = {self.lower_impact},
-                        alpha = {self.alpha:.1e},
+                        alpha = {self.scheme_constant:.1e},
                         boundary factor = {self.boundary_factor:.1e},
                         first volume = {self.first_volume:.1f},
                         lower resolution = {self.lower_impact / self.dx :.1e}.
@@ -303,19 +327,14 @@ class Simulation:
         return string
 
 
-def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=None, Nt=100):
+def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=500, Nt=100):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
-
-    Arguments:
-        participation_rate {float} 
-        model_type {string} -- 'discrete' or 'continuous'
+    .. warning:: Participation rates greater than r~2500 will most likely cause an error
+    with the current settings.
 
     """
-    dt = T / Nt
     r = abs(participation_rate)
-    if Nx == None:
-        Nx = 5001 if model_type == 'continuous' else 501
     boundary_dist = min(abs(xmin), abs(xmax))
     X = max(abs(xmin), abs(xmax))
     dx = (xmax - xmin) / Nx
@@ -329,13 +348,9 @@ def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1,
         m0 = (L * X) / (5 * T)
         D = m0 / (L*r)
         price_formula = side_formula
-    elif r > 0.5:
-        price_formula = 'vwap'
-        D = boundary_dist**2/(2 * T)
-        m0 = L * D * participation_rate
     else:
         price_formula = 'vwap'
-        D = boundary_dist**2 / (2 * T)
+        D = 50 * Nt * dx**2 / T
         m0 = L * D * participation_rate
 
     simulation_args = {

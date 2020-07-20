@@ -29,3 +29,7 @@ MakeFile
 *.mp4
 *.mkv
 *.m4v
+*.bat
+_build
+_static
+_templates
