@@ -45,7 +45,7 @@ class Simulation:
         self.bids = np.zeros(self.Nt)
         self.prices = np.zeros(self.Nt)
         self.measured_quantities = kwargs.get('measured_quantities', [])
-        self.measurement_steps = kwargs.get('measurement_steps', 1)
+        self.measurement_indices = kwargs.get('measurement_indices', [])
         self.measurements = {}
         for quantity in self.measured_quantities:
             self.measurements[quantity] = []
@@ -94,9 +94,9 @@ class Simulation:
         :param model_type: 'discrete' or 'continuous'
         :type model_type: string
         :param args: book args, see documentation of the corresponding
-        order book class 
+            order book class 
         :type args: dictionary
-        :return: the instance of the order book
+        :returns: the instance of the order book
         :rtype: OrderBook object
         """
 
@@ -153,11 +153,13 @@ class Simulation:
                     'try increasing spatial resolution.')
             if self.n_steps < 1 and self.r < float('inf'):
                 raise ValueError(
-                    'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
-                    'Try decreasing participation rate')
+                    f'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
+                    'Try decreasing participation rate'
+                    f' dt = {self.dt}, tstep = {self.tstep}')
             if self.n_steps > 200:
                 raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.n_steps)}.')
+                    f'Many diffusion steps : ~ {int(self.n_steps)},'
+                    f' dt = {self.dt}, tstep = {self.tstep}')
 
     def compute_vwap(self, best_ask, best_bid):
         """Apply vwap formula
@@ -204,7 +206,7 @@ class Simulation:
             self.book.timestep(self.tstep, volume)
 
     def measure(self, n):
-        if n % self.measurement_steps !=0 :
+        if n not in self.measurement_indices :
             return
         for quantity in self.measured_quantities:
             value = self.book.get_measure(quantity)
@@ -327,37 +329,44 @@ class Simulation:
         return string
 
 
-def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=500, Nt=100):
+def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt=None, T=None):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
     .. warning:: Participation rates greater than r~2500 will most likely cause an error
     with the current settings.
 
     """
+    if Nt == None:
+        Nt = 100
+    if T == None:
+        T = Nt * 50
     r = abs(participation_rate)
-    boundary_dist = min(abs(xmin), abs(xmax))
+    D = 0.5
+    I = np.sqrt(2 * r * D * T)
+    if xmin == None:
+        xmin =-I
+    if xmax == None:
+        xmax =-I
+    Nx = int(xmax - xmin)
     X = max(abs(xmin), abs(xmax))
+
     dx = (xmax - xmin) / Nx
-    L = 1/(dx * dx)
-    side_formula = 'best_ask' if participation_rate >= 0 else 'best_bid'
+
+    L = 10/(dx * dx)
     if r == float('inf'):
-        price_formula = side_formula
         D = 0
         m0 = (L * X) / (5 * T)
     elif r >= 5:
-        m0 = (L * X) / (5 * T)
-        D = m0 / (L*r)
-        price_formula = side_formula
+        D = 0.5
+        m0 = D * L* participation_rate
     else:
-        price_formula = 'vwap'
-        D = 50 * Nt * dx**2 / T
+        D = 0.5
         m0 = L * D * participation_rate
 
     simulation_args = {
         "model_type": model_type,
         "T": T,
         "Nt": Nt,
-        "price_formula": price_formula,
         "Nx": Nx,
         "xmin": xmin,
         "xmax": xmax,
