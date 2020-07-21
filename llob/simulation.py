@@ -344,9 +344,14 @@ def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt
     D = 0.5
     I = np.sqrt(2 * r * D * T)
     if xmin == None:
-        xmin =-I
+        xmin = -1.1 * I
     if xmax == None:
-        xmax =-I
+        xmax = 1.1 * I
+    if r <= 1 :
+        boundary_distance = np.sqrt(D * T)
+        xmax = max(np.sqrt(r) * xmax, boundary_distance)
+        xmin = min(np.sqrt(r) * xmin, -boundary_distance)
+
     Nx = int(xmax - xmin)
     X = max(abs(xmin), abs(xmax))
 
@@ -356,12 +361,10 @@ def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt
     if r == float('inf'):
         D = 0
         m0 = (L * X) / (5 * T)
-    elif r >= 5:
-        D = 0.5
-        m0 = D * L* participation_rate
+
     else:
         D = 0.5
-        m0 = L * D * participation_rate
+        m0 = D * L * participation_rate
 
     simulation_args = {
         "model_type": model_type,
