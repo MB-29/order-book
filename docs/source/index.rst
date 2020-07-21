@@ -3,12 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to LLOB's documentation!
-================================
+=====================================
+LLOB
+=====================================
 
-Examples::
+Documentation for the LLOB repository
+=====================================
 
-   code
+The code is divided into different classes. The order book is modelled by an instance of one of the Order Book classes : :ref:`discrete` and :ref:`continuous`.
+
+The evolution of the book and of the input and the output over time is represented by an instance of the class :ref:`simulation`.
+
+A :ref:`monte-carlo` computes the average of a certain number of :ref:`simulation` instances with random inputs, which are refered to as samples.
+
+Run a simulation
+----------------
+
+.. code-block:: python
+
+   from simulation import Simulation
+
+   simulation = Simulation(*parameters)
+   simulation.run()
 
 .. image:: _static/execution.gif 
    :align: center
@@ -17,7 +33,7 @@ Examples::
    :maxdepth: 2
    :caption: Contents:
 
-   example
+   examples
    api
 
 

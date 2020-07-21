@@ -1,9 +1,9 @@
+.. _continuous:
+
 ****************
-Continuous model
+Continuous Book
 **************** 
 
-Classes 
-************ 
 
 .. automodule:: llob.continuous_book
    :members:

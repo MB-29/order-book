@@ -8,5 +8,7 @@ API
 
    discrete
    continuous
+   simulation
+   monte_carlo
 
 
