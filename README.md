@@ -1,17 +1,15 @@
-# ReadMe 
+# LLOB model simulations
 
 ## Linearized Latent Order book simulations
 Parent page of all the LLOB projects at  [the EconophysiX page](https://econophysix-confluence.atlassian.net/wiki/spaces/RES/pages/43679790/LLOBs).
 
-
-**UPLOADING NOTEBOOKS HERE IS STRICTLY FORBIDDEN UNLESS PREVIOUSLY DISCUSSED**
 
 The code in this page contains scripts for simulating the LLOB.
 
 
 An implementation of the Locally Linear Order Book model as introduced by Donier *et al.* in the paper [A fully consistent, minimal model for non-linear market impact ](https://https://arxiv.org/abs/1412.0141).
 
-Our code aims at solving both the coarse-grained, *discrete* model, and the *continuous model* where the variable solved for is the algebraic order density.
+Our code aims at modelling both the coarse-grained, *discrete* model, and the *continuous model* where the variable solved for is the algebraic order density.
 
 ## Structure of the code
 

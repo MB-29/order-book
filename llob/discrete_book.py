@@ -137,7 +137,7 @@ class DiscreteBook:
         self.volume_ax.legend()
 
     def init_animation(self):
-        """Init function called by FuncAnimation
+        """Init function called by matplotlib's FuncAnimation
         """
 
         for b in self.ask_bars:
@@ -148,7 +148,7 @@ class DiscreteBook:
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars]
 
     def update_animation(self, tstep, volume):
-        """Update function called by FuncAnimation
+        """Update function called by matplotlib's FuncAnimation
         """
 
         self.timestep(tstep, volume)

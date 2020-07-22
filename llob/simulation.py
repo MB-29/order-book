@@ -259,7 +259,7 @@ class Simulation:
         # fig.suptitle(self.parameters_string + self.constant_string)
 
     def init_animation(self):
-        """Init function called by FuncAnimation
+        """Init function called by matplotlib's FuncAnimation
         """
         self.price_line.set_data([], [])
         self.best_bid_line.set_data([], [])
@@ -268,7 +268,7 @@ class Simulation:
         return self.book.init_animation() + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def update_animation(self, n):
-        """Update function called by FuncAnimation
+        """Update function called by matplotlib's FuncAnimation
         """
         if n % 10 == 0:
             print(f'Step {n}')

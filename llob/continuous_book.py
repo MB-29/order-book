@@ -148,14 +148,14 @@ class ContinuousBook:
         self.density_ax.set_ylim(-y_max, y_max)
 
     def init_animation(self):
-        """Init function called by FuncAnimation.
+        """Init function called by matplotlib's FuncAnimation.
         """
 
         self.density_line.set_data([], [])
         return [self.density_line, self.best_ask_axis, self.best_bid_axis]
 
     def update_animation(self, tstep, volume):
-        """Update function called by FuncAnimation.
+        """Update function called by matplotlib's FuncAnimation.
         """
         # Axis
         y_max = 1.5 * self.xmax * self.L
