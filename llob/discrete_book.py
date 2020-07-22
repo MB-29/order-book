@@ -4,10 +4,16 @@ from limit_orders import LimitOrders
 
 
 class DiscreteBook:
-    """Models an order book in the framework of Latent Order Book agent model.
+    """Models an order book in the framework of Latent Order Book agent model.    
     """
 
     def __init__(self, **order_args):
+        """
+            :ivar bid_orders: Bid orders
+            :type bid_orders: LimitOrders object
+            :ivar ask_orders: Ask orders
+            :type ask_orders: LimitOrders object
+        """
 
         order_args = order_args
         self.bid_orders = LimitOrders(**order_args, side='bid')
@@ -40,7 +46,12 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self, tstep, volume):
-        """Step forward.
+        """Timestep forward
+
+        :param tstep: time step
+        :type tstep: float
+        :param volume: execution volume
+        :type volume: int
         """
         n_steps = int(tstep / self.dt)
 
@@ -148,7 +159,8 @@ class DiscreteBook:
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars]
 
     def update_animation(self, tstep, volume):
-        """Update function called by matplotlib's FuncAnimation
+        """Update function called by matplotlib's FuncAnimation.
+        Animation counterpart to self.timetsep(tstep, volume)
         """
 
         self.timestep(tstep, volume)
