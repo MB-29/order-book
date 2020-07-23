@@ -4,7 +4,7 @@ import warnings
 
 from linear_discrete_book import LinearDiscreteBook
 from discrete_book import DiscreteBook
-from continuous_book import ContinuousBook
+from linear_continuous_book import LinearContinuousBook
 from multi_discrete_book import MultiDiscreteBook
 
 
@@ -112,7 +112,7 @@ class Simulation:
         model_choice = {
             'discrete': DiscreteBook,
             'linear_discrete': LinearDiscreteBook,
-            'linear_continuous': ContinuousBook,
+            'linear_continuous': LinearContinuousBook,
         }
 
         return model_choice.get(model_name)(**args)

@@ -4,7 +4,7 @@ import warnings
 from diffusion_schemes import theta_scheme_iteration
 
 
-class ContinuousBook:
+class LinearContinuousBook:
     """Models an order book with its order density in the LLOB framework.
     """
 
