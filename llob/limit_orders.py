@@ -3,7 +3,7 @@ import warnings
 from numba import njit, int64, float64
 
 use_numba = True
-use_numba = False
+# use_numba = False
 deterministic = False
 
 
@@ -109,7 +109,7 @@ class LimitOrders:
         # Number of arrival points for a given side
         size = self.Nx - self.best_price_index if self.side == 'ask' else self.best_price_index + 1
         if spread > 0 :
-            size += spread
+            size += spread//2
         padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
         if use_numba:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
