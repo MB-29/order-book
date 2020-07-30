@@ -17,7 +17,7 @@ class Simulation:
         :param model_type: 'discrete' or 'continuous'
         :type model_type: string
         :param metaorder: Meta-order intensity over time, defaults to [0].
-            If its length is 1 then the it will be converted to
+            If its length is 1 then it will be converted to
             a constant meta-order with the corresponding value.
         :type metaorder: list, optional
         """
@@ -169,7 +169,7 @@ class Simulation:
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
 
     def get_growth_th(self):
-        """Return theoretical price impact, starting from price 0
+        """Return the theoretical price impact, starting from price 0
         """
         A = self.m0/(self.L*np.sqrt(self.D * np.pi)
                      ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
@@ -332,8 +332,9 @@ class Simulation:
 def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt=None, T=None):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
+
     .. warning:: Participation rates greater than r~2500 will most likely cause an error
-    with the current settings.
+        with the current settings.
 
     """
     if Nt == None:

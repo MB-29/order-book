@@ -5,6 +5,6 @@ Continuous Book
 **************** 
 
 
-.. automodule:: llob.continuous_book
+.. automodule:: llob.linear_continuous_book
    :members:
 

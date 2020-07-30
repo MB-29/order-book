@@ -10,5 +10,6 @@ API
    continuous
    simulation
    monte_carlo
+   multi
 
 
