@@ -55,9 +55,9 @@ class DiscreteBook:
         """
         n_steps = int(tstep / self.dt)
 
-        self.execute_metaorder(volume)
         self.update_price()
         for n in range(n_steps):
+            self.execute_metaorder(volume/n_steps)
             self.stochastic_timestep()
             self.update_price()
             self.order_reaction()
