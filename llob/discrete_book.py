@@ -145,7 +145,7 @@ class DiscreteBook:
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
-        self.volume_ax.legend()
+        self.volume_ax.legend('upper center')
 
     def init_animation(self):
         """Init function called by matplotlib's FuncAnimation
