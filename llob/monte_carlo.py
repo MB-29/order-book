@@ -41,10 +41,13 @@ class MonteCarlo:
         self.measurement_slice = simulation_args.get(
             'measurement_slice', 1)
 
+        # Input
         self.m0 = noise_args.get('m0', 0)
         self.m1 = noise_args.get('m1', 0)
         self.hurst = noise_args['hurst']
-        self.noise = np.zeros((self.Nt, N_samples))
+        self.noise = np.zeros((self.T, N_samples))
+
+        # Output
         self.price_samples = np.zeros((self.Nt, N_samples))
         self.ask_samples = np.zeros((self.Nt, N_samples))
         self.bid_samples = np.zeros((self.Nt, N_samples))
@@ -52,17 +55,17 @@ class MonteCarlo:
     def generate_noise(self):
 
         self.noisy_metaorders = np.full(
-            (self.Nt, self.N_samples), self.m0, dtype=float)
+            (self.T, self.N_samples), self.m0, dtype=float)
         if self.m1 == 0:
             return
 
         # Standard fractional Gaussian noise
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] = fgn(
-                n=self.Nt, hurst=self.hurst, length=self.T)
+            self.noise[:, sample_index] =fgn(
+                n=self.T, hurst=self.hurst, length=self.T)
 
         # Scale and translate
-        self.scale = self.m1 / (self.tstep ** self.hurst)
+        self.scale = self.m1
         self.noisy_metaorders += self.scale * self.noise
         print(
             f'Generated meta-order has mean {self.noisy_metaorders.mean().mean():.2f} '
@@ -130,7 +133,7 @@ class MonteCarlo:
         return result
 
 
-    @retry((ValueError, IndexError), tries=50)
+    @retry((ValueError, IndexError), tries=1)
     def try_running(self, args):
         """Run a simulation, retrying in case of error.
         """
