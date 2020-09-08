@@ -75,10 +75,10 @@ class Simulation:
 
         if len(metaorder) == 1:
             self.m0 = metaorder[0]
-            self.metaorder = np.zeros(self.Nt)
+            self.metaorder = np.zeros(self.T)
             self.metaorder[self.n_start:self.n_end].fill(self.m0)
         else:
-            assert len(metaorder) == self.Nt
+            assert len(metaorder) == self.T
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
@@ -156,10 +156,6 @@ class Simulation:
                     f'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
                     'Try decreasing participation rate'
                     f' dt = {self.dt}, tstep = {self.tstep}')
-            if self.n_steps > 200:
-                raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.n_steps)},'
-                    f' dt = {self.dt}, tstep = {self.tstep}')
 
     def compute_vwap(self, best_ask, best_bid):
         """Apply vwap formula
@@ -169,10 +165,11 @@ class Simulation:
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
 
     def get_growth_th(self):
-        """Return the theoretical price impact, starting from price 0
+        """Return the theoretical price impact profile as an array,
+        starting from price 0
         """
         A = self.m0/(self.L*np.sqrt(self.D * np.pi)
-                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
+                     ) if self.r < 1 else np.sign(self.m0) * np.sqrt(2)*np.sqrt(self.m0/self.L)
         growth = A * \
             np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
         return growth
@@ -227,17 +224,15 @@ class Simulation:
             fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
         if save:
             Writer = writers['ffmpeg']
-            writer = Writer(fps=15, metadata=dict(
-                artist='Me'), bitrate=1800)
-            self.animation.save('../animation.mp4', writer=writer)
+            writer = Writer(fps=15)
+            # self.animation.save('../animation.mp4', writer=writer)
+            self.animation.save('../animation.gif', writer='imagemagick', fps=60)
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
         """
+        self.ymin, self.ymax = self.xmin, self.xmax
         lims = {}
-        # if self.r < 0.4:
-        #     lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
-
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(2, 1, 2)
         self.price_ax.set_title('Price evolution')
@@ -250,10 +245,10 @@ class Simulation:
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
-        # self.price_ax.set_ylim(
-        #     (- self.impact_th, 1.5 * self.impact_th))
         self.price_ax.set_ylim(
-            (self.xmin, self.xmax))
+            (self.ymin,  self.ymax))
+        # self.price_ax.set_ylim(
+        #     (self.xmin, self.xmax))
         self.price_ax.set_xlim((0, self.T))
 
         # fig.suptitle(self.parameters_string + self.constant_string)
@@ -288,9 +283,6 @@ class Simulation:
         return self.book.update_animation(self.tstep, volume) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
-
-        # In the case of a mutli-actor book, the largest value
-        # for L is used for all variables related to L.
 
         string = f""" Order book simulation.
         Time parameters :
