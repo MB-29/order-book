@@ -15,7 +15,6 @@ class DiscreteBook:
             :type ask_orders: LimitOrders object
         """
 
-        order_args = order_args
         self.bid_orders = LimitOrders(**order_args, side='bid')
         self.ask_orders = LimitOrders(**order_args, side='ask')
 
@@ -34,8 +33,8 @@ class DiscreteBook:
         self.update_price()
 
         # Animation
-        self.y_max = max(np.max(self.get_bid_volumes()),
-                         np.max(self.get_ask_volumes()))
+        self.y_max = max(self.bid_orders.stationary_density(
+            self.xmin), self.ask_orders.stationary_density(self.xmax)) * self.dx
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -62,7 +61,6 @@ class DiscreteBook:
             self.update_price()
             self.order_reaction()
             self.update_price()
-
 
     def stochastic_timestep(self):
         """Stochastic dynamics step.
@@ -145,7 +143,7 @@ class DiscreteBook:
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
-        self.volume_ax.legend('upper center')
+        self.volume_ax.legend(loc='upper center')
 
     def init_animation(self):
         """Init function called by matplotlib's FuncAnimation
