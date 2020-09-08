@@ -3,7 +3,7 @@ import warnings
 from numba import njit, int64, float64
 
 use_numba = True
-# use_numba = False
+use_numba = False
 deterministic = False
 
 
@@ -78,9 +78,16 @@ class LimitOrders:
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):
+        """Positive order density stationary function
+        """
 
         if self.sign * x > 0:
             return 0
+
+        # Linear book
+        if self.nu == 0:
+            return self.L * x 
+
         x_crit = np.sqrt(self.D/self.nu)
         return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
 
@@ -107,7 +114,7 @@ class LimitOrders:
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        size = self.Nx - self.best_price_index if self.side == 'ask' else self.best_price_index + 1
+        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask' else self.best_price_index + 1
         if spread > 0 :
             size += spread//2
         padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
@@ -121,7 +128,6 @@ class LimitOrders:
                    0) if self.side == 'ask' else (0, self.Nx - size)
         arrivals = np.pad(arrivals, padding,
                           mode='constant', constant_values=0)
-
         # Add deposited orders
         self.volumes += arrivals
 
@@ -192,6 +198,8 @@ class LimitOrders:
     # ------------------ Price ------------------
 
     def update_best_price(self):
+        # best bid is the rightmost index of nonzero bid volumes
+        # best ask is the leftmost index of nonzero ask volumes
         end_index = 0 if self.side == 'ask' else -1
         indices = np.nonzero(self.volumes)[0]
         if indices.size == 0:
