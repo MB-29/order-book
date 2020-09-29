@@ -52,15 +52,13 @@ class DiscreteBook:
         :param volume: execution volume
         :type volume: int
         """
-        n_steps = int(tstep / self.dt)
 
         self.update_price()
-        for n in range(n_steps):
-            self.execute_metaorder(volume/n_steps)
-            self.stochastic_timestep()
-            self.update_price()
-            self.order_reaction()
-            self.update_price()
+        self.execute_metaorder(volume)
+        self.stochastic_timestep()
+        self.update_price()
+        self.order_reaction()
+        self.update_price()
 
     def stochastic_timestep(self):
         """Stochastic dynamics step.

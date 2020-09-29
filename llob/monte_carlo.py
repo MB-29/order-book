@@ -24,8 +24,6 @@ class MonteCarlo:
         self.N_samples = N_samples
         self.Nt = simulation_args['Nt']
         self.T = simulation_args['T']
-        self.time_interval, self.tstep = np.linspace(
-            0, self.T, num=self.Nt, retstep=True)
 
         # Measurements
         self.simulation_args = simulation_args
@@ -48,9 +46,9 @@ class MonteCarlo:
         self.noise = np.zeros((self.T, N_samples))
 
         # Output
-        self.price_samples = np.zeros((self.Nt, N_samples))
-        self.ask_samples = np.zeros((self.Nt, N_samples))
-        self.bid_samples = np.zeros((self.Nt, N_samples))
+        self.price_samples = np.zeros((self.T, N_samples))
+        self.ask_samples = np.zeros((self.T, N_samples))
+        self.bid_samples = np.zeros((self.T, N_samples))
 
     def generate_noise(self):
 

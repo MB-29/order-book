@@ -41,9 +41,9 @@ class Simulation:
         self.boundary_distance = min(abs(self.xmin), self.xmax)
 
         # Prices and measures
-        self.asks = np.zeros(self.Nt)
-        self.bids = np.zeros(self.Nt)
-        self.prices = np.zeros(self.Nt)
+        self.asks = np.zeros(self.T)
+        self.bids = np.zeros(self.T)
+        self.prices = np.zeros(self.T)
         self.measured_quantities = kwargs.get('measured_quantities', [])
         self.measurement_indices = kwargs.get('measurement_indices', [])
         self.measurements = {}
@@ -191,7 +191,7 @@ class Simulation:
             self.run_animation(fig, save)
             return
 
-        for n in range(self.Nt):
+        for n in range(self.T):
             # Update metaorder intensity
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
@@ -199,8 +199,8 @@ class Simulation:
                 self.book.best_ask, self.book.best_bid)
             self.measure(n)
 
-            volume = self.metaorder[n] * self.tstep
-            self.book.timestep(self.tstep, volume)
+            volume = self.metaorder[n] * self.dt
+            self.book.timestep(self.dt, volume)
 
     def measure(self, n):
         if n not in self.measurement_indices :
@@ -267,7 +267,7 @@ class Simulation:
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        volume = self.metaorder[n] * self.tstep
+        volume = self.metaorder[n] * self.dt
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
