@@ -1,10 +1,10 @@
+.. _continuous:
+
 ****************
-Continuous model
+Continuous Book
 **************** 
 
-Classes 
-************ 
 
-.. automodule:: llob.continuous_book
+.. automodule:: llob.linear_continuous_book
    :members:
 

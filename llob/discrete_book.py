@@ -4,12 +4,17 @@ from limit_orders import LimitOrders
 
 
 class DiscreteBook:
-    """Models an order book in the framework of Latent Order Book agent model.
+    """Models an order book in the framework of Latent Order Book agent model.    
     """
 
     def __init__(self, **order_args):
+        """
+            :ivar bid_orders: Bid orders
+            :type bid_orders: LimitOrders object
+            :ivar ask_orders: Ask orders
+            :type ask_orders: LimitOrders object
+        """
 
-        order_args = order_args
         self.bid_orders = LimitOrders(**order_args, side='bid')
         self.ask_orders = LimitOrders(**order_args, side='ask')
 
@@ -28,8 +33,8 @@ class DiscreteBook:
         self.update_price()
 
         # Animation
-        self.y_max = max(np.max(self.get_bid_volumes()),
-                         np.max(self.get_ask_volumes()))
+        self.y_max = max(self.bid_orders.stationary_density(
+            self.xmin), self.ask_orders.stationary_density(self.xmax)) * self.dx
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -40,25 +45,27 @@ class DiscreteBook:
     # ================== TIME EVOLUTION ==================
 
     def timestep(self, tstep, volume):
-        """Step forward.
+        """Timestep forward
+
+        :param tstep: time step
+        :type tstep: float
+        :param volume: execution volume
+        :type volume: int
         """
-        n_steps = int(tstep / self.dt)
 
-        self.execute_metaorder(volume)
         self.update_price()
-        for n in range(n_steps):
-            self.stochastic_timestep()
-            self.update_price()
-            self.order_reaction()
-            self.update_price()
-
+        self.execute_metaorder(volume)
+        self.stochastic_timestep()
+        self.update_price()
+        self.order_reaction()
+        self.update_price()
 
     def stochastic_timestep(self):
         """Stochastic dynamics step.
         """
         for orders in [self.ask_orders, self.bid_orders]:
             orders.cancellation()
-            orders.deposition((self.best_bid_index + self.best_ask_index)//2)
+            orders.deposition(self.best_ask_index - self.best_bid_index)
             orders.jumps()
 
     def update_price(self):
@@ -134,10 +141,10 @@ class DiscreteBook:
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title('Order volumes')
-        self.volume_ax.legend()
+        self.volume_ax.legend(loc='upper center')
 
     def init_animation(self):
-        """Init function called by FuncAnimation
+        """Init function called by matplotlib's FuncAnimation
         """
 
         for b in self.ask_bars:
@@ -148,7 +155,8 @@ class DiscreteBook:
         return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars]
 
     def update_animation(self, tstep, volume):
-        """Update function called by FuncAnimation
+        """Update function called by matplotlib's FuncAnimation.
+        Animation counterpart to self.timetsep(tstep, volume)
         """
 
         self.timestep(tstep, volume)

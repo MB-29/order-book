@@ -4,7 +4,7 @@ import warnings
 
 from linear_discrete_book import LinearDiscreteBook
 from discrete_book import DiscreteBook
-from continuous_book import ContinuousBook
+from linear_continuous_book import LinearContinuousBook
 from multi_discrete_book import MultiDiscreteBook
 
 
@@ -17,7 +17,7 @@ class Simulation:
         :param model_type: 'discrete' or 'continuous'
         :type model_type: string
         :param metaorder: Meta-order intensity over time, defaults to [0].
-            If its length is 1 then the it will be converted to
+            If its length is 1 then it will be converted to
             a constant meta-order with the corresponding value.
         :type metaorder: list, optional
         """
@@ -41,11 +41,11 @@ class Simulation:
         self.boundary_distance = min(abs(self.xmin), self.xmax)
 
         # Prices and measures
-        self.asks = np.zeros(self.Nt)
-        self.bids = np.zeros(self.Nt)
-        self.prices = np.zeros(self.Nt)
+        self.asks = np.zeros(self.T)
+        self.bids = np.zeros(self.T)
+        self.prices = np.zeros(self.T)
         self.measured_quantities = kwargs.get('measured_quantities', [])
-        self.measurement_steps = kwargs.get('measurement_steps', 1)
+        self.measurement_indices = kwargs.get('measurement_indices', [])
         self.measurements = {}
         for quantity in self.measured_quantities:
             self.measurements[quantity] = []
@@ -75,10 +75,10 @@ class Simulation:
 
         if len(metaorder) == 1:
             self.m0 = metaorder[0]
-            self.metaorder = np.zeros(self.Nt)
+            self.metaorder = np.zeros(self.T)
             self.metaorder[self.n_start:self.n_end].fill(self.m0)
         else:
-            assert len(metaorder) == self.Nt
+            assert len(metaorder) == self.T
             self.metaorder = metaorder
             self.m0 = metaorder.mean()
 
@@ -94,9 +94,9 @@ class Simulation:
         :param model_type: 'discrete' or 'continuous'
         :type model_type: string
         :param args: book args, see documentation of the corresponding
-        order book class 
+            order book class 
         :type args: dictionary
-        :return: the instance of the order book
+        :returns: the instance of the order book
         :rtype: OrderBook object
         """
 
@@ -112,7 +112,7 @@ class Simulation:
         model_choice = {
             'discrete': DiscreteBook,
             'linear_discrete': LinearDiscreteBook,
-            'linear_continuous': ContinuousBook,
+            'linear_continuous': LinearContinuousBook,
         }
 
         return model_choice.get(model_name)(**args)
@@ -153,11 +153,9 @@ class Simulation:
                     'try increasing spatial resolution.')
             if self.n_steps < 1 and self.r < float('inf'):
                 raise ValueError(
-                    'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
-                    'Try decreasing participation rate')
-            if self.n_steps > 200:
-                raise ValueError(
-                    f'Many diffusion steps : ~ {int(self.n_steps)}.')
+                    f'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
+                    'Try decreasing participation rate'
+                    f' dt = {self.dt}, tstep = {self.tstep}')
 
     def compute_vwap(self, best_ask, best_bid):
         """Apply vwap formula
@@ -167,10 +165,11 @@ class Simulation:
                     abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
 
     def get_growth_th(self):
-        """Return theoretical price impact, starting from price 0
+        """Return the theoretical price impact profile as an array,
+        starting from price 0
         """
         A = self.m0/(self.L*np.sqrt(self.D * np.pi)
-                     ) if self.r < 1 else np.sqrt(2)*np.sqrt(self.m0/self.L)
+                     ) if self.r < 1 else np.sign(self.m0) * np.sqrt(2)*np.sqrt(self.m0/self.L)
         growth = A * \
             np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
         return growth
@@ -192,7 +191,7 @@ class Simulation:
             self.run_animation(fig, save)
             return
 
-        for n in range(self.Nt):
+        for n in range(self.T):
             # Update metaorder intensity
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
@@ -200,11 +199,11 @@ class Simulation:
                 self.book.best_ask, self.book.best_bid)
             self.measure(n)
 
-            volume = self.metaorder[n] * self.tstep
-            self.book.timestep(self.tstep, volume)
+            volume = self.metaorder[n] * self.dt
+            self.book.timestep(self.dt, volume)
 
     def measure(self, n):
-        if n % self.measurement_steps !=0 :
+        if n not in self.measurement_indices :
             return
         for quantity in self.measured_quantities:
             value = self.book.get_measure(quantity)
@@ -225,17 +224,15 @@ class Simulation:
             fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
         if save:
             Writer = writers['ffmpeg']
-            writer = Writer(fps=15, metadata=dict(
-                artist='Me'), bitrate=1800)
-            self.animation.save('../animation.mp4', writer=writer)
+            writer = Writer(fps=15)
+            # self.animation.save('../animation.mp4', writer=writer)
+            self.animation.save('../animation.gif', writer='imagemagick', fps=60)
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
         """
+        self.ymin, self.ymax = self.xmin, self.xmax
         lims = {}
-        # if self.r < 0.4:
-        #     lims['xlim'] = (-3 * self.lower_impact, 3*self.lower_impact)
-
         self.book.set_animation(fig, lims)
         self.price_ax = fig.add_subplot(2, 1, 2)
         self.price_ax.set_title('Price evolution')
@@ -248,16 +245,16 @@ class Simulation:
         self.price_ax.plot([0, self.T], [0, 0],
                            ls='dashed', lw=0.5, color='black')
         self.price_ax.legend()
-        # self.price_ax.set_ylim(
-        #     (- self.impact_th, 1.5 * self.impact_th))
         self.price_ax.set_ylim(
-            (self.xmin, self.xmax))
+            (self.ymin,  self.ymax))
+        # self.price_ax.set_ylim(
+        #     (self.xmin, self.xmax))
         self.price_ax.set_xlim((0, self.T))
 
         # fig.suptitle(self.parameters_string + self.constant_string)
 
     def init_animation(self):
-        """Init function called by FuncAnimation
+        """Init function called by matplotlib's FuncAnimation
         """
         self.price_line.set_data([], [])
         self.best_bid_line.set_data([], [])
@@ -266,11 +263,11 @@ class Simulation:
         return self.book.init_animation() + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def update_animation(self, n):
-        """Update function called by FuncAnimation
+        """Update function called by matplotlib's FuncAnimation
         """
         if n % 10 == 0:
             print(f'Step {n}')
-        volume = self.metaorder[n] * self.tstep
+        volume = self.metaorder[n] * self.dt
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(
@@ -286,9 +283,6 @@ class Simulation:
         return self.book.update_animation(self.tstep, volume) + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
-
-        # In the case of a mutli-actor book, the largest value
-        # for L is used for all variables related to L.
 
         string = f""" Order book simulation.
         Time parameters :
@@ -327,37 +321,48 @@ class Simulation:
         return string
 
 
-def standard_parameters(participation_rate, model_type, T=1, xmin=-0.25, xmax=1, Nx=500, Nt=100):
+def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt=None, T=None):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
+
     .. warning:: Participation rates greater than r~2500 will most likely cause an error
-    with the current settings.
+        with the current settings.
 
     """
+    if Nt == None:
+        Nt = 100
+    if T == None:
+        T = Nt * 50
     r = abs(participation_rate)
-    boundary_dist = min(abs(xmin), abs(xmax))
+    D = 0.5
+    I = np.sqrt(2 * r * D * T)
+    if xmin == None:
+        xmin = -1.1 * I
+    if xmax == None:
+        xmax = 1.1 * I
+    if r <= 1 :
+        boundary_distance = np.sqrt(D * T)
+        xmax = max(np.sqrt(r) * xmax, boundary_distance)
+        xmin = min(np.sqrt(r) * xmin, -boundary_distance)
+
+    Nx = int(xmax - xmin)
     X = max(abs(xmin), abs(xmax))
+
     dx = (xmax - xmin) / Nx
-    L = 1/(dx * dx)
-    side_formula = 'best_ask' if participation_rate >= 0 else 'best_bid'
+
+    L = 10/(dx * dx)
     if r == float('inf'):
-        price_formula = side_formula
         D = 0
         m0 = (L * X) / (5 * T)
-    elif r >= 5:
-        m0 = (L * X) / (5 * T)
-        D = m0 / (L*r)
-        price_formula = side_formula
+
     else:
-        price_formula = 'vwap'
-        D = 50 * Nt * dx**2 / T
-        m0 = L * D * participation_rate
+        D = 0.5
+        m0 = D * L * participation_rate
 
     simulation_args = {
         "model_type": model_type,
         "T": T,
         "Nt": Nt,
-        "price_formula": price_formula,
         "Nx": Nx,
         "xmin": xmin,
         "xmax": xmax,

@@ -3,7 +3,7 @@ import warnings
 from numba import njit, int64, float64
 
 use_numba = True
-# use_numba = False
+use_numba = False
 deterministic = False
 
 
@@ -78,9 +78,16 @@ class LimitOrders:
         self.best_price_volume = self.volumes[self.best_price_index]
 
     def stationary_density(self, x):
+        """Positive order density stationary function
+        """
 
         if self.sign * x > 0:
             return 0
+
+        # Linear book
+        if self.nu == 0:
+            return self.L * x 
+
         x_crit = np.sqrt(self.D/self.nu)
         return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
 
@@ -97,7 +104,7 @@ class LimitOrders:
 
     # ------------------ Stochastic evolution ------------------
 
-    def deposition(self, price_index):
+    def deposition(self, spread):
         """Process order deposition stochastic step.
         In order to work properly, method update_price() should be called before this one,
         so that the size of the deposition price range is correct.
@@ -107,7 +114,9 @@ class LimitOrders:
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        size = self.Nx - price_index if self.side == 'ask' else price_index + 1
+        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask' else self.best_price_index + 1
+        if spread > 0 :
+            size += spread//2
         padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
         if use_numba:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
@@ -119,7 +128,6 @@ class LimitOrders:
                    0) if self.side == 'ask' else (0, self.Nx - size)
         arrivals = np.pad(arrivals, padding,
                           mode='constant', constant_values=0)
-
         # Add deposited orders
         self.volumes += arrivals
 
@@ -165,20 +173,24 @@ class LimitOrders:
             return
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
+            # draw Binominal variables equal number of
+            # jumps left and jump right for each price 
             jumps_left = np.random.binomial(order_volume, 0.5)
             jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
+        # Boundary jumps
         boundary_volume = self.volumes[self.boundary_index] + \
             self.boundary_flow * (self.dx)**2
         boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
-        # Set boundary flow
+        # Add the boundary jump 
         boundary_jumps_left = boundary_jumps if self.side == 'ask' else 0
         boundary_jumps_right = boundary_jumps if self.side == 'bid' else 0
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
-        flow = jumps_right - jumps_left
+
         # flow[n] is the algebraic number of particles crossing from n-1 to n
+        flow = jumps_right - jumps_left
 
         # update volumes : dV/dt = -dj/dx
         self.volumes = self.volumes - np.diff(flow)
@@ -186,6 +198,8 @@ class LimitOrders:
     # ------------------ Price ------------------
 
     def update_best_price(self):
+        # best bid is the rightmost index of nonzero bid volumes
+        # best ask is the leftmost index of nonzero ask volumes
         end_index = 0 if self.side == 'ask' else -1
         indices = np.nonzero(self.volumes)[0]
         if indices.size == 0:
@@ -256,15 +270,14 @@ class LimitOrders:
 @njit(int64[:](int64[:], float64, int64, float64))
 def add_flow(volumes, dx, boundary_index, boundary_flow):
     """Numba-accelerated function that computes order jump flow.
+    See method limit_orders.jumps() for inline comments
 
     :param volumes: Order volumes
     :type volumes: int64[:]
     :param dx: Size of the price subinterval
     :type dx: float64
-    :param boundary_index: Depending on the size ask or bid,
-    :type boundary_index: int64
     :param boundary_index: The algebraic index of the exterior boundary.
-        -1 or O depending on the size ask or bid
+        -1 (ask) or O (bid)
     :type boundary_index: int64
     :param boundary_flow: The corresponding flow
     :type boundary_flow: float64
@@ -283,18 +296,16 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
     boundary_volume = volumes[boundary_index] + boundary_flow * (dx)**2
     boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
-    # Set boundary flow
+    # Add boundary jumps
     boundary_jumps_left = boundary_jumps if boundary_index == -1 else 0
     boundary_jumps_right = boundary_jumps if boundary_index == 0 else 0
-    jumps_left = np.concatenate(
-        (jumps[:, 0], np.array([boundary_jumps_left], dtype=int64)))
-    jumps_right = np.concatenate(
-        (np.array([boundary_jumps_right], dtype=int64), jumps[:, 1]))
+    jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
+    jumps_right = np.append(boundary_jumps_right, jumps[:, 1])
     flow = jumps_right - jumps_left
     # flow[n] is the algebraic number of particles crossing from n-1 to n
 
     # update volumes according to dV/dt = -dj/dx
-    volumes -= np.diff(flow)
+    volumes = volumes - np.diff(flow)
     return volumes
 
 
