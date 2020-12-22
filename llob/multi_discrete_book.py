@@ -1,7 +1,12 @@
+"""
+LLOB with multiple agents.
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
 from functools import reduce
 
-from limit_orders import LimitOrders
 from discrete_book import DiscreteBook
 from linear_discrete_book import LinearDiscreteBook
 
@@ -51,23 +56,25 @@ class MultiDiscreteBook(DiscreteBook):
         self.y_max = np.sum([actor_book.y_max for actor_book in self.books])
 
     def get_ask_volumes(self, index=None):
-        volumes = reduce(np.add, [actor_book.get_ask_volumes() for actor_book in self.books])
+        volumes = reduce(np.add, [actor_book.get_ask_volumes()
+                                  for actor_book in self.books])
         if index is not None:
             return volumes[index]
         return volumes
 
     def get_bid_volumes(self, index=None):
-        volumes = reduce(np.add, [actor_book.get_bid_volumes() for actor_book in self.books])
+        volumes = reduce(np.add, [actor_book.get_bid_volumes()
+                                  for actor_book in self.books])
         if index is not None:
             return volumes[index]
         return volumes
 
     def get_ask_proportions(self, index):
         return self.books[index].get_ask_volumes() / self.get_ask_volumes
-        
+
     def get_bid_proportions(self, index):
         return self.books[index].get_bid_volumes() / self.get_bid_volumes
-        
+
     # ================== TIME EVOLUTION ==================
 
     def stochastic_timestep(self):
@@ -88,7 +95,7 @@ class MultiDiscreteBook(DiscreteBook):
 
     def order_reaction(self):
         """Reaction step : matched orders are executed, regardless of
-        the book type their are matched with. 
+        the book type their are matched with.
         """
         if self.best_ask_index > self.best_bid_index:
             return
@@ -97,15 +104,19 @@ class MultiDiscreteBook(DiscreteBook):
             self.get_ask_volumes(), self.get_bid_volumes())
         for side in ['ask', 'bid']:
             side_volumes = getattr(self, f'get_{side}_volumes')()
-            # Mask array indicating where side's volumes are lower that the other side's
+            # Mask array indicating where side's volumes
+            # are lower than the other side's
             limiting_volume = np.array(side_volumes <= reaction_volumes)
             for actor_book in self.books:
                 actor_side_orders = getattr(actor_book, f'{side}_orders')
                 actor_proportion = actor_side_orders.volumes / side_volumes
-                # Execute all the side's liquidity where side is lacking volume,
-                # else execute a proportional fraction of the other side's liquidit
+                # Execute all the side's liquidity where side
+                # is lacking volume,
+                # else execute a proportional fraction
+                # of the other side's liquidity
                 executed_volumes = np.where(
-                    limiting_volume, reaction_volumes, actor_proportion * reaction_volumes)
+                    limiting_volume, reaction_volumes,
+                    actor_proportion * reaction_volumes)
                 actor_side_orders.execute_orders(executed_volumes)
 
     def execute_metaorder(self, trade_volume):
@@ -114,15 +125,16 @@ class MultiDiscreteBook(DiscreteBook):
         :param trade_volume: algebraic volume to execute
         """
         side = 'bid' if trade_volume < 0 else 'ask'
-        sign = 1 if side =='bid' else -1
+        sign = 1 if side == 'bid' else -1
 
         executed_volume = 0
         self.actor_trades.fill(0)
-        # price_volumes = [getattr(actor_book, f'best_{side}_volume') for actor_book in self.books]
+        # price_volumes = [getattr(actor_book, f'best_{side}_volume')\
+        #                for actor_book in self.books]
         # The execution price is market's best price
         price_index = getattr(self, f'best_{side}_index')
         total_price_volume = getattr(self, f'{side}_volume')
-        # Consume best price orders, price step after price step 
+        # Consume best price orders, price step after price step
         while executed_volume + total_price_volume < abs(trade_volume):
             for actor_index, actor_book in enumerate(self.books):
                 # Ignore actors whose best price is further than
@@ -140,8 +152,9 @@ class MultiDiscreteBook(DiscreteBook):
             self.update_price()
             total_price_volume = getattr(self, f'{side}_volume')
             price_index = getattr(self, f'best_{side}_index')
-        # At this point best price volume is greater than what needs to be executed.
-        # Exectute each book in proportion to their volume 
+        # At this point best price volume is
+        # greater than what needs to be executed.
+        # Execute each book in proportion to their volume
         remaining_volume = abs(trade_volume) - executed_volume
         for actor_index, actor_book in enumerate(self.books):
             actor_price_index = getattr(actor_book, f'best_{side}_index')
@@ -153,7 +166,6 @@ class MultiDiscreteBook(DiscreteBook):
             self.actor_trades[actor_index] += actor_volume
         self.actor_trades /= abs(trade_volume)
         # print(f'after execution, price index = {price_index}')
-
 
     def get_measures(self):
         measures = {

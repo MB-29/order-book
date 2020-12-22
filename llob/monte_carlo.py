@@ -1,5 +1,10 @@
+"""
+Run Monte-Carlo simulations of noisy LLOBs
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
-import pandas as pd
 from fbm import fgn
 from tqdm.auto import tqdm
 from retry import retry
@@ -8,14 +13,16 @@ from simulation import Simulation
 
 
 class MonteCarlo:
-    """Implements a Monte Carlo simulation of order book dynamics with noisy meta-order
+    """Implements a Monte Carlo simulation of order book dynamics
+    with noisy meta-order
     """
 
     def __init__(self, N_samples, noise_args, simulation_args, **kwargs):
         """
         :param N_samples: [description]
         :type N_samples: int
-        :param noise_args: {'m0': noise mean , 'm1': noise std, 'hurst': hurst exponent}
+        :param noise_args: {'m0': noise mean ,
+                            'm1': noise std, 'hurst': hurst exponent}
         :type noise_args: dictionary
         :param simulation_args: See class Simulation
         :type simulation_args: dictionary
@@ -27,7 +34,7 @@ class MonteCarlo:
 
         # Measurements
         self.simulation_args = simulation_args
-        self.measured_quantities = simulation_args.get( 
+        self.measured_quantities = simulation_args.get(
             'measured_quantities', [])
         self.sample_measurements = simulation_args.get(
             'sample_measurements', [])
@@ -59,14 +66,15 @@ class MonteCarlo:
 
         # Standard fractional Gaussian noise
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] =fgn(
+            self.noise[:, sample_index] = fgn(
                 n=self.T, hurst=self.hurst, length=self.T)
 
         # Scale and translate
         self.scale = self.m1
         self.noisy_metaorders += self.scale * self.noise
+        order_mean = self.noisy_metaorders.mean().mean()
         print(
-            f'Generated meta-order has mean {self.noisy_metaorders.mean().mean():.2f} '
+            f'Generated meta-order has mean {order_mean:.2f} '
             f'and variance {self.noisy_metaorders.var(axis=1).mean():.2f}')
 
     def run(self):
@@ -125,11 +133,13 @@ class MonteCarlo:
             result[f'{quantity}_variance'] = self.measurement_vars[quantity]
 
         for sample_measurement in self.sample_measurements:
-            measurement = [getattr(self, f'{sample_measurement}_samples')[time_index: time_index+self.measurement_slice, :] for time_index in self.measurement_indices]
+            measurement = [getattr(self,
+                                   f'{sample_measurement}_samples')
+                           [time_index: time_index+self.measurement_slice, :]
+                           for time_index in self.measurement_indices]
             result[sample_measurement] = measurement
 
         return result
-
 
     @retry((ValueError, IndexError), tries=1)
     def try_running(self, args):

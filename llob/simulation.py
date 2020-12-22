@@ -1,5 +1,11 @@
+"""
+Run one instance of an LLOB simulation
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
-from matplotlib.animation import FuncAnimation, writers
+from matplotlib.animation import FuncAnimation  # , writers
 import warnings
 
 from linear_discrete_book import LinearDiscreteBook
@@ -94,7 +100,7 @@ class Simulation:
         :param model_type: 'discrete' or 'continuous'
         :type model_type: string
         :param args: book args, see documentation of the corresponding
-            order book class 
+            order book class
         :type args: dictionary
         :returns: the instance of the order book
         :rtype: OrderBook object
@@ -116,9 +122,10 @@ class Simulation:
         }
 
         return model_choice.get(model_name)(**args)
-    
+
     def get_density(self):
-        return {'bid': self.book.get_ask_volumes(), 'ask': self.book.get_bid_volumes()}
+        return {'bid': self.book.get_ask_volumes(),
+                'ask': self.book.get_bid_volumes()}
 
     # ================== THEORY ==================
 
@@ -153,7 +160,8 @@ class Simulation:
                     'try increasing spatial resolution.')
             if self.n_steps < 1 and self.r < float('inf'):
                 raise ValueError(
-                    f'Order diffusion is not possible because diffusion distance is smaller that space subinterval.'
+                    f'Order diffusion is not possible because diffusion'
+                    'distance is smaller that space subinterval.'
                     'Try decreasing participation rate'
                     f' dt = {self.dt}, tstep = {self.tstep}')
 
@@ -162,14 +170,16 @@ class Simulation:
         """
         return (abs(self.book.best_ask_volume) * best_ask
                 + abs(self.book.best_bid_volume) * best_bid)/(
-                    abs(self.book.best_ask_volume) + abs(self.book.best_bid_volume))
+                    abs(self.book.best_ask_volume)
+                    + abs(self.book.best_bid_volume))
 
     def get_growth_th(self):
         """Return the theoretical price impact profile as an array,
         starting from price 0
         """
         A = self.m0/(self.L*np.sqrt(self.D * np.pi)
-                     ) if self.r < 1 else np.sign(self.m0) * np.sqrt(2)*np.sqrt(self.m0/self.L)
+                     ) if self.r < 1 \
+            else np.sign(self.m0) * np.sqrt(2)*np.sqrt(self.m0/self.L)
         growth = A * \
             np.sqrt(self.time_interval_shifted[self.n_start: self.n_end])
         return growth
@@ -183,7 +193,8 @@ class Simulation:
         :type fig: matplotlib figure, optional
         :param animation: Set True to display an animation, defaults to False
         :type animation: bool, optional
-        :param save: Set True to save the animation under ./animation.mp4, defaults to False
+        :param save: Set True to save the animation under
+                     ./animation.mp4, defaults to False
         :type save: bool, optional
         """
 
@@ -203,7 +214,7 @@ class Simulation:
             self.book.timestep(self.dt, volume)
 
     def measure(self, n):
-        if n not in self.measurement_indices :
+        if n not in self.measurement_indices:
             return
         for quantity in self.measured_quantities:
             value = self.book.get_measure(quantity)
@@ -216,17 +227,21 @@ class Simulation:
 
         :param fig: The figure the animation is displayed in, defaults to None
         :type fig: matplotlib figure, optional
-        :param save: Set True to save the animation under ./animation.mp4, defaults to False
+        :param save: Set True to save the animation under
+                     ./animation.mp4, defaults to False
         :type save: bool, optional
         """
         self.set_animation(fig)
         self.animation = FuncAnimation(
-            fig, self.update_animation, init_func=self.init_animation, repeat=False, frames=self.Nt, blit=True)
+            fig, self.update_animation,
+            init_func=self.init_animation, repeat=False,
+            frames=self.Nt, blit=True)
         if save:
-            Writer = writers['ffmpeg']
-            writer = Writer(fps=15)
+            # Writer = writers['ffmpeg']
+            # writer = Writer(fps=15)
             # self.animation.save('../animation.mp4', writer=writer)
-            self.animation.save('../animation.gif', writer='imagemagick', fps=60)
+            self.animation.save('../animation.gif',
+                                writer='imagemagick', fps=60)
 
     def set_animation(self, fig):
         """Create subplot axes, lines and texts
@@ -260,7 +275,9 @@ class Simulation:
         self.best_bid_line.set_data([], [])
         self.best_ask_line.set_data([], [])
 
-        return self.book.init_animation() + [self.price_line, self.best_ask_line, self.best_bid_line]
+        return self.book.init_animation() + [self.price_line,
+                                             self.best_ask_line,
+                                             self.best_bid_line]
 
     def update_animation(self, n):
         """Update function called by matplotlib's FuncAnimation
@@ -280,7 +297,8 @@ class Simulation:
             self.time_interval[:n+1], self.asks[:n+1])
         self.best_bid_line.set_data(
             self.time_interval[:n+1], self.bids[:n+1])
-        return self.book.update_animation(self.tstep, volume) + [self.price_line, self.best_ask_line, self.best_bid_line]
+        return self.book.update_animation(self.tstep, volume) \
+            + [self.price_line, self.best_ask_line, self.best_bid_line]
 
     def __str__(self):
 
@@ -321,26 +339,27 @@ class Simulation:
         return string
 
 
-def standard_parameters(participation_rate, model_type, xmin=None, xmax=None, Nt=None, T=None):
+def standard_parameters(participation_rate, model_type,
+                        xmin=None, xmax=None, Nt=None, T=None):
     """Returns standard argument dictionary for a Simulation instance for
     a given participation rate and a model type
 
-    .. warning:: Participation rates greater than r~2500 will most likely cause an error
-        with the current settings.
-
+    .. warning:: Participation rates greater than r~2500
+                 will most likely cause an error
+                 with the current settings.
     """
-    if Nt == None:
+    if Nt is None:
         Nt = 100
-    if T == None:
+    if T is None:
         T = Nt * 50
     r = abs(participation_rate)
     D = 0.5
-    I = np.sqrt(2 * r * D * T)
-    if xmin == None:
-        xmin = -1.1 * I
-    if xmax == None:
-        xmax = 1.1 * I
-    if r <= 1 :
+    Ipt = np.sqrt(2 * r * D * T)
+    if xmin is None:
+        xmin = -1.1 * Ipt
+    if xmax is None:
+        xmax = 1.1 * Ipt
+    if r <= 1:
         boundary_distance = np.sqrt(D * T)
         xmax = max(np.sqrt(r) * xmax, boundary_distance)
         xmin = min(np.sqrt(r) * xmin, -boundary_distance)

@@ -1,3 +1,9 @@
+"""
+Solves LLOB diffusion using PDE discretisation
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
 import warnings
 
@@ -43,7 +49,8 @@ class LinearContinuousBook:
         # Density function
         if self.resolution_volume > self.L * self.dx * self.dx:
             warnings.warn(
-                'Resolution volume may be too large and lead to an inaccurate price')
+                'Resolution volume may be too large' +
+                'and lead to an inaccurate price')
 
         self.density = self.initial_density(self.X)
         self.update_prices()
@@ -63,16 +70,21 @@ class LinearContinuousBook:
                                self.resolution_volume)[0]
         ask_indices = np.where(self.density * self.dx <
                                - self.resolution_volume)[0]
-        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx-1
-        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
+        self.best_ask_index = ask_indices[0] if ask_indices.size > 0\
+            else self.Nx-1
+        self.best_bid_index = bid_indices[-1] if bid_indices.size > 0\
+            else 0
 
         self.best_ask = self.X[self.best_ask_index - 1]
         self.best_bid = self.X[self.best_bid_index + 1]
 
     def execute_metaorder(self, volume):
-        """ Execute at current time the quantity volume at the best price which depends on the sign of volume.
-        If volume > 0, then the metaorder is a buy and hence ask orders are executed at price best_ask.
-        If volume < 0, then the metaorder is a sell and hence bid orders are executed at price best_bid.
+        """ Execute at current time the quantity volume at the
+        best price which depends on the sign of volume.
+        If volume > 0, then the metaorder is a buy and hence ask orders
+        are executed at price best_ask.
+        If volume < 0, then the metaorder is a sell and hence bid orders
+        are executed at price best_bid.
         As liquidity vanishes the best price is increasingly shifted.
         """
 
@@ -82,7 +94,8 @@ class LinearContinuousBook:
         dq = volume
         if dq > 0:
             while dq > 0:
-                # liquidity > 0 is the absolute available volume at the best ask price
+                # liquidity > 0 is the absolute available volume
+                # at the best ask price
                 liquidity = -self.density[self.best_ask_index] * self.dx
                 if dq < liquidity:
                     self.density[self.best_ask_index] += dq/self.dx
@@ -142,7 +155,8 @@ class LinearContinuousBook:
         self.density_ax.plot([self.xmin, self.xmax], [
                              0, 0], color='black', lw=0.5, ls='dashed')
         self.density_ax.plot([0, 0], [
-                             -y_max, y_max], color='black', lw=0.5, ls='dashed')
+                             -y_max, y_max],
+                             color='black', lw=0.5, ls='dashed')
         self.density_ax.set_title('Algebraic order density')
         self.density_ax.legend(loc='center left', bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
