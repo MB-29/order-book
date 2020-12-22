@@ -1,3 +1,9 @@
+"""
+An implementation of Limit Orders
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
 import warnings
 from numba import njit, int64, float64
@@ -11,7 +17,7 @@ class LimitOrders:
     """Orders volumes of one side - bid or ask - with stochastic dynamics."""
 
     def __init__(self, lambd, nu, D, side, xmin, xmax, Nx, L=None, **kwargs):
-        """     
+        """
         :param lambd: Lambda parameter
         :type lambd: float
         :param nu: Nu parameter
@@ -50,7 +56,7 @@ class LimitOrders:
         self.lambd = lambd
         self.nu = nu
         self.D = D
-        self.L = L if L != None else lambd / np.sqrt(nu * self.D)
+        self.L = L if L is not None else lambd / np.sqrt(nu * self.D)
 
         self.initialize_volumes(initial_density)
         self.set_boundary_conditions(boundary_conditions)
@@ -58,7 +64,8 @@ class LimitOrders:
         # Warning
         if self.dt * self.nu >= 1:
             warnings.warn(
-                'Elementary timestep is too large to guarantee multiplicative cancellation rate.')
+                'Elementary timestep is too large' +
+                'to guarantee multiplicative cancellation rate.')
 
     def initialize_volumes(self, initial_density):
 
@@ -86,7 +93,7 @@ class LimitOrders:
 
         # Linear book
         if self.nu == 0:
-            return self.L * x 
+            return self.L * x
 
         x_crit = np.sqrt(self.D/self.nu)
         return (self.lambd/self.nu) * (1 - np.exp(-abs(x)/x_crit))
@@ -106,16 +113,19 @@ class LimitOrders:
 
     def deposition(self, spread):
         """Process order deposition stochastic step.
-        In order to work properly, method update_price() should be called before this one,
+        In order to work properly,
+        method update_price() should be called before this one,
         so that the size of the deposition price range is correct.
         """
 
-        # Orders are deposited at each side through a lambda intensity Poisson point process
+        # Orders are deposited at each side through a
+        # lambda intensity Poisson point process
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask' else self.best_price_index + 1
-        if spread > 0 :
+        size = self.Nx - self.best_price_index % self.Nx if self.side == 'ask'\
+            else self.best_price_index + 1
+        if spread > 0:
             size += spread//2
         padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
         if use_numba:
@@ -143,7 +153,8 @@ class LimitOrders:
                 self.volumes, scale, self.dt)
             return
 
-        # Vectorize get_cancellation function and apply it to price volumes array
+        # Vectorize get_cancellation function
+        # and apply it to price volumes array
         get_cancellation_vec = np.vectorize(
             lambda volume: self.get_cancellation(volume, scale))
         cancellations = get_cancellation_vec(self.volumes)
@@ -165,7 +176,8 @@ class LimitOrders:
     def jumps(self):
         """Process order jumps stochastic step."""
 
-        # 2D array where rows correspond to the price range, and column are respectively
+        # 2D array where rows correspond to the price range,
+        # and column are respectively
         # the number of jumps left and jumps right
         if use_numba:
             self.volumes = add_flow(self.volumes, self.dx,
@@ -174,7 +186,7 @@ class LimitOrders:
         jumps = np.zeros((self.Nx, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
             # draw Binominal variables equal number of
-            # jumps left and jump right for each price 
+            # jumps left and jump right for each price
             jumps_left = np.random.binomial(order_volume, 0.5)
             jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
@@ -183,7 +195,7 @@ class LimitOrders:
             self.boundary_flow * (self.dx)**2
         boundary_jumps = np.random.binomial(boundary_volume, 0.5)
 
-        # Add the boundary jump 
+        # Add the boundary jump
         boundary_jumps_left = boundary_jumps if self.side == 'ask' else 0
         boundary_jumps_right = boundary_jumps if self.side == 'bid' else 0
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
@@ -210,7 +222,8 @@ class LimitOrders:
         return self.best_price_index
 
     def execute_best_orders(self, volume):
-        """Consume a given quantity of orders at the book's best price, which is updated at each step
+        """Consume a given quantity of orders at the book's best price,
+         which is updated at each step
 
         :param volume: Order volume to execute
         :type volume: int
@@ -236,7 +249,8 @@ class LimitOrders:
             self.best_price_index += index_increment
             trade_volume -= liquidity
 
-            if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
+            if self.best_price_index > self.Nx - 1\
+                    or self.best_price_index < 0:
                 raise ValueError(f'Market lacks {self.side} liquidity')
 
     def execute_orders(self, volumes):
@@ -254,7 +268,8 @@ class LimitOrders:
         return trade_volumes
 
     def get_available_volume(self, price_index):
-        """Compute order volume between prices of indices price_index and self.best_price
+        """Compute order volume between prices
+         of indices price_index and self.best_price
 
         """
         price = self.X[price_index]
@@ -286,7 +301,8 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
 
     """
     Nx = len(volumes)
-    # 2D array where rows correspond to the price range, and column are respectively
+    # 2D array where rows correspond to the price range,
+    # and column are respectively
     # the number of jumps left and jumps right
     jumps = np.zeros((Nx, 2), dtype=int64)
     for index, order_volume in enumerate(volumes):
@@ -311,7 +327,8 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
 
 @njit(int64[:](int64[:], float64, int64, int64))
 def add_arrivals(volumes, lam, size, padding_size):
-    """Numba-accelerated function that computes and adds the arrivals of the orders, which 
+    """Numba-accelerated function that computes
+    and adds the arrivals of the orders, which
     are deposited with a Poissonian law in the corresponding price range.
 
     :param volumes: Order volumes
@@ -357,10 +374,12 @@ def substract_cancellations(volumes, scale, dt):
     cancellations = np.zeros(volumes.size, dtype=int64)
     volume_index = 0
     # Compare progressively dt to the drawn exponential times, price by price
-    # One loop performs the comparison for the the orders of one price subinterval,
+    # One loop performs the comparison for the the orders of
+    # one price subinterval,
     # whose count is order_volume
     for index, order_volume in enumerate(volumes):
         cancellations[index] = np.sum(
-            np.where(life_times[volume_index: volume_index+order_volume] < dt, 1, 0))
+            np.where(life_times[volume_index: volume_index+order_volume] < dt,
+                     1, 0))
         volume_index += order_volume
     return volumes - cancellations

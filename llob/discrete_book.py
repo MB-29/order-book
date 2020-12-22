@@ -1,10 +1,15 @@
-import numpy as np
+"""
+A discrete order book in the LLOB framework
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
 
+import numpy as np
 from limit_orders import LimitOrders
 
 
 class DiscreteBook:
-    """Models an order book in the framework of Latent Order Book agent model.    
+    """Models an order book in the LLOB framework
     """
 
     def __init__(self, **order_args):
@@ -34,7 +39,8 @@ class DiscreteBook:
 
         # Animation
         self.y_max = max(self.bid_orders.stationary_density(
-            self.xmin), self.ask_orders.stationary_density(self.xmax)) * self.dx
+            self.xmin),
+            self.ask_orders.stationary_density(self.xmax)) * self.dx
 
     def get_ask_volumes(self):
         return self.ask_orders.volumes
@@ -100,7 +106,8 @@ class DiscreteBook:
     def execute_metaorder(self, volume):
         """Execute a meta-order of a given volume.
 
-        :param volume: trade volume, positive for ask order, negative for bid order
+        :param volume: trade volume, positive for ask order,
+                       negative for bid order
         :type volume: int
         """
         side = 'ask' if volume > 0 else 'bid'
@@ -113,7 +120,7 @@ class DiscreteBook:
         value = getattr(self, quantity)
         return value
 
-  # ================== ANIMATION ==================
+# ================== ANIMATION ==================
 
     def set_animation(self, fig=None, lims=None):
         """Create subplot axes, lines and texts
@@ -124,9 +131,11 @@ class DiscreteBook:
         # Bars
         width = max((self.xmax-self.xmin)/self.Nx, 0.02)
         self.ask_bars = self.volume_ax.bar(
-            self.X, self.get_ask_volumes(), align='edge', label='Ask', color='blue', width=width, animated='True')
+            self.X, self.get_ask_volumes(), align='edge',
+            label='Ask', color='blue', width=width, animated='True')
         self.bid_bars = self.volume_ax.bar(
-            self.X, self.get_bid_volumes(), align='edge', label='Bid', color='red', width=-width, animated='True')
+            self.X, self.get_bid_volumes(), align='edge',
+            label='Bid', color='red', width=-width, animated='True')
 
         # Lines
         self.volume_ax.plot([0, 0], [
@@ -171,4 +180,6 @@ class DiscreteBook:
         self.best_bid_axis.set_data(
             [self.best_bid, self.best_bid], [0, self.y_max])
 
-        return [bar for bar in self.ask_bars] + [bar for bar in self.bid_bars] + [self.best_ask_axis, self.best_bid_axis]
+        return [bar for bar in self.ask_bars] \
+            + [bar for bar in self.bid_bars] + \
+            [self.best_ask_axis, self.best_bid_axis]

@@ -1,3 +1,9 @@
+"""
+PDE integration schemes for diffusion
+"""
+__author__ = 'Matthieu Blanke'
+__version__ = '1.0.0'
+
 import numpy as np
 from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
