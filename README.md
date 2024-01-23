@@ -1,4 +1,4 @@
-# LLOB model simulations
+# Order Book model simulations
 
 ## Linearized Latent Order book simulations
 Parent page of all the LLOB projects at  [the EconophysiX page](https://econophysix-confluence.atlassian.net/wiki/spaces/RES/pages/43679790/LLOBs).
