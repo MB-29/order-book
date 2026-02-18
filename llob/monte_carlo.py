@@ -84,7 +84,9 @@ class MonteCarlo:
         self.bid_samples = np.zeros((T, N_samples))
 
         # Measurement storage
-        self.measured_samples: dict[str, list[Any]] = {q: [] for q in measured_quantities}
+        self.measured_samples: dict[str, list[Any]] = {
+            q: [] for q in measured_quantities
+        }
 
         # Statistics (computed after run)
         self.price_mean: npt.NDArray[np.float64] = np.zeros(T)
@@ -123,16 +125,16 @@ class MonteCarlo:
         Returns:
             Configured MonteCarlo instance.
         """
-        T = simulation_args['T']
-        Nt = simulation_args['Nt']
-        m0 = noise_args.get('m0', 0.0)
-        m1 = noise_args.get('m1', 0.0)
-        hurst = noise_args['hurst']
+        T = simulation_args["T"]
+        Nt = simulation_args["Nt"]
+        m0 = noise_args.get("m0", 0.0)
+        m1 = noise_args.get("m1", 0.0)
+        hurst = noise_args["hurst"]
 
-        measured_quantities = simulation_args.get('measured_quantities', [])
-        measurement_indices = simulation_args.get('measurement_indices', [])
-        measurement_slice = simulation_args.get('measurement_slice', 1)
-        sample_measurements = simulation_args.get('sample_measurements', [])
+        measured_quantities = simulation_args.get("measured_quantities", [])
+        measurement_indices = simulation_args.get("measurement_indices", [])
+        measurement_slice = simulation_args.get("measurement_slice", 1)
+        sample_measurements = simulation_args.get("sample_measurements", [])
 
         return cls(
             N_samples=N_samples,
@@ -157,9 +159,7 @@ class MonteCarlo:
 
         # Generate standard fractional Gaussian noise for each sample
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] = fgn(
-                n=self.T, hurst=self.hurst, length=self.T
-            )
+            self.noise[:, sample_index] = fgn(n=self.T, hurst=self.hurst, length=self.T)
 
         # Scale and add to mean
         self.scale = self.m1
@@ -167,7 +167,9 @@ class MonteCarlo:
 
         order_mean = float(self.noisy_metaorders.mean())
         order_var = float(self.noisy_metaorders.var(axis=1).mean())
-        print(f'Generated meta-order has mean {order_mean:.2f} and variance {order_var:.2f}')
+        print(
+            f"Generated meta-order has mean {order_mean:.2f} and variance {order_var:.2f}"
+        )
 
     def run(self) -> None:
         """Run all Monte Carlo samples."""
@@ -179,7 +181,7 @@ class MonteCarlo:
         print(self.simulation)
 
         for k in tqdm(range(self.N_samples)):
-            args['metaorder'] = self.noisy_metaorders[:, k]
+            args["metaorder"] = self.noisy_metaorders[:, k]
             self._try_running(args)
 
             if self.simulation is not None:
@@ -217,26 +219,26 @@ class MonteCarlo:
             Dictionary containing means, variances, and metadata.
         """
         result: dict[str, Any] = {
-            'price_mean': self.price_mean,
-            'price_variance': self.price_variance,
-            'ask_mean': self.ask_mean,
-            'ask_variance': self.ask_variance,
-            'bid_mean': self.bid_mean,
-            'bid_variance': self.bid_variance,
-            'm1': self.m1,
-            'N_samples': self.N_samples,
-            'm0': self.m0,
-            'hurst': self.hurst,
-            'params': self.simulation_args,
+            "price_mean": self.price_mean,
+            "price_variance": self.price_variance,
+            "ask_mean": self.ask_mean,
+            "ask_variance": self.ask_variance,
+            "bid_mean": self.bid_mean,
+            "bid_variance": self.bid_variance,
+            "m1": self.m1,
+            "N_samples": self.N_samples,
+            "m0": self.m0,
+            "hurst": self.hurst,
+            "params": self.simulation_args,
         }
 
         for quantity in self.measured_quantities:
-            result[f'{quantity}_mean'] = self.measurement_means[quantity]
-            result[f'{quantity}_variance'] = self.measurement_vars[quantity]
+            result[f"{quantity}_mean"] = self.measurement_means[quantity]
+            result[f"{quantity}_variance"] = self.measurement_vars[quantity]
 
         for sample_measurement in self.sample_measurements:
             measurement = [
-                getattr(self, f'{sample_measurement}_samples')[
+                getattr(self, f"{sample_measurement}_samples")[
                     time_index : time_index + self.measurement_slice, :
                 ]
                 for time_index in self.measurement_indices

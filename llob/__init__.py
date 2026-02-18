@@ -14,9 +14,9 @@ Example usage:
 """
 from .books import (
     DiscreteBook,
+    LimitOrders,
     LinearContinuousBook,
     LinearDiscreteBook,
-    LimitOrders,
     MultiDiscreteBook,
 )
 from .monte_carlo import MonteCarlo
@@ -24,15 +24,15 @@ from .simulation import Simulation, standard_parameters
 
 __all__ = [
     # Main entry points
-    'Simulation',
-    'MonteCarlo',
-    'standard_parameters',
+    "Simulation",
+    "MonteCarlo",
+    "standard_parameters",
     # Book classes (for advanced usage)
-    'DiscreteBook',
-    'LinearDiscreteBook',
-    'LinearContinuousBook',
-    'MultiDiscreteBook',
-    'LimitOrders',
+    "DiscreteBook",
+    "LinearDiscreteBook",
+    "LinearContinuousBook",
+    "MultiDiscreteBook",
+    "LimitOrders",
 ]
-__author__ = 'Matthieu Blanke'
-__version__ = '1.0.0'
+__author__ = "Matthieu Blanke"
+__version__ = "1.0.0"

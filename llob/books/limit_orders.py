@@ -3,12 +3,12 @@ Limit orders implementation for one side of an order book.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
-import warnings
-from numba import njit, int64, float64
+from numba import float64, int64, njit
 
 # Module-level flags for runtime behavior
 USE_NUMBA = False
@@ -36,7 +36,7 @@ class LimitOrders:
 
     def __init__(
         self,
-        side: Literal['ask', 'bid'],
+        side: Literal["ask", "bid"],
         lambd: float,
         nu: float,
         D: float,
@@ -63,7 +63,7 @@ class LimitOrders:
             volumes: Initial order volumes at each price level.
             boundary_flow: Flow at the boundary for diffusion.
         """
-        assert side in ('ask', 'bid'), f"side must be 'ask' or 'bid', got {side}"
+        assert side in ("ask", "bid"), f"side must be 'ask' or 'bid', got {side}"
 
         self.side = side
         self.lambd = lambd
@@ -79,9 +79,9 @@ class LimitOrders:
         self.Nx = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
-        self.sign = -1 if side == 'ask' else 1
-        self.boundary_index = -1 if side == 'ask' else 0
-        self.dt = dx**2 / (2 * D) if D > 0 else float('inf')
+        self.sign = -1 if side == "ask" else 1
+        self.boundary_index = -1 if side == "ask" else 0
+        self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
 
         # Initialize price tracking
         self.best_price_index: int = 0
@@ -92,7 +92,7 @@ class LimitOrders:
     @classmethod
     def from_params(
         cls,
-        side: Literal['ask', 'bid'],
+        side: Literal["ask", "bid"],
         lambd: float,
         nu: float,
         D: float,
@@ -100,8 +100,8 @@ class LimitOrders:
         xmax: float,
         Nx: int,
         L: float | None = None,
-        initial_density: Literal['stationary', 'linear', 'empty'] = 'stationary',
-        boundary_conditions: Literal['flat', 'linear'] = 'flat',
+        initial_density: Literal["stationary", "linear", "empty"] = "stationary",
+        boundary_conditions: Literal["flat", "linear"] = "flat",
     ) -> LimitOrders:
         """
         Create a LimitOrders instance from raw parameters.
@@ -136,21 +136,22 @@ class LimitOrders:
             L = lambd / np.sqrt(nu * D)
 
         # Compute dt for stability check
-        dt = dx**2 / (2 * D) if D > 0 else float('inf')
+        dt = dx**2 / (2 * D) if D > 0 else float("inf")
         if dt * nu >= 1:
             warnings.warn(
-                'Elementary timestep is too large to guarantee '
-                'multiplicative cancellation rate.'
+                "Elementary timestep is too large to guarantee "
+                "multiplicative cancellation rate.",
+                stacklevel=2,
             )
 
         # Compute initial volumes
-        sign = -1 if side == 'ask' else 1
+        sign = -1 if side == "ask" else 1
         volumes = _compute_initial_volumes(
             X, dx, L, nu, D, lambd, sign, initial_density
         )
 
         # Compute boundary flow
-        boundary_flow = L if boundary_conditions == 'linear' else 0.0
+        boundary_flow = L if boundary_conditions == "linear" else 0.0
 
         return cls(
             side=side,
@@ -204,22 +205,22 @@ class LimitOrders:
         lam = self.lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
-        if self.side == 'ask':
+        if self.side == "ask":
             size = self.Nx - self.best_price_index % self.Nx
         else:
             size = self.best_price_index + 1
 
         if spread > 0:
             size += spread // 2
-        padding_size = size - self.Nx if self.side == 'ask' else self.Nx - size
+        padding_size = size - self.Nx if self.side == "ask" else self.Nx - size
 
         if USE_NUMBA:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
             return
 
         arrivals = np.random.poisson(lam=lam, size=size)
-        padding = (self.Nx - size, 0) if self.side == 'ask' else (0, self.Nx - size)
-        arrivals = np.pad(arrivals, padding, mode='constant', constant_values=0)
+        padding = (self.Nx - size, 0) if self.side == "ask" else (0, self.Nx - size)
+        arrivals = np.pad(arrivals, padding, mode="constant", constant_values=0)
         self.volumes += arrivals
 
     def cancellation(self) -> None:
@@ -285,8 +286,8 @@ class LimitOrders:
         )
         boundary_jumps = np.random.binomial(int(boundary_volume), 0.5)
 
-        boundary_jumps_left = boundary_jumps if self.side == 'ask' else 0
-        boundary_jumps_right = boundary_jumps if self.side == 'bid' else 0
+        boundary_jumps_left = boundary_jumps if self.side == "ask" else 0
+        boundary_jumps_right = boundary_jumps if self.side == "bid" else 0
         jumps_left = np.append(jumps[:, 0], boundary_jumps_left)
         jumps_right = np.insert(jumps[:, 1], 0, boundary_jumps_right)
 
@@ -305,7 +306,7 @@ class LimitOrders:
         Returns:
             Index of the best price in the grid.
         """
-        end_index = 0 if self.side == 'ask' else -1
+        end_index = 0 if self.side == "ask" else -1
         indices = np.nonzero(self.volumes)[0]
         if indices.size == 0:
             indices = np.array([self.boundary_index])
@@ -327,7 +328,7 @@ class LimitOrders:
         if volume == 0:
             return
         if self.best_price_index in {0, self.Nx}:
-            raise ValueError(f'Market lacks {self.side} liquidity')
+            raise ValueError(f"Market lacks {self.side} liquidity")
 
         index_increment = -self.sign
         trade_volume = abs(volume)
@@ -343,9 +344,11 @@ class LimitOrders:
             trade_volume -= liquidity
 
             if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
-                raise ValueError(f'Market lacks {self.side} liquidity')
+                raise ValueError(f"Market lacks {self.side} liquidity")
 
-    def execute_orders(self, volumes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def execute_orders(
+        self, volumes: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         """
         Execute given order volumes up to available liquidity at each price.
 
@@ -407,9 +410,9 @@ def _compute_initial_volumes(
         return 0.0
 
     density_funcs = {
-        'stationary': stationary_density,
-        'linear': linear_density,
-        'empty': empty_density,
+        "stationary": stationary_density,
+        "linear": linear_density,
+        "empty": empty_density,
     }
 
     density_func = density_funcs[initial_density]

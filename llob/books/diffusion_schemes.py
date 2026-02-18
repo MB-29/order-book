@@ -61,7 +61,7 @@ def theta_scheme_iteration(
         (1 - theta) * secondary_diagonal,
     ]
 
-    implicit_matrix = diags(implicit_diagonals, [0, 1, -1], format='csr')
+    implicit_matrix = diags(implicit_diagonals, [0, 1, -1], format="csr")
     explicit_matrix = diags(explicit_diagonals, [0, 1, -1]).toarray()
 
     return spsolve(implicit_matrix, explicit_matrix.dot(values) + boundary_terms)

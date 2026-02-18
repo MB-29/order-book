@@ -44,7 +44,7 @@ class Simulation:
     def __init__(
         self,
         book: BookType,
-        model_type: Literal['discrete', 'continuous'],
+        model_type: Literal["discrete", "continuous"],
         T: int,
         Nt: int,
         xmin: float,
@@ -56,7 +56,7 @@ class Simulation:
         metaorder: npt.NDArray[np.float64],
         n_start: int,
         n_end: int,
-        price_formula: Literal['middle', 'best_ask', 'best_bid', 'vwap'],
+        price_formula: Literal["middle", "best_ask", "best_bid", "vwap"],
         measured_quantities: list[str],
         measurement_indices: list[int],
     ) -> None:
@@ -88,14 +88,16 @@ class Simulation:
         self.boundary_distance = min(abs(xmin), xmax)
         self.time_interval, self.tstep = np.linspace(0, T, num=Nt, retstep=True)
         self.tstep = float(self.tstep)
-        self.dt = self.dx**2 / (2 * D) if D > 0 else float('inf')
+        self.dt = self.dx**2 / (2 * D) if D > 0 else float("inf")
 
         self.is_multi_book = not np.isscalar(L)
         self.lambd = float(np.max(L)) * np.sqrt(nu * D) if np.isscalar(L) else 0.0
         self.J = D * float(np.max(L))
 
         # Metaorder stats
-        self.m0 = float(np.mean(metaorder[metaorder != 0])) if np.any(metaorder != 0) else 0.0
+        self.m0 = (
+            float(np.mean(metaorder[metaorder != 0])) if np.any(metaorder != 0) else 0.0
+        )
         self.t_start = n_start * self.tstep
         self.t_end = n_end * self.tstep
         self.time_interval_shifted = self.time_interval - self.t_start
@@ -108,10 +110,10 @@ class Simulation:
 
         # Price computation function
         price_funcs: dict[str, Callable[[float, float], float]] = {
-            'middle': lambda a, b: (a + b) / 2,
-            'best_ask': lambda a, b: a,
-            'best_bid': lambda a, b: b,
-            'vwap': self._compute_vwap,
+            "middle": lambda a, b: (a + b) / 2,
+            "best_ask": lambda a, b: a,
+            "best_bid": lambda a, b: b,
+            "vwap": self._compute_vwap,
         }
         self.compute_price = price_funcs[price_formula]
 
@@ -130,8 +132,8 @@ class Simulation:
     @classmethod
     def from_params(
         cls,
-        model_type: Literal['discrete', 'continuous'],
-        metaorder: list[float] | npt.NDArray[np.float64] = [0],
+        model_type: Literal["discrete", "continuous"],
+        metaorder: list[float] | npt.NDArray[np.float64] | None = None,
         **kwargs: Any,
     ) -> Simulation:
         """
@@ -159,31 +161,37 @@ class Simulation:
         Returns:
             Configured Simulation instance.
         """
-        assert model_type in ('discrete', 'continuous'), \
-            f"model_type must be 'discrete' or 'continuous', got {model_type}"
+        assert model_type in (
+            "discrete",
+            "continuous",
+        ), f"model_type must be 'discrete' or 'continuous', got {model_type}"
 
         # Extract parameters with defaults
-        T = kwargs.get('T', 1)
-        Nt = kwargs.get('Nt', 100)
-        xmin = kwargs['xmin']
-        xmax = kwargs['xmax']
-        Nx = kwargs.get('Nx', 100)
-        D = kwargs['D']
-        L = kwargs['L']
-        nu = kwargs.get('nu', 0)
-        price_formula = kwargs.get('price_formula', 'middle')
-        n_start = kwargs.get('n_start', 0)
-        n_end = kwargs.get('n_end', Nt)
-        measured_quantities = kwargs.get('measured_quantities', [])
-        measurement_indices = kwargs.get('measurement_indices', [])
+        T = kwargs.get("T", 1)
+        Nt = kwargs.get("Nt", 100)
+        xmin = kwargs["xmin"]
+        xmax = kwargs["xmax"]
+        Nx = kwargs.get("Nx", 100)
+        D = kwargs["D"]
+        L = kwargs["L"]
+        nu = kwargs.get("nu", 0)
+        price_formula = kwargs.get("price_formula", "middle")
+        n_start = kwargs.get("n_start", 0)
+        n_end = kwargs.get("n_end", Nt)
+        measured_quantities = kwargs.get("measured_quantities", [])
+        measurement_indices = kwargs.get("measurement_indices", [])
 
         # Process metaorder
+        if metaorder is None:
+            metaorder = [0]
         metaorder_arr = np.asarray(metaorder, dtype=np.float64)
         if len(metaorder_arr) == 1:
             full_metaorder = np.zeros(T, dtype=np.float64)
             full_metaorder[n_start:n_end] = metaorder_arr[0]
         else:
-            assert len(metaorder_arr) == T, f"metaorder length {len(metaorder_arr)} != T={T}"
+            assert (
+                len(metaorder_arr) == T
+            ), f"metaorder length {len(metaorder_arr)} != T={T}"
             full_metaorder = metaorder_arr
 
         # Create the appropriate book
@@ -237,9 +245,9 @@ class Simulation:
             )
 
         L_scalar = float(L)
-        linear = (nu == 0)
+        linear = nu == 0
 
-        if model_type == 'discrete':
+        if model_type == "discrete":
             if linear:
                 return LinearDiscreteBook.from_params(
                     D=D, xmin=xmin, xmax=xmax, Nx=Nx, L=L_scalar
@@ -258,12 +266,20 @@ class Simulation:
         """Compute theoretical predictions and validate parameters."""
         L_max = float(np.max(self.L))
 
-        self.n_steps = int(self.tstep / self.dt) if self.dt < float('inf') else 0
-        self.boundary_factor = np.sqrt(self.D * self.T) / self.boundary_distance if self.boundary_distance > 0 else float('inf')
+        self.n_steps = int(self.tstep / self.dt) if self.dt < float("inf") else 0
+        self.boundary_factor = (
+            np.sqrt(self.D * self.T) / self.boundary_distance
+            if self.boundary_distance > 0
+            else float("inf")
+        )
         self.infinity_density = L_max * self.xmax
-        self.impact_th = np.sqrt(2 * abs(self.m0) * self.T / L_max) if L_max > 0 else 0.0
+        self.impact_th = (
+            np.sqrt(2 * abs(self.m0) * self.T / L_max) if L_max > 0 else 0.0
+        )
         self.density_shift_th = np.sqrt(abs(self.m0) * self.T * L_max)
-        self.participation_rate = self.m0 / (self.D * L_max) if self.D * L_max != 0 else float('inf')
+        self.participation_rate = (
+            self.m0 / (self.D * L_max) if self.D * L_max != 0 else float("inf")
+        )
         self.r = abs(self.participation_rate)
         self.scheme_constant = self.D * self.tstep / (self.dx * self.dx)
         self.lower_impact = np.sqrt(abs(self.r) / (2 * np.pi)) * self.impact_th
@@ -271,17 +287,18 @@ class Simulation:
 
         # Warnings
         if self.boundary_factor > 1:
-            warnings.warn('Boundary effects may be significant')
-        if self.model_type == 'discrete':
+                warnings.warn("Boundary effects may be significant", stacklevel=2)
+        if self.model_type == "discrete":
             if self.r < 1 and self.n_steps < 100:
                 warnings.warn(
-                    f'Low number of diffusion steps ({self.n_steps} < 100), '
-                    'try increasing spatial resolution.'
+                    f"Low number of diffusion steps ({self.n_steps} < 100), "
+                    "try increasing spatial resolution.",
+                    stacklevel=2,
                 )
-            if self.n_steps < 1 and self.r < float('inf'):
+            if self.n_steps < 1 and self.r < float("inf"):
                 raise ValueError(
-                    'Order diffusion not possible: diffusion distance smaller than '
-                    f'grid spacing. dt={self.dt}, tstep={self.tstep}'
+                    "Order diffusion not possible: diffusion distance smaller than "
+                    f"grid spacing. dt={self.dt}, tstep={self.tstep}"
                 )
 
     def _compute_vwap(self, best_ask: float, best_bid: float) -> float:
@@ -296,8 +313,8 @@ class Simulation:
     def get_density(self) -> dict[str, npt.NDArray[np.int64]]:
         """Get current order density for both sides."""
         return {
-            'bid': self.book.get_ask_volumes(),
-            'ask': self.book.get_bid_volumes(),
+            "bid": self.book.get_ask_volumes(),
+            "ask": self.book.get_bid_volumes(),
         }
 
     def get_growth_th(self) -> npt.NDArray[np.float64]:
@@ -312,7 +329,7 @@ class Simulation:
             A = self.m0 / (L_max * np.sqrt(self.D * np.pi))
         else:
             A = np.sign(self.m0) * np.sqrt(2) * np.sqrt(self.m0 / L_max)
-        growth = A * np.sqrt(self.time_interval_shifted[self.n_start:self.n_end])
+        growth = A * np.sqrt(self.time_interval_shifted[self.n_start : self.n_end])
         return growth
 
     # ================== RUN ==================
@@ -369,7 +386,7 @@ class Simulation:
             blit=True,
         )
         if save:
-            self.animation.save('../animation.gif', writer='imagemagick', fps=60)
+            self.animation.save("../animation.gif", writer="imagemagick", fps=60)
 
     def _set_animation(self, fig: Figure) -> None:
         """Set up animation components."""
@@ -377,24 +394,28 @@ class Simulation:
         self.book.set_animation(fig, {})
 
         self.price_ax = fig.add_subplot(2, 1, 2)
-        self.price_ax.set_title('Price evolution')
+        self.price_ax.set_title("Price evolution")
         (self.best_ask_line,) = self.price_ax.plot(
-            [], [], label='Best Ask', color='blue', ls='--'
+            [], [], label="Best Ask", color="blue", ls="--"
         )
         (self.best_bid_line,) = self.price_ax.plot(
-            [], [], label='Best Bid', color='red', ls='--'
+            [], [], label="Best Bid", color="red", ls="--"
         )
         (self.price_line,) = self.price_ax.plot(
-            [], [], label=f'Price ({self.price_formula})', color='yellow'
+            [], [], label=f"Price ({self.price_formula})", color="yellow"
         )
-        self.price_ax.plot([0, self.T], [0, 0], ls='dashed', lw=0.5, color='black')
+        self.price_ax.plot([0, self.T], [0, 0], ls="dashed", lw=0.5, color="black")
         self.price_ax.legend()
         self.price_ax.set_ylim((self.ymin, self.ymax))
         self.price_ax.set_xlim((0, self.T))
 
     def _init_animation(self) -> list[Any]:
         """Initialize animation frame."""
-        if self.price_line is None or self.best_bid_line is None or self.best_ask_line is None:
+        if (
+            self.price_line is None
+            or self.best_bid_line is None
+            or self.best_ask_line is None
+        ):
             return []
         self.price_line.set_data([], [])
         self.best_bid_line.set_data([], [])
@@ -407,11 +428,15 @@ class Simulation:
 
     def _update_animation(self, n: int) -> list[Any]:
         """Update animation for frame n."""
-        if self.price_line is None or self.best_bid_line is None or self.best_ask_line is None:
+        if (
+            self.price_line is None
+            or self.best_bid_line is None
+            or self.best_ask_line is None
+        ):
             return []
 
         if n % 10 == 0:
-            print(f'Step {n}')
+            print(f"Step {n}")
 
         volume = self.metaorder[n] * self.dt
         self.asks[n] = self.book.best_ask
@@ -470,7 +495,7 @@ class Simulation:
 
 def standard_parameters(
     participation_rate: float,
-    model_type: Literal['discrete', 'continuous'],
+    model_type: Literal["discrete", "continuous"],
     xmin: float | None = None,
     xmax: float | None = None,
     Nt: int | None = None,
@@ -517,7 +542,7 @@ def standard_parameters(
     dx = (xmax - xmin) / Nx
     L = 10 / (dx * dx)
 
-    if r == float('inf'):
+    if r == float("inf"):
         D = 0.0
         m0 = (L * X) / (5 * T)
     else:
@@ -525,14 +550,14 @@ def standard_parameters(
         m0 = D * L * participation_rate
 
     return {
-        'model_type': model_type,
-        'T': T,
-        'Nt': Nt,
-        'Nx': Nx,
-        'xmin': xmin,
-        'xmax': xmax,
-        'D': D,
-        'metaorder': [m0],
-        'L': L,
-        'nu': 0,
+        "model_type": model_type,
+        "T": T,
+        "Nt": Nt,
+        "Nx": Nx,
+        "xmin": xmin,
+        "xmax": xmax,
+        "D": D,
+        "metaorder": [m0],
+        "L": L,
+        "nu": 0,
     }

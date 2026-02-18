@@ -60,7 +60,7 @@ class MultiDiscreteBook:
         self.Nx = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
-        self.dt = dx**2 / (2 * D) if D > 0 else float('inf')
+        self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
 
         # Initialize price tracking
         self.best_ask: float = 0.0
@@ -110,8 +110,9 @@ class MultiDiscreteBook:
         Returns:
             Configured MultiDiscreteBook instance.
         """
-        assert len(L_list) == len(nu_list) == len(lambd_list), \
-            "L_list, nu_list, and lambd_list must have the same length"
+        assert (
+            len(L_list) == len(nu_list) == len(lambd_list)
+        ), "L_list, nu_list, and lambd_list must have the same length"
 
         # Compute grid
         X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
@@ -121,7 +122,7 @@ class MultiDiscreteBook:
         # Create individual books
         books: list[DiscreteBook] = []
         for L, nu, lambd in zip(L_list, nu_list, lambd_list):
-            linear = (nu == 0)
+            linear = nu == 0
             if linear:
                 book = LinearDiscreteBook.from_params(
                     D=D,
@@ -209,13 +210,9 @@ class MultiDiscreteBook:
         for book in self.books:
             book.update_price()
 
-        self.best_ask_index = int(np.min(
-            [book.best_ask_index for book in self.books]
-        ))
+        self.best_ask_index = int(np.min([book.best_ask_index for book in self.books]))
         self.best_ask = float(self.X[self.best_ask_index])
-        self.best_bid_index = int(np.max(
-            [book.best_bid_index for book in self.books]
-        ))
+        self.best_bid_index = int(np.max([book.best_bid_index for book in self.books]))
         self.best_bid = float(self.X[self.best_bid_index])
         self.bid_volume = int(self.get_bid_volumes()[self.best_bid_index])
         self.ask_volume = int(self.get_ask_volumes()[self.best_ask_index])
@@ -231,15 +228,15 @@ class MultiDiscreteBook:
 
         reaction_volumes = np.minimum(self.get_ask_volumes(), self.get_bid_volumes())
 
-        for side in ['ask', 'bid']:
-            side_volumes = getattr(self, f'get_{side}_volumes')()
+        for side in ["ask", "bid"]:
+            side_volumes = getattr(self, f"get_{side}_volumes")()
             # Mask indicating where side's volumes are lower than other side's
             limiting_volume = np.array(side_volumes <= reaction_volumes)
 
             for book in self.books:
-                actor_side_orders = getattr(book, f'{side}_orders')
+                actor_side_orders = getattr(book, f"{side}_orders")
                 # Avoid division by zero
-                with np.errstate(divide='ignore', invalid='ignore'):
+                with np.errstate(divide="ignore", invalid="ignore"):
                     actor_proportion = actor_side_orders.volumes / side_volumes
                     actor_proportion = np.nan_to_num(actor_proportion, nan=0.0)
 
@@ -264,40 +261,40 @@ class MultiDiscreteBook:
         if trade_volume == 0:
             return
 
-        side = 'bid' if trade_volume < 0 else 'ask'
-        sign = 1 if side == 'bid' else -1
+        side = "bid" if trade_volume < 0 else "ask"
+        sign = 1 if side == "bid" else -1
 
         executed_volume = 0.0
         self.actor_trades.fill(0)
 
-        price_index = getattr(self, f'best_{side}_index')
-        total_price_volume = getattr(self, f'{side}_volume')
+        price_index = getattr(self, f"best_{side}_index")
+        total_price_volume = getattr(self, f"{side}_volume")
 
         # Consume best price orders, price step after price step
         while executed_volume + total_price_volume < abs(trade_volume):
             for actor_index, book in enumerate(self.books):
-                actor_price_index = getattr(book, f'best_{side}_index')
+                actor_price_index = getattr(book, f"best_{side}_index")
                 if actor_price_index != price_index:
                     continue
 
-                actor_volume = getattr(book, f'best_{side}_volume')
+                actor_volume = getattr(book, f"best_{side}_volume")
                 book.execute_metaorder(-sign * actor_volume)
                 self.actor_trades[actor_index] += actor_volume
                 executed_volume += actor_volume
 
             price_index -= sign
             self.update_price()
-            total_price_volume = getattr(self, f'{side}_volume')
-            price_index = getattr(self, f'best_{side}_index')
+            total_price_volume = getattr(self, f"{side}_volume")
+            price_index = getattr(self, f"best_{side}_index")
 
         # Execute remaining volume proportionally
         remaining_volume = abs(trade_volume) - executed_volume
         for actor_index, book in enumerate(self.books):
-            actor_price_index = getattr(book, f'best_{side}_index')
+            actor_price_index = getattr(book, f"best_{side}_index")
             if actor_price_index != price_index:
                 continue
 
-            actor_volume = getattr(book, f'best_{side}_volume')
+            actor_volume = getattr(book, f"best_{side}_volume")
             if total_price_volume > 0:
                 actor_volume = actor_volume / total_price_volume * remaining_volume
             book.execute_metaorder(actor_volume)
@@ -309,15 +306,15 @@ class MultiDiscreteBook:
     def get_measures(self) -> dict[str, Any]:
         """Get current market measurements."""
         return {
-            'bid': self.best_bid,
-            'ask': self.best_ask,
-            'actor_trades': np.copy(self.actor_trades),
+            "bid": self.best_bid,
+            "ask": self.best_ask,
+            "actor_trades": np.copy(self.actor_trades),
         }
 
     def get_measure(self, quantity: str) -> Any:
         """Get a specific measurement from the book."""
-        if quantity in ['bid_volumes', 'ask_volumes']:
-            return getattr(self, f'get_{quantity}')()
+        if quantity in ["bid_volumes", "ask_volumes"]:
+            return getattr(self, f"get_{quantity}")()
         return getattr(self, quantity)
 
     # ================== ANIMATION ==================
@@ -329,18 +326,18 @@ class MultiDiscreteBook:
 
         self.volume_ax = fig.add_subplot(2, 1, 1)
         self.volume_ax.set_ylim((0, self.y_max))
-        self.volume_ax.set_title('Order volumes')
+        self.volume_ax.set_title("Order volumes")
         width = max((self.xmax - self.xmin) / self.Nx, 0.02)
 
         # Lines
         self.volume_ax.plot(
-            [0, 0], [-self.y_max, self.y_max], color='black', lw=0.5, ls='dashed'
+            [0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed"
         )
         (self.best_ask_axis,) = self.volume_ax.plot(
-            [], [], color='blue', ls='dashed', lw=1, label='best ask'
+            [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
         (self.best_bid_axis,) = self.volume_ax.plot(
-            [], [], color='red', ls='dashed', lw=1, label='best bid'
+            [], [], color="red", ls="dashed", lw=1, label="best bid"
         )
 
         # Bars for each actor
@@ -352,8 +349,8 @@ class MultiDiscreteBook:
             actor_ask_bars = self.volume_ax.bar(
                 self.X,
                 book.get_ask_volumes(),
-                align='edge',
-                label=f'Ask {index}',
+                align="edge",
+                label=f"Ask {index}",
                 width=width,
                 color=(0, 0, brightness),
                 animated=True,
@@ -363,8 +360,8 @@ class MultiDiscreteBook:
             actor_bid_bars = self.volume_ax.bar(
                 self.X,
                 book.get_bid_volumes(),
-                align='edge',
-                label=f'Bid {index}',
+                align="edge",
+                label=f"Bid {index}",
                 width=-width,
                 color=(brightness, 0, 0),
                 animated=True,

@@ -124,8 +124,8 @@ class LinearContinuousBook:
         resolution_volume = L * dx**2
         if resolution_volume > L * dx * dx:
             warnings.warn(
-                'Resolution volume may be too large '
-                'and lead to an inaccurate price'
+                "Resolution volume may be too large and lead to an inaccurate price",
+                stacklevel=2,
             )
 
         return cls(
@@ -192,7 +192,7 @@ class LinearContinuousBook:
                 self.best_ask_index += 1
                 dq -= liquidity
                 if self.best_ask_index > self.Nx - 1:
-                    raise ValueError('Market lacks ask liquidity')
+                    raise ValueError("Market lacks ask liquidity")
         else:
             while dq < 0:
                 liquidity = self.density[self.best_bid_index] * self.dx
@@ -201,7 +201,7 @@ class LinearContinuousBook:
                     self.density[self.best_bid_index] = 0
                     self.best_bid_index -= 1
                     if self.best_bid_index == 0:
-                        raise ValueError('Market lacks bid liquidity')
+                        raise ValueError("Market lacks bid liquidity")
                 else:
                     self.density[self.best_bid_index] += dq / self.dx
                     dq = 0
@@ -235,26 +235,28 @@ class LinearContinuousBook:
             fig: Matplotlib figure to add subplot to.
             lims: Dict with optional 'xlim' key for x-axis limits.
         """
-        xlims = lims.get('xlim', (self.xmin, self.xmax))
+        xlims = lims.get("xlim", (self.xmin, self.xmax))
         y_max = self.L * xlims[1]
 
         self.density_ax = fig.add_subplot(2, 1, 1)
         self.density_ax.set_xlim(xlims)
-        (self.density_line,) = self.density_ax.plot([], [], label='Density', color='gray')
+        (self.density_line,) = self.density_ax.plot(
+            [], [], label="Density", color="gray"
+        )
         (self.best_ask_axis,) = self.density_ax.plot(
-            [], [], color='blue', ls='dashed', lw=1, label='best ask'
+            [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
         (self.best_bid_axis,) = self.density_ax.plot(
-            [], [], color='red', ls='dashed', lw=1, label='best bid'
+            [], [], color="red", ls="dashed", lw=1, label="best bid"
         )
         self.density_ax.plot(
-            [self.xmin, self.xmax], [0, 0], color='black', lw=0.5, ls='dashed'
+            [self.xmin, self.xmax], [0, 0], color="black", lw=0.5, ls="dashed"
         )
         self.density_ax.plot(
-            [0, 0], [-y_max, y_max], color='black', lw=0.5, ls='dashed'
+            [0, 0], [-y_max, y_max], color="black", lw=0.5, ls="dashed"
         )
-        self.density_ax.set_title('Algebraic order density')
-        self.density_ax.legend(loc='center left', bbox_to_anchor=(-0.3, 0.5))
+        self.density_ax.set_title("Algebraic order density")
+        self.density_ax.legend(loc="center left", bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
 
     def init_animation(self) -> list[Any]:

@@ -51,7 +51,7 @@ class LinearDiscreteBook(DiscreteBook):
         dx = float(dx)
 
         bid_orders = LimitOrders.from_params(
-            side='bid',
+            side="bid",
             lambd=0.0,
             nu=0.0,
             D=D,
@@ -59,11 +59,11 @@ class LinearDiscreteBook(DiscreteBook):
             xmax=xmax,
             Nx=Nx,
             L=L,
-            initial_density='linear',
-            boundary_conditions='linear',
+            initial_density="linear",
+            boundary_conditions="linear",
         )
         ask_orders = LimitOrders.from_params(
-            side='ask',
+            side="ask",
             lambd=0.0,
             nu=0.0,
             D=D,
@@ -71,8 +71,8 @@ class LinearDiscreteBook(DiscreteBook):
             xmax=xmax,
             Nx=Nx,
             L=L,
-            initial_density='linear',
-            boundary_conditions='linear',
+            initial_density="linear",
+            boundary_conditions="linear",
         )
 
         return cls(

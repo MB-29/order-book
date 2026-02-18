@@ -65,7 +65,7 @@ class DiscreteBook:
         self.Nx = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
-        self.dt = dx**2 / (2 * D) if D > 0 else float('inf')
+        self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
 
         # Initialize price tracking
         self.best_ask: float = 0.0
@@ -77,10 +77,13 @@ class DiscreteBook:
         self.update_price()
 
         # Animation scaling
-        self.y_max = max(
-            self.bid_orders.stationary_density(self.xmin),
-            self.ask_orders.stationary_density(self.xmax),
-        ) * self.dx
+        self.y_max = (
+            max(
+                self.bid_orders.stationary_density(self.xmin),
+                self.ask_orders.stationary_density(self.xmax),
+            )
+            * self.dx
+        )
 
         # Animation state (set during set_animation)
         self.volume_ax: Axes | None = None
@@ -99,8 +102,8 @@ class DiscreteBook:
         lambd: float = 0.0,
         nu: float = 0.0,
         L: float | None = None,
-        initial_density: Literal['stationary', 'linear', 'empty'] = 'stationary',
-        boundary_conditions: Literal['flat', 'linear'] = 'flat',
+        initial_density: Literal["stationary", "linear", "empty"] = "stationary",
+        boundary_conditions: Literal["flat", "linear"] = "flat",
     ) -> DiscreteBook:
         """
         Create a DiscreteBook from raw parameters.
@@ -126,7 +129,7 @@ class DiscreteBook:
 
         # Create order sides
         bid_orders = LimitOrders.from_params(
-            side='bid',
+            side="bid",
             lambd=lambd,
             nu=nu,
             D=D,
@@ -138,7 +141,7 @@ class DiscreteBook:
             boundary_conditions=boundary_conditions,
         )
         ask_orders = LimitOrders.from_params(
-            side='ask',
+            side="ask",
             lambd=lambd,
             nu=nu,
             D=D,
@@ -200,8 +203,12 @@ class DiscreteBook:
         self.best_bid_index = self.bid_orders.best_price_index
         self.best_ask = float(self.X[self.best_ask_index - 1])
         self.best_bid = float(self.X[self.best_bid_index + 1])
-        self.best_ask_volume = int(self.get_ask_volumes()[self.ask_orders.best_price_index])
-        self.best_bid_volume = int(self.get_bid_volumes()[self.bid_orders.best_price_index])
+        self.best_ask_volume = int(
+            self.get_ask_volumes()[self.ask_orders.best_price_index]
+        )
+        self.best_bid_volume = int(
+            self.get_bid_volumes()[self.bid_orders.best_price_index]
+        )
 
     def order_reaction(self) -> None:
         """Execute matched orders where bid and ask cross."""
@@ -219,8 +226,8 @@ class DiscreteBook:
         Args:
             volume: Trade volume (positive=buy asks, negative=sell to bids).
         """
-        side = 'ask' if volume > 0 else 'bid'
-        orders = getattr(self, f'{side}_orders')
+        side = "ask" if volume > 0 else "bid"
+        orders = getattr(self, f"{side}_orders")
         orders.execute_best_orders(volume)
 
     def get_measure(self, quantity: str) -> Any:
@@ -233,8 +240,8 @@ class DiscreteBook:
         Returns:
             The measured value.
         """
-        if quantity in ['bid_volumes', 'ask_volumes']:
-            return getattr(self, f'get_{quantity}')()
+        if quantity in ["bid_volumes", "ask_volumes"]:
+            return getattr(self, f"get_{quantity}")()
         return getattr(self, quantity)
 
     # ================== ANIMATION ==================
@@ -256,37 +263,37 @@ class DiscreteBook:
         self.ask_bars = self.volume_ax.bar(
             self.X,
             self.get_ask_volumes(),
-            align='edge',
-            label='Ask',
-            color='blue',
+            align="edge",
+            label="Ask",
+            color="blue",
             width=width,
             animated=True,
         )
         self.bid_bars = self.volume_ax.bar(
             self.X,
             self.get_bid_volumes(),
-            align='edge',
-            label='Bid',
-            color='red',
+            align="edge",
+            label="Bid",
+            color="red",
             width=-width,
             animated=True,
         )
 
         self.volume_ax.plot(
-            [0, 0], [-self.y_max, self.y_max], color='black', lw=0.5, ls='dashed'
+            [0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed"
         )
         (self.best_ask_axis,) = self.volume_ax.plot(
-            [], [], color='blue', ls='dashed', lw=1, label='best ask'
+            [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
         (self.best_bid_axis,) = self.volume_ax.plot(
-            [], [], color='red', ls='dashed', lw=1, label='best bid'
+            [], [], color="red", ls="dashed", lw=1, label="best bid"
         )
 
-        xlims = lims.get('xlim', (self.xmin, self.xmax))
+        xlims = lims.get("xlim", (self.xmin, self.xmax))
         self.volume_ax.set_xlim(xlims)
         self.volume_ax.set_ylim((0, self.y_max))
-        self.volume_ax.set_title('Order volumes')
-        self.volume_ax.legend(loc='upper center')
+        self.volume_ax.set_title("Order volumes")
+        self.volume_ax.legend(loc="upper center")
 
     def init_animation(self) -> list[Any]:
         """Initialize animation frame."""
