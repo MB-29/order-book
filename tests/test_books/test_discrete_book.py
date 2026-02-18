@@ -1,7 +1,6 @@
 """
 Tests for DiscreteBook and LinearDiscreteBook classes.
 """
-from __future__ import annotations
 
 import numpy as np
 import pytest

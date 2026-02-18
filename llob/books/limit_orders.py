@@ -1,10 +1,10 @@
+
 """
 Limit orders implementation for one side of an order book.
 """
-from __future__ import annotations
 
 import warnings
-from typing import Literal
+from typing import Literal, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -99,10 +99,10 @@ class LimitOrders:
         xmin: float,
         xmax: float,
         Nx: int,
-        L: float | None = None,
+        L: Optional[float] = None,
         initial_density: Literal["stationary", "linear", "empty"] = "stationary",
         boundary_conditions: Literal["flat", "linear"] = "flat",
-    ) -> LimitOrders:
+    ) -> Self:
         """
         Create a LimitOrders instance from raw parameters.
 

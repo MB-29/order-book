@@ -1,7 +1,6 @@
 """
 Integration tests for end-to-end LLOB workflows.
 """
-from __future__ import annotations
 
 import numpy as np
 

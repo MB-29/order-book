@@ -1,9 +1,9 @@
+
 """
 Discrete order book in the LLOB framework.
 """
-from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -86,11 +86,11 @@ class DiscreteBook:
         )
 
         # Animation state (set during set_animation)
-        self.volume_ax: Axes | None = None
-        self.ask_bars: BarContainer | None = None
-        self.bid_bars: BarContainer | None = None
-        self.best_ask_axis: Line2D | None = None
-        self.best_bid_axis: Line2D | None = None
+        self.volume_ax: Optional[Axes] = None
+        self.ask_bars: Optional[BarContainer] = None
+        self.bid_bars: Optional[BarContainer] = None
+        self.best_ask_axis: Optional[Line2D] = None
+        self.best_bid_axis: Optional[Line2D] = None
 
     @classmethod
     def from_params(
@@ -101,10 +101,10 @@ class DiscreteBook:
         Nx: int,
         lambd: float = 0.0,
         nu: float = 0.0,
-        L: float | None = None,
+        L: Optional[float] = None,
         initial_density: Literal["stationary", "linear", "empty"] = "stationary",
         boundary_conditions: Literal["flat", "linear"] = "flat",
-    ) -> DiscreteBook:
+    ) -> Self:
         """
         Create a DiscreteBook from raw parameters.
 
@@ -246,7 +246,7 @@ class DiscreteBook:
 
     # ================== ANIMATION ==================
 
-    def set_animation(self, fig: Figure, lims: dict[str, Any] | None = None) -> None:
+    def set_animation(self, fig: Figure, lims: Optional[dict[str, Any]] = None) -> None:
         """
         Set up matplotlib animation components.
 

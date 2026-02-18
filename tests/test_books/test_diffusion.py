@@ -1,7 +1,6 @@
 """
 Tests for theta_scheme_iteration diffusion solver.
 """
-from __future__ import annotations
 
 import numpy as np
 

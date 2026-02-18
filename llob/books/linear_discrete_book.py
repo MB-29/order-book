@@ -4,7 +4,8 @@ Linear discrete order book in the LLOB framework.
 This is a simplified discrete book for the linear regime (nu=0, lambd=0)
 where only diffusion occurs - no deposition or cancellation.
 """
-from __future__ import annotations
+
+from typing import Self
 
 from .discrete_book import DiscreteBook
 from .limit_orders import LimitOrders
@@ -29,7 +30,7 @@ class LinearDiscreteBook(DiscreteBook):
         xmax: float,
         Nx: int,
         L: float,
-    ) -> LinearDiscreteBook:
+    ) -> Self:
         """
         Create a LinearDiscreteBook from raw parameters.
 

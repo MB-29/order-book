@@ -1,10 +1,10 @@
+
 """
 Continuous order book using PDE discretization in the LLOB framework.
 """
-from __future__ import annotations
 
 import warnings
-from typing import Any
+from typing import Any, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -85,10 +85,10 @@ class LinearContinuousBook:
         self.best_bid_volume = self.density[self.best_bid_index - 1]
 
         # Animation state
-        self.density_ax: Axes | None = None
-        self.density_line: Line2D | None = None
-        self.best_ask_axis: Line2D | None = None
-        self.best_bid_axis: Line2D | None = None
+        self.density_ax: Optional[Axes] = None
+        self.density_line: Optional[Line2D] = None
+        self.best_ask_axis: Optional[Line2D] = None
+        self.best_bid_axis: Optional[Line2D] = None
 
     @classmethod
     def from_params(
@@ -98,7 +98,7 @@ class LinearContinuousBook:
         xmin: float,
         xmax: float,
         Nx: int = 1000,
-    ) -> LinearContinuousBook:
+    ) -> Self:
         """
         Create a LinearContinuousBook from raw parameters.
 

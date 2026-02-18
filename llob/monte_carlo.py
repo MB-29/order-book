@@ -1,9 +1,9 @@
+
 """
 Monte Carlo simulations of noisy LLOB models.
 """
-from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -99,7 +99,7 @@ class MonteCarlo:
         self.measurement_vars: dict[str, npt.NDArray[np.float64]] = {}
 
         # Reference simulation (set during run)
-        self.simulation: Simulation | None = None
+        self.simulation: Optional[Simulation] = None
 
     @classmethod
     def from_params(
@@ -107,7 +107,7 @@ class MonteCarlo:
         N_samples: int,
         noise_args: dict[str, Any],
         simulation_args: dict[str, Any],
-    ) -> MonteCarlo:
+    ) -> Self:
         """
         Create a MonteCarlo simulation from parameters.
 

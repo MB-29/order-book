@@ -1,10 +1,10 @@
+
 """
 Multi-actor order book in the LLOB framework.
 """
-from __future__ import annotations
 
 from functools import reduce
-from typing import Any
+from typing import Any, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -81,8 +81,8 @@ class MultiDiscreteBook:
         self.volume_ax: Any = None
         self.ask_bars: list[BarContainer] = []
         self.bid_bars: list[BarContainer] = []
-        self.best_ask_axis: Line2D | None = None
-        self.best_bid_axis: Line2D | None = None
+        self.best_ask_axis: Optional[Line2D] = None
+        self.best_bid_axis: Optional[Line2D] = None
 
     @classmethod
     def from_params(
@@ -94,7 +94,7 @@ class MultiDiscreteBook:
         L_list: list[float],
         nu_list: list[float],
         lambd_list: list[float],
-    ) -> MultiDiscreteBook:
+    ) -> Self:
         """
         Create a MultiDiscreteBook from raw parameters.
 
@@ -121,7 +121,7 @@ class MultiDiscreteBook:
 
         # Create individual books
         books: list[DiscreteBook] = []
-        for L, nu, lambd in zip(L_list, nu_list, lambd_list):
+        for L, nu, lambd in zip(L_list, nu_list, lambd_list, strict=True):
             linear = nu == 0
             if linear:
                 book = LinearDiscreteBook.from_params(
@@ -145,7 +145,7 @@ class MultiDiscreteBook:
 
         return cls(books=books, X=X, dx=dx, D=D)
 
-    def get_ask_volumes(self, index: int | None = None) -> npt.NDArray[np.int64]:
+    def get_ask_volumes(self, index: Optional[int] = None) -> npt.NDArray[np.int64]:
         """
         Get aggregate ask volumes across all actors.
 
@@ -160,7 +160,7 @@ class MultiDiscreteBook:
             return volumes[index]
         return volumes
 
-    def get_bid_volumes(self, index: int | None = None) -> npt.NDArray[np.int64]:
+    def get_bid_volumes(self, index: Optional[int] = None) -> npt.NDArray[np.int64]:
         """
         Get aggregate bid volumes across all actors.
 
@@ -319,7 +319,7 @@ class MultiDiscreteBook:
 
     # ================== ANIMATION ==================
 
-    def set_animation(self, fig: Figure, lims: dict[str, Any] | None = None) -> None:
+    def set_animation(self, fig: Figure, lims: Optional[dict[str, Any]] = None) -> None:
         """Set up matplotlib animation components."""
         if lims is None:
             lims = {}

@@ -1,10 +1,11 @@
+
 """
 LLOB simulation runner.
 """
-from __future__ import annotations
 
 import warnings
-from typing import Any, Callable, Literal
+from collections.abc import Callable
+from typing import Any, Literal, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -121,11 +122,11 @@ class Simulation:
         self._compute_theoretical_values()
 
         # Animation state
-        self.price_ax: Axes | None = None
-        self.price_line: Line2D | None = None
-        self.best_ask_line: Line2D | None = None
-        self.best_bid_line: Line2D | None = None
-        self.animation: FuncAnimation | None = None
+        self.price_ax: Optional[Axes] = None
+        self.price_line: Optional[Line2D] = None
+        self.best_ask_line: Optional[Line2D] = None
+        self.best_bid_line: Optional[Line2D] = None
+        self.animation: Optional[FuncAnimation] = None
         self.ymin = xmin
         self.ymax = xmax
 
@@ -133,9 +134,9 @@ class Simulation:
     def from_params(
         cls,
         model_type: Literal["discrete", "continuous"],
-        metaorder: list[float] | npt.NDArray[np.float64] | None = None,
+        metaorder: Optional[list[float] | npt.NDArray[np.float64]] = None,
         **kwargs: Any,
-    ) -> Simulation:
+    ) -> Self:
         """
         Create a Simulation from raw parameters.
 
@@ -336,7 +337,7 @@ class Simulation:
 
     def run(
         self,
-        fig: Figure | None = None,
+        fig: Optional[Figure] = None,
         animation: bool = False,
         save: bool = False,
     ) -> None:
@@ -496,10 +497,10 @@ class Simulation:
 def standard_parameters(
     participation_rate: float,
     model_type: Literal["discrete", "continuous"],
-    xmin: float | None = None,
-    xmax: float | None = None,
-    Nt: int | None = None,
-    T: int | None = None,
+    xmin: Optional[float] = None,
+    xmax: Optional[float] = None,
+    Nt: Optional[int] = None,
+    T: Optional[int] = None,
 ) -> dict[str, Any]:
     """
     Generate standard simulation parameters for a given participation rate.
