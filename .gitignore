@@ -1,4 +1,48 @@
-#Ignore the following
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# uv
+uv.lock
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# LaTeX
 *.aux
 *.fdb_latexmk
 *.log
@@ -6,8 +50,13 @@
 *.synctex.gz
 *.fls
 *.toc
-data 
-build
+
+# Data and outputs
+data/
+*.npy
+*.pkl
+
+# Build artifacts
 *.ps
 *.pdf
 *.cmake
@@ -17,19 +66,18 @@ build
 *.make
 *.bin
 *.prof
-*.ps                                                                           
-CMakeFiles
+CMakeFiles/
 CMakeCache.txt
 MakeFile
 *.zip
-*.npy
-*.ipynb
-*.pyc
-*.png
+
+# Media
 *.mp4
 *.mkv
 *.m4v
+
+# Misc
 *.bat
-_build
-_static
-_templates
+_build/
+_static/
+_templates/
