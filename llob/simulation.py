@@ -8,10 +8,10 @@ import numpy as np
 from matplotlib.animation import FuncAnimation  # , writers
 import warnings
 
-from linear_discrete_book import LinearDiscreteBook
-from discrete_book import DiscreteBook
-from linear_continuous_book import LinearContinuousBook
-from multi_discrete_book import MultiDiscreteBook
+from .linear_discrete_book import LinearDiscreteBook
+from .discrete_book import DiscreteBook
+from .linear_continuous_book import LinearContinuousBook
+from .multi_discrete_book import MultiDiscreteBook
 
 
 class Simulation:

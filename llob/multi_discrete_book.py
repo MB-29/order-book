@@ -7,8 +7,8 @@ __version__ = '1.0.0'
 import numpy as np
 from functools import reduce
 
-from discrete_book import DiscreteBook
-from linear_discrete_book import LinearDiscreteBook
+from .discrete_book import DiscreteBook
+from .linear_discrete_book import LinearDiscreteBook
 
 
 class MultiDiscreteBook(DiscreteBook):

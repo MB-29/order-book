@@ -309,8 +309,8 @@ def add_flow(volumes, dx, boundary_index, boundary_flow):
         jumps_left = np.random.binomial(order_volume, 0.5)
         jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
-    boundary_volume = volumes[boundary_index] + boundary_flow * (dx)**2
-    boundary_jumps = np.random.binomial(boundary_volume, 0.5)
+    boundary_volume = int(volumes[boundary_index] + boundary_flow * (dx)**2)
+    boundary_jumps = np.random.binomial(boundary_volume, 0.5, size=1)[0]
 
     # Add boundary jumps
     boundary_jumps_left = boundary_jumps if boundary_index == -1 else 0

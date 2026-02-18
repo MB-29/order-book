@@ -7,7 +7,7 @@ __version__ = '1.0.0'
 import numpy as np
 import warnings
 
-from diffusion_schemes import theta_scheme_iteration
+from .diffusion_schemes import theta_scheme_iteration
 
 
 class LinearContinuousBook:

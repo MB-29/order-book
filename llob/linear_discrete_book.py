@@ -4,7 +4,7 @@ Agent-based LLOB model with boundary conditions and linear stationary state.
 __author__ = 'Matthieu Blanke'
 __version__ = '1.0.0'
 
-from discrete_book import DiscreteBook
+from .discrete_book import DiscreteBook
 
 
 class LinearDiscreteBook(DiscreteBook):

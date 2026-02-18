@@ -9,7 +9,7 @@ from fbm import fgn
 from tqdm.auto import tqdm
 from retry import retry
 
-from simulation import Simulation
+from .simulation import Simulation
 
 
 class MonteCarlo:

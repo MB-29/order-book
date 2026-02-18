@@ -5,7 +5,7 @@ __author__ = 'Matthieu Blanke'
 __version__ = '1.0.0'
 
 import numpy as np
-from limit_orders import LimitOrders
+from .limit_orders import LimitOrders
 
 
 class DiscreteBook:
