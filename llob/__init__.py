@@ -11,6 +11,21 @@ Example usage:
     sim = Simulation.from_params(**params)
     sim.run()
     print(sim.prices[-1])
+
+Using pydantic configs (preferred):
+    from llob import Simulation, SimulationConfig, GridConfig
+
+    config = SimulationConfig(
+        model_type='discrete',
+        grid=GridConfig(xmin=-50, xmax=50, Nx=100),
+        D=1.0,
+        L=1.0,
+        T=100,
+        Nt=100,
+        metaorder=[0.5],
+    )
+    sim = Simulation.from_config(config)
+    sim.run()
 """
 from .books import (
     DiscreteBook,
@@ -18,6 +33,18 @@ from .books import (
     LinearContinuousBook,
     LinearDiscreteBook,
     MultiDiscreteBook,
+)
+from .configs import (
+    BookConfig,
+    DiscreteBookConfig,
+    GridConfig,
+    LimitOrdersConfig,
+    LinearContinuousBookConfig,
+    LinearDiscreteBookConfig,
+    MonteCarloConfig,
+    MultiDiscreteBookConfig,
+    NoiseConfig,
+    SimulationConfig,
 )
 from .monte_carlo import MonteCarlo
 from .simulation import Simulation, standard_parameters
@@ -27,6 +54,18 @@ __all__ = [
     "Simulation",
     "MonteCarlo",
     "standard_parameters",
+    # Configuration classes
+    "GridConfig",
+    "SimulationConfig",
+    "MonteCarloConfig",
+    "NoiseConfig",
+    # Book configs
+    "BookConfig",
+    "DiscreteBookConfig",
+    "LinearDiscreteBookConfig",
+    "LinearContinuousBookConfig",
+    "MultiDiscreteBookConfig",
+    "LimitOrdersConfig",
     # Book classes (for advanced usage)
     "DiscreteBook",
     "LinearDiscreteBook",

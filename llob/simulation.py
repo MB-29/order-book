@@ -1,4 +1,3 @@
-
 """
 LLOB simulation runner.
 """
@@ -20,6 +19,7 @@ from .books import (
     LinearDiscreteBook,
     MultiDiscreteBook,
 )
+from .configs import SimulationConfig
 
 # Type alias for book types
 BookType = DiscreteBook | LinearDiscreteBook | LinearContinuousBook | MultiDiscreteBook
@@ -194,6 +194,60 @@ class Simulation:
                 len(metaorder_arr) == T
             ), f"metaorder length {len(metaorder_arr)} != T={T}"
             full_metaorder = metaorder_arr
+
+        # Create the appropriate book
+        book = cls._create_book(model_type, D, xmin, xmax, Nx, L, nu)
+
+        return cls(
+            book=book,
+            model_type=model_type,
+            T=T,
+            Nt=Nt,
+            xmin=xmin,
+            xmax=xmax,
+            Nx=Nx,
+            D=D,
+            L=L,
+            nu=nu,
+            metaorder=full_metaorder,
+            n_start=n_start,
+            n_end=n_end,
+            price_formula=price_formula,
+            measured_quantities=measured_quantities,
+            measurement_indices=measurement_indices,
+        )
+
+    @classmethod
+    def from_config(cls, config: SimulationConfig) -> Self:
+        """
+        Create a Simulation from a SimulationConfig.
+
+        This is the preferred constructor using typed configuration.
+
+        Args:
+            config: Simulation configuration object.
+
+        Returns:
+            Configured Simulation instance.
+        """
+        # Extract values from config
+        model_type = config.model_type
+        T = config.T
+        Nt = config.Nt
+        xmin = config.grid.xmin
+        xmax = config.grid.xmax
+        Nx = config.grid.Nx
+        D = config.D
+        L = config.L if not isinstance(config.L, list) else np.array(config.L)
+        nu = config.nu if not isinstance(config.nu, list) else np.array(config.nu)
+        n_start = config.effective_n_start
+        n_end = config.effective_n_end
+        price_formula = config.price_formula
+        measured_quantities = config.measured_quantities
+        measurement_indices = config.measurement_indices
+
+        # Get full metaorder array
+        full_metaorder = config.get_full_metaorder()
 
         # Create the appropriate book
         book = cls._create_book(model_type, D, xmin, xmax, Nx, L, nu)

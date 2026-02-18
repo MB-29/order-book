@@ -1,4 +1,3 @@
-
 """
 Monte Carlo simulations of noisy LLOB models.
 """
@@ -11,6 +10,7 @@ from fbm import fgn
 from retry import retry
 from tqdm.auto import tqdm
 
+from .configs import MonteCarloConfig
 from .simulation import Simulation
 
 
@@ -148,6 +148,33 @@ class MonteCarlo:
             measurement_indices=measurement_indices,
             measurement_slice=measurement_slice,
             sample_measurements=sample_measurements,
+        )
+
+    @classmethod
+    def from_config(cls, config: MonteCarloConfig) -> Self:
+        """
+        Create a MonteCarlo simulation from a MonteCarloConfig.
+
+        This is the preferred constructor using typed configuration.
+
+        Args:
+            config: Monte Carlo configuration object.
+
+        Returns:
+            Configured MonteCarlo instance.
+        """
+        return cls(
+            N_samples=config.N_samples,
+            T=config.T,
+            Nt=config.Nt,
+            m0=config.noise.m0,
+            m1=config.noise.m1,
+            hurst=config.noise.hurst,
+            simulation_args=config.to_simulation_args(),
+            measured_quantities=config.simulation.measured_quantities,
+            measurement_indices=config.simulation.measurement_indices,
+            measurement_slice=config.measurement_slice,
+            sample_measurements=config.sample_measurements,
         )
 
     def generate_noise(self) -> None:
