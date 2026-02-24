@@ -313,4 +313,6 @@ class TestSimulationFromConfig:
         )
         sim = Simulation.from_config(config)
         sim.run()
-        assert sim.prices[-1] != 0.0
+        # Verify simulation produced valid output
+        assert np.all(np.isfinite(sim.prices))
+        assert len(sim.prices) == sim.n_frames

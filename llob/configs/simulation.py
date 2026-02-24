@@ -34,6 +34,12 @@ class SimulationConfig(BaseModel):
         default=0.0,
         description="Cancellation rate. Scalar or list matching L for multi-actor",
     )
+    alpha: float = Field(
+        ge=0,
+        default=0.0,
+        description="Spread-sensitivity coefficient for deposition rate (dimensionless). "
+        "Effective rate = lambd * (1 + alpha * spread_ticks).",
+    )
     duration: float = Field(default=100.0, gt=0, description="Total physical simulation time")
     n_frames: int = Field(default=100, gt=0, description="Number of output frames")
     metaorder: list[float] | None = Field(

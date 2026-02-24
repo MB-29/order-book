@@ -125,6 +125,7 @@ class Simulation:
         self.asks = np.zeros(n_frames)
         self.bids = np.zeros(n_frames)
         self.prices = np.zeros(n_frames)
+        self.spreads = np.zeros(n_frames)
         self.measurements: dict[str, list[Any]] = {q: [] for q in measured_quantities}
 
         # Price computation function
@@ -194,11 +195,17 @@ class Simulation:
         D = kwargs["D"]
         L = kwargs["L"]
         nu = kwargs.get("nu", 0)
+        alpha = kwargs.get("alpha", 0.0)
         price_formula = kwargs.get("price_formula", "middle")
         frame_start = kwargs.get("frame_start", 0)
         frame_end = kwargs.get("frame_end", n_frames)
         measured_quantities = kwargs.get("measured_quantities", [])
         measurement_indices = kwargs.get("measurement_indices", [])
+        seed = kwargs.get("seed", None)
+
+        # Set random seed for reproducibility
+        if seed is not None:
+            np.random.seed(seed)
 
         # Process metaorder - array of length n_frames
         if metaorder is None:
@@ -212,7 +219,7 @@ class Simulation:
             full_metaorder = metaorder_arr
 
         # Create the appropriate book
-        book = cls._create_book(model_type, D, xmin, xmax, n_grid, L, nu)
+        book = cls._create_book(model_type, D, xmin, xmax, n_grid, L, nu, alpha=alpha)
 
         return cls(
             book=book,
@@ -256,6 +263,7 @@ class Simulation:
         D = config.D
         L = config.L if not isinstance(config.L, list) else np.array(config.L)
         nu = config.nu if not isinstance(config.nu, list) else np.array(config.nu)
+        alpha = config.alpha
         frame_start = config.effective_frame_start
         frame_end = config.effective_frame_end
         price_formula = config.price_formula
@@ -266,7 +274,7 @@ class Simulation:
         full_metaorder = config.get_full_metaorder()
 
         # Create the appropriate book
-        book = cls._create_book(model_type, D, xmin, xmax, n_grid, L, nu)
+        book = cls._create_book(model_type, D, xmin, xmax, n_grid, L, nu, alpha=alpha)
 
         return cls(
             book=book,
@@ -296,6 +304,7 @@ class Simulation:
         n_grid: int,
         L: float | npt.NDArray[np.float64],
         nu: float,
+        alpha: float = 0.0,
     ) -> BookType:
         """Create the appropriate order book instance."""
         is_multi = not np.isscalar(L)
@@ -326,7 +335,7 @@ class Simulation:
             else:
                 lambd = L_scalar * np.sqrt(nu * D)
                 return DiscreteBook.from_params(
-                    D=D, xmin=xmin, xmax=xmax, n_grid=n_grid, L=L_scalar, nu=nu, lambd=lambd
+                    D=D, xmin=xmin, xmax=xmax, n_grid=n_grid, L=L_scalar, nu=nu, lambd=lambd, alpha=alpha
                 )
         else:  # continuous
             return LinearContinuousBook.from_params(
@@ -426,11 +435,6 @@ class Simulation:
 
         # Run n_frames frames, each with steps_per_frame internal diffusion steps
         for n in range(self.n_frames):
-            self.asks[n] = self.book.best_ask
-            self.bids[n] = self.book.best_bid
-            self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
-            self._measure(n)
-
             # Execute metaorder for this frame
             # Volume = metaorder_intensity * dt (time interval for this frame)
             dq = self.metaorder[n] * self.dt
@@ -444,8 +448,16 @@ class Simulation:
                 # Perform steps_per_frame diffusion steps
                 for _ in range(self.steps_per_frame):
                     self.book.stochastic_timestep()
+                    self.book.update_price()  # Update prices before order matching
                     self.book.order_reaction()
-                    self.book.update_price()
+                    self.book.update_price()  # Update again after order matching
+
+            # Record state AFTER the timestep (after order matching)
+            self.asks[n] = self.book.best_ask
+            self.bids[n] = self.book.best_bid
+            self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
+            self.spreads[n] = self.book.best_ask - self.book.best_bid
+            self._measure(n)
 
     def _measure(self, n: int) -> None:
         """Record measurements at specified indices."""
@@ -528,6 +540,7 @@ class Simulation:
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
+        self.spreads[n] = self.book.best_ask - self.book.best_bid
         self._measure(n)
 
         # Update plot lines

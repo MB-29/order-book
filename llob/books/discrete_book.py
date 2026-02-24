@@ -104,6 +104,7 @@ class DiscreteBook:
         L: Optional[float] = None,
         initial_density: Literal["stationary", "linear", "empty"] = "stationary",
         boundary_conditions: Literal["flat", "linear"] = "flat",
+        alpha: float = 0.0,
     ) -> Self:
         """
         Create a DiscreteBook from raw parameters.
@@ -113,11 +114,12 @@ class DiscreteBook:
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
             n_grid: Number of price grid points.
-            lambd: Deposition intensity parameter.
+            lambd: Deposition intensity parameter (base rate).
             nu: Cancellation rate parameter.
             L: Order density slope. If None, computed from lambd/(sqrt(nu*D)).
             initial_density: Initial density profile type.
             boundary_conditions: Boundary condition type.
+            alpha: Spread-sensitivity coefficient for deposition rate.
 
         Returns:
             Configured DiscreteBook instance.
@@ -139,6 +141,7 @@ class DiscreteBook:
             L=L,
             initial_density=initial_density,
             boundary_conditions=boundary_conditions,
+            alpha=alpha,
         )
         ask_orders = LimitOrders.from_params(
             side="ask",
@@ -151,6 +154,7 @@ class DiscreteBook:
             L=L,
             initial_density=initial_density,
             boundary_conditions=boundary_conditions,
+            alpha=alpha,
         )
 
         return cls(
@@ -201,8 +205,8 @@ class DiscreteBook:
 
         self.best_ask_index = self.ask_orders.best_price_index
         self.best_bid_index = self.bid_orders.best_price_index
-        self.best_ask = float(self.X[self.best_ask_index - 1])
-        self.best_bid = float(self.X[self.best_bid_index + 1])
+        self.best_ask = float(self.X[self.best_ask_index])
+        self.best_bid = float(self.X[self.best_bid_index])
         self.best_ask_volume = int(
             self.get_ask_volumes()[self.ask_orders.best_price_index]
         )
@@ -211,13 +215,37 @@ class DiscreteBook:
         )
 
     def order_reaction(self) -> None:
-        """Execute matched orders where bid and ask cross."""
-        if self.best_ask_index > self.best_bid_index:
-            return
+        """Execute matched orders where bid and ask cross.
 
-        reaction_volumes = np.minimum(self.get_ask_volumes(), self.get_bid_volumes())
-        for side_orders in [self.ask_orders, self.bid_orders]:
-            side_orders.execute_orders(reaction_volumes)
+        When best_ask_index <= best_bid_index (ask price is at or below bid price),
+        orders should be matched until the spread is non-negative.
+        """
+        # Keep matching until no more crossing (with safety limit)
+        for _ in range(self.n_grid):  # Safety limit to prevent infinite loop
+            if self.best_ask_index > self.best_bid_index:
+                break  # No crossing
+
+            # Get volumes at the best prices
+            ask_vol = self.ask_orders.volumes[self.best_ask_index]
+            bid_vol = self.bid_orders.volumes[self.best_bid_index]
+
+            # If either side has no volume at best price, just break
+            # (this shouldn't happen if update_best_price works correctly)
+            if ask_vol == 0 or bid_vol == 0:
+                break
+
+            # Match the minimum volume between best ask and best bid
+            match_vol = min(ask_vol, bid_vol)
+
+            # Remove matched volume from both sides
+            self.ask_orders.volumes[self.best_ask_index] -= match_vol
+            self.bid_orders.volumes[self.best_bid_index] -= match_vol
+
+            # Update best prices after matching
+            self.ask_orders.update_best_price()
+            self.bid_orders.update_best_price()
+            self.best_ask_index = self.ask_orders.best_price_index
+            self.best_bid_index = self.bid_orders.best_price_index
 
     def execute_metaorder(self, volume: float) -> None:
         """

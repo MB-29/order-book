@@ -45,6 +45,7 @@ class LimitOrders:
         dx: float,
         volumes: npt.NDArray[np.int64],
         boundary_flow: float,
+        alpha: float = 0.0,
     ) -> None:
         """
         Initialize a LimitOrders instance with pre-computed values.
@@ -54,7 +55,7 @@ class LimitOrders:
 
         Args:
             side: Order side, either 'ask' or 'bid'.
-            lambd: Deposition intensity parameter.
+            lambd: Deposition intensity parameter (base rate).
             nu: Cancellation rate parameter.
             D: Diffusion constant.
             L: Order density slope (latent liquidity).
@@ -62,6 +63,8 @@ class LimitOrders:
             dx: Price grid spacing.
             volumes: Initial order volumes at each price level.
             boundary_flow: Flow at the boundary for diffusion.
+            alpha: Spread-sensitivity coefficient for deposition rate (dimensionless).
+                   Effective rate = lambd * (1 + alpha * spread_ticks).
         """
         assert side in ("ask", "bid"), f"side must be 'ask' or 'bid', got {side}"
 
@@ -74,6 +77,7 @@ class LimitOrders:
         self.dx = dx
         self.volumes = volumes
         self.boundary_flow = boundary_flow
+        self.alpha = alpha
 
         # Derived constants
         self.n_grid = len(X)
@@ -102,13 +106,14 @@ class LimitOrders:
         L: Optional[float] = None,
         initial_density: Literal["stationary", "linear", "empty"] = "stationary",
         boundary_conditions: Literal["flat", "linear"] = "flat",
+        alpha: float = 0.0,
     ) -> Self:
         """
         Create a LimitOrders instance from raw parameters.
 
         Args:
             side: Order side, either 'ask' or 'bid'.
-            lambd: Deposition intensity parameter.
+            lambd: Deposition intensity parameter (base rate).
             nu: Cancellation rate parameter.
             D: Diffusion constant.
             xmin: Price interval lower bound.
@@ -117,6 +122,7 @@ class LimitOrders:
             L: Order density slope. If None, computed from lambd/(sqrt(nu*D)).
             initial_density: Initial density profile type.
             boundary_conditions: Boundary condition type.
+            alpha: Spread-sensitivity coefficient for deposition rate.
 
         Returns:
             Configured LimitOrders instance.
@@ -163,6 +169,7 @@ class LimitOrders:
             dx=dx,
             volumes=volumes,
             boundary_flow=boundary_flow,
+            alpha=alpha,
         )
 
     def stationary_density(self, x: float) -> float:
@@ -193,7 +200,14 @@ class LimitOrders:
         """
         Process order deposition stochastic step.
 
-        Orders arrive via Poisson process with intensity lambd * dt * dx.
+        Orders arrive via Poisson process with intensity:
+            effective_lambd = lambd * (1 + alpha * spread)
+        where spread is measured in grid units (ticks).
+
+        When alpha > 0, deposition rate increases with spread, providing
+        a stabilizing feedback that prevents unbounded spread growth in
+        high-participation regimes. The parameter alpha is dimensionless
+        and represents the fractional boost to deposition per tick of spread.
 
         Note:
             update_best_price() should be called before this method
@@ -202,7 +216,11 @@ class LimitOrders:
         Args:
             spread: Current spread in grid units (best_ask_index - best_bid_index).
         """
-        lam = self.lambd * self.dt * self.dx
+        # Compute spread-dependent deposition rate
+        # alpha is dimensionless: fraction of extra deposition per tick of spread
+        # spread is in grid units (number of ticks)
+        effective_lambd = self.lambd * (1.0 + self.alpha * spread)
+        lam = effective_lambd * self.dt * self.dx
 
         # Number of arrival points for a given side
         if self.side == "ask":

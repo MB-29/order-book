@@ -47,6 +47,12 @@ class LimitOrdersConfig(BaseModel):
     )
     nu: float = Field(ge=0, default=0.0, description="Cancellation rate parameter")
     lambd: float = Field(ge=0, default=0.0, description="Deposition intensity parameter")
+    alpha: float = Field(
+        ge=0,
+        default=0.0,
+        description="Spread-sensitivity coefficient for deposition rate (dimensionless). "
+        "Effective rate = lambd * (1 + alpha * spread_ticks).",
+    )
     initial_density: Literal["stationary", "linear", "empty"] = Field(
         default="stationary",
         description="Initial density profile for the order book",
@@ -101,6 +107,12 @@ class DiscreteBookConfig(BaseModel):
     )
     nu: float = Field(gt=0, description="Cancellation rate parameter (must be > 0)")
     lambd: float = Field(gt=0, description="Deposition intensity parameter")
+    alpha: float = Field(
+        ge=0,
+        default=0.0,
+        description="Spread-sensitivity coefficient for deposition rate (dimensionless). "
+        "Effective rate = lambd * (1 + alpha * spread_ticks).",
+    )
     initial_density: Literal["stationary", "linear", "empty"] = Field(
         default="stationary",
         description="Initial density profile",
