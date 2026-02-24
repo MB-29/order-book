@@ -14,8 +14,8 @@ class TestSimulationIntegration:
         """Discrete simulation should run from start to finish."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=100,
-            Nt=10,
+            T=100.0,  # Physical time
+            Nt=10,    # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -25,17 +25,17 @@ class TestSimulationIntegration:
 
         sim.run()
 
-        # Should have populated all arrays
-        assert len(sim.prices) == sim.T
-        assert len(sim.asks) == sim.T
-        assert len(sim.bids) == sim.T
+        # Should have populated all arrays (sized by Nt)
+        assert len(sim.prices) == sim.Nt
+        assert len(sim.asks) == sim.Nt
+        assert len(sim.bids) == sim.Nt
 
     def test_continuous_simulation_runs_to_completion(self, small_grid: dict):
         """Continuous simulation should run from start to finish."""
         sim = Simulation.from_params(
             model_type="continuous",
-            T=100,
-            Nt=10,
+            T=100.0,  # Physical time
+            Nt=10,    # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -45,17 +45,17 @@ class TestSimulationIntegration:
 
         sim.run()
 
-        # Should have populated all arrays
-        assert len(sim.prices) == sim.T
-        assert len(sim.asks) == sim.T
-        assert len(sim.bids) == sim.T
+        # Should have populated all arrays (sized by Nt)
+        assert len(sim.prices) == sim.Nt
+        assert len(sim.asks) == sim.Nt
+        assert len(sim.bids) == sim.Nt
 
     def test_nonlinear_discrete_simulation(self, small_grid: dict, seed_random):
         """Nonlinear discrete simulation (nu > 0) should run."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=50,
-            Nt=10,
+            T=50.0,   # Physical time
+            Nt=10,    # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -65,14 +65,14 @@ class TestSimulationIntegration:
 
         sim.run()
 
-        assert len(sim.prices) == sim.T
+        assert len(sim.prices) == sim.Nt
 
     def test_multi_book_simulation(self, small_grid: dict, seed_random):
         """Multi-book simulation should run."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=50,
-            Nt=10,
+            T=50.0,   # Physical time
+            Nt=10,    # Number of frames
             **small_grid,
             D=0.5,
             L=np.array([5.0, 5.0]),
@@ -82,7 +82,7 @@ class TestSimulationIntegration:
 
         sim.run()
 
-        assert len(sim.prices) == sim.T
+        assert len(sim.prices) == sim.Nt
 
 
 class TestMonteCarloIntegration:
@@ -98,9 +98,9 @@ class TestMonteCarloIntegration:
 
         mc.run()
 
-        # Should have results for all samples
+        # Should have results for all samples (sized by Nt)
         assert mc.price_samples.shape[1] == 3
-        assert len(mc.price_mean) == mc.T
+        assert len(mc.price_mean) == mc.Nt
 
     def test_monte_carlo_gather_results(self, simulation_params: dict, seed_random):
         """Monte Carlo gather_results should work after run."""
@@ -127,7 +127,7 @@ class TestPhysicalProperties:
         params = standard_parameters(
             participation_rate=10.0,
             model_type="discrete",
-            T=200,
+            T=200.0,
             Nt=20,
         )
 
@@ -143,7 +143,7 @@ class TestPhysicalProperties:
         params = standard_parameters(
             participation_rate=-10.0,
             model_type="discrete",
-            T=200,
+            T=200.0,
             Nt=20,
         )
 
@@ -157,8 +157,8 @@ class TestPhysicalProperties:
         """With no metaorder, price should remain near zero."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=100,
-            Nt=10,
+            T=100.0,  # Physical time
+            Nt=10,    # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -177,15 +177,15 @@ class TestPhysicalProperties:
         params = standard_parameters(
             participation_rate=10.0,
             model_type="discrete",
-            T=200,
+            T=200.0,
             Nt=20,
         )
 
         sim = Simulation.from_params(**params)
         sim.run()
 
-        # Simulation should complete and have valid output
-        assert len(sim.prices) == sim.T
+        # Simulation should complete and have valid output (sized by Nt)
+        assert len(sim.prices) == sim.Nt
         assert np.all(np.isfinite(sim.prices))
 
     def test_discrete_vs_continuous_qualitative_agreement(self):
@@ -194,7 +194,7 @@ class TestPhysicalProperties:
         params = standard_parameters(
             participation_rate=10.0,
             model_type="discrete",
-            T=200,
+            T=200.0,
             Nt=20,
         )
         common_params = {
@@ -241,7 +241,7 @@ class TestParameterSensitivity:
         params = standard_parameters(
             participation_rate=10.0,
             model_type="discrete",
-            T=200,
+            T=200.0,
             Nt=20,
         )
 
@@ -266,12 +266,12 @@ class TestParameterSensitivity:
             params = standard_parameters(
                 participation_rate=rate,
                 model_type="discrete",
-                T=50,
+                T=50.0,
                 Nt=10,
             )
 
             sim = Simulation.from_params(**params)
             sim.run()
 
-            # Should complete without error
-            assert len(sim.prices) == params["T"]
+            # Should complete without error (sized by Nt)
+            assert len(sim.prices) == params["Nt"]

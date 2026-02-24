@@ -32,12 +32,18 @@ class Simulation:
     Orchestrates the simulation of a Latent Order Book, handling time evolution,
     metaorder execution, price tracking, and optional animation.
 
+    Time convention:
+        - T: Physical time (e.g., T=1000 means 1000 time units)
+        - Nt: Number of output frames/time points
+        - dt: Time interval between frames (dt = T / Nt)
+        - n_diff: Number of internal diffusion steps per frame
+
     Attributes:
         book: The underlying order book instance.
-        prices: Array of prices at each time step.
-        asks: Array of best ask prices at each time step.
-        bids: Array of best bid prices at each time step.
-        metaorder: Array of metaorder intensities over time.
+        prices: Array of prices at each output frame (length Nt).
+        asks: Array of best ask prices at each frame.
+        bids: Array of best bid prices at each frame.
+        metaorder: Array of metaorder intensities (length Nt).
         impact_th: Theoretical price impact.
         participation_rate: Normalized metaorder rate (m0 / (D * L)).
     """
@@ -46,7 +52,7 @@ class Simulation:
         self,
         book: BookType,
         model_type: Literal["discrete", "continuous"],
-        T: int,
+        T: float,
         Nt: int,
         xmin: float,
         xmax: float,
@@ -65,6 +71,10 @@ class Simulation:
         Initialize a Simulation with pre-constructed components.
 
         Use `from_params` classmethod for convenient construction.
+
+        Args:
+            T: Physical simulation time.
+            Nt: Number of output frames.
         """
         self.book = book
         self.model_type = model_type
@@ -83,13 +93,21 @@ class Simulation:
         self.measured_quantities = measured_quantities
         self.measurement_indices = measurement_indices
 
-        # Derived values
+        # Derived values - spatial
         self.price_range = xmax - xmin
         self.dx = self.price_range / Nx
         self.boundary_distance = min(abs(xmin), xmax)
-        self.time_interval, self.tstep = np.linspace(0, T, num=Nt, retstep=True)
-        self.tstep = float(self.tstep)
-        self.dt = self.dx**2 / (2 * D) if D > 0 else float("inf")
+
+        # Derived values - temporal
+        # dt is the time between output frames
+        self.time_interval, self.dt = np.linspace(0, T, num=Nt, retstep=True)
+        self.dt = float(self.dt)
+
+        # Elementary diffusion timestep (for numerical stability)
+        self.dt_diff = self.dx**2 / (2 * D) if D > 0 else float("inf")
+
+        # Number of diffusion steps per output frame
+        self.n_diff = int(self.dt / self.dt_diff) if self.dt_diff < float("inf") else 0
 
         self.is_multi_book = not np.isscalar(L)
         self.lambd = float(np.max(L)) * np.sqrt(nu * D) if np.isscalar(L) else 0.0
@@ -99,14 +117,14 @@ class Simulation:
         self.m0 = (
             float(np.mean(metaorder[metaorder != 0])) if np.any(metaorder != 0) else 0.0
         )
-        self.t_start = n_start * self.tstep
-        self.t_end = n_end * self.tstep
+        self.t_start = n_start * self.dt
+        self.t_end = n_end * self.dt
         self.time_interval_shifted = self.time_interval - self.t_start
 
-        # Output arrays
-        self.asks = np.zeros(T)
-        self.bids = np.zeros(T)
-        self.prices = np.zeros(T)
+        # Output arrays - sized by Nt (number of frames)
+        self.asks = np.zeros(Nt)
+        self.bids = np.zeros(Nt)
+        self.prices = np.zeros(Nt)
         self.measurements: dict[str, list[Any]] = {q: [] for q in measured_quantities}
 
         # Price computation function
@@ -147,17 +165,17 @@ class Simulation:
             model_type: Either 'discrete' or 'continuous'.
             metaorder: Metaorder intensity over time. If length 1, treated as constant.
             **kwargs: Additional parameters:
-                - T: Total time steps (default: 1)
-                - Nt: Number of output time points (default: 100)
+                - T: Physical simulation time (default: 1)
+                - Nt: Number of output frames (default: 100)
                 - xmin, xmax: Price interval bounds (required)
                 - Nx: Number of spatial grid points (default: 100)
                 - D: Diffusion constant (required)
                 - L: Latent liquidity (required, can be array for multi-book)
                 - nu: Cancellation rate (default: 0)
                 - price_formula: 'middle', 'best_ask', 'best_bid', or 'vwap'
-                - n_start, n_end: Metaorder start/end indices
+                - n_start, n_end: Metaorder start/end frame indices
                 - measured_quantities: List of quantities to measure
-                - measurement_indices: Time indices at which to measure
+                - measurement_indices: Frame indices at which to measure
 
         Returns:
             Configured Simulation instance.
@@ -182,17 +200,15 @@ class Simulation:
         measured_quantities = kwargs.get("measured_quantities", [])
         measurement_indices = kwargs.get("measurement_indices", [])
 
-        # Process metaorder
+        # Process metaorder - array of length Nt
         if metaorder is None:
             metaorder = [0]
         metaorder_arr = np.asarray(metaorder, dtype=np.float64)
         if len(metaorder_arr) == 1:
-            full_metaorder = np.zeros(T, dtype=np.float64)
+            full_metaorder = np.zeros(Nt, dtype=np.float64)
             full_metaorder[n_start:n_end] = metaorder_arr[0]
         else:
-            assert (
-                len(metaorder_arr) == T
-            ), f"metaorder length {len(metaorder_arr)} != T={T}"
+            assert len(metaorder_arr) == Nt, f"metaorder length {len(metaorder_arr)} != Nt={Nt}"
             full_metaorder = metaorder_arr
 
         # Create the appropriate book
@@ -321,39 +337,40 @@ class Simulation:
         """Compute theoretical predictions and validate parameters."""
         L_max = float(np.max(self.L))
 
-        self.n_steps = int(self.tstep / self.dt) if self.dt < float("inf") else 0
+        # boundary_factor uses physical time T
         self.boundary_factor = (
             np.sqrt(self.D * self.T) / self.boundary_distance
             if self.boundary_distance > 0
             else float("inf")
         )
         self.infinity_density = L_max * self.xmax
-        self.impact_th = (
-            np.sqrt(2 * abs(self.m0) * self.T / L_max) if L_max > 0 else 0.0
-        )
+
+        # Theoretical impact uses physical time T
+        self.impact_th = np.sqrt(2 * abs(self.m0) * self.T / L_max) if L_max > 0 else 0.0
         self.density_shift_th = np.sqrt(abs(self.m0) * self.T * L_max)
+
         self.participation_rate = (
             self.m0 / (self.D * L_max) if self.D * L_max != 0 else float("inf")
         )
         self.r = abs(self.participation_rate)
-        self.scheme_constant = self.D * self.tstep / (self.dx * self.dx)
+        self.scheme_constant = self.D * self.dt / (self.dx * self.dx)
         self.lower_impact = np.sqrt(abs(self.r) / (2 * np.pi)) * self.impact_th
         self.first_volume = L_max * self.dx * self.dx
 
         # Warnings
         if self.boundary_factor > 1:
-                warnings.warn("Boundary effects may be significant", stacklevel=2)
+            warnings.warn("Boundary effects may be significant", stacklevel=2)
         if self.model_type == "discrete":
-            if self.r < 1 and self.n_steps < 100:
+            if self.r < 1 and self.n_diff < 100:
                 warnings.warn(
-                    f"Low number of diffusion steps ({self.n_steps} < 100), "
+                    f"Low number of diffusion steps ({self.n_diff} < 100), "
                     "try increasing spatial resolution.",
                     stacklevel=2,
                 )
-            if self.n_steps < 1 and self.r < float("inf"):
+            if self.n_diff < 1 and self.r < float("inf"):
                 raise ValueError(
                     "Order diffusion not possible: diffusion distance smaller than "
-                    f"grid spacing. dt={self.dt}, tstep={self.tstep}"
+                    f"grid spacing. dt_diff={self.dt_diff}, dt={self.dt}"
                 )
 
     def _compute_vwap(self, best_ask: float, best_bid: float) -> float:
@@ -407,14 +424,28 @@ class Simulation:
             self._run_animation(fig, save)
             return
 
-        for n in range(self.T):
+        # Run Nt frames, each with n_diff internal diffusion steps
+        for n in range(self.Nt):
             self.asks[n] = self.book.best_ask
             self.bids[n] = self.book.best_bid
             self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
             self._measure(n)
 
-            volume = self.metaorder[n] * self.dt
-            self.book.timestep(self.dt, volume)
+            # Execute metaorder for this frame
+            # Volume = metaorder_intensity * dt (time interval for this frame)
+            dq = self.metaorder[n] * self.dt
+
+            if self.model_type == "continuous":
+                # Continuous book uses combined timestep method
+                self.book.timestep(self.dt, dq)
+            else:
+                # Discrete books use separate methods
+                self.book.execute_metaorder(dq)
+                # Perform n_diff diffusion steps
+                for _ in range(self.n_diff):
+                    self.book.stochastic_timestep()
+                    self.book.order_reaction()
+                    self.book.update_price()
 
     def _measure(self, n: int) -> None:
         """Record measurements at specified indices."""
@@ -493,17 +524,28 @@ class Simulation:
         if n % 10 == 0:
             print(f"Step {n}")
 
-        volume = self.metaorder[n] * self.dt
+        # Record state
         self.asks[n] = self.book.best_ask
         self.bids[n] = self.book.best_bid
         self.prices[n] = self.compute_price(self.book.best_ask, self.book.best_bid)
         self._measure(n)
 
+        # Update plot lines
         self.price_line.set_data(self.time_interval[: n + 1], self.prices[: n + 1])
         self.best_ask_line.set_data(self.time_interval[: n + 1], self.asks[: n + 1])
         self.best_bid_line.set_data(self.time_interval[: n + 1], self.bids[: n + 1])
 
-        return self.book.update_animation(self.tstep, volume) + [
+        # Execute metaorder for this frame
+        dq = self.metaorder[n] * self.dt
+        self.book.execute_metaorder(dq)
+
+        # Perform n_diff diffusion steps and get animation update
+        for _ in range(self.n_diff):
+            self.book.stochastic_timestep()
+            self.book.order_reaction()
+            self.book.update_price()
+
+        return self.book.update_animation(self.dt, dq) + [
             self.price_line,
             self.best_ask_line,
             self.best_bid_line,
@@ -514,11 +556,11 @@ class Simulation:
         L_val = self.L if np.isscalar(self.L) else list(self.L)
         return f"""Order book simulation.
         Time parameters:
-            T = {self.T}
-            Nt = {self.Nt}
-            tstep = {self.tstep:.1e}
-            dt = {self.dt:.1e}
-            n_steps = {self.n_steps}
+            T = {self.T} (physical time)
+            Nt = {self.Nt} (output frames)
+            dt = {self.dt:.1e} (time per frame)
+            dt_diff = {self.dt_diff:.1e} (diffusion timestep)
+            n_diff = {self.n_diff} (diffusion steps per frame)
 
         Space parameters:
             Price interval = [{self.xmin}, {self.xmax}]
@@ -534,7 +576,7 @@ class Simulation:
 
         Metaorder:
             m0 = {self.m0:.1e}
-            dq = {self.m0 * self.tstep:.1e}
+            dq = {self.m0 * self.dt:.1e} (volume per frame)
             n_start, n_end = ({self.n_start}, {self.n_end})
 
         Theoretical values:
@@ -551,10 +593,10 @@ class Simulation:
 def standard_parameters(
     participation_rate: float,
     model_type: Literal["discrete", "continuous"],
+    T: float = 5000.0,
     xmin: Optional[float] = None,
     xmax: Optional[float] = None,
-    Nt: Optional[int] = None,
-    T: Optional[int] = None,
+    Nt: int = 100,
 ) -> dict[str, Any]:
     """
     Generate standard simulation parameters for a given participation rate.
@@ -562,10 +604,10 @@ def standard_parameters(
     Args:
         participation_rate: Normalized metaorder rate (m0 / (D * L)).
         model_type: Either 'discrete' or 'continuous'.
+        T: Physical simulation time (default: 5000).
         xmin: Price interval lower bound (auto-computed if None).
         xmax: Price interval upper bound (auto-computed if None).
-        Nt: Number of output time points (default: 100).
-        T: Total time steps (default: Nt * 50).
+        Nt: Number of output frames (default: 100).
 
     Returns:
         Dictionary of simulation parameters.
@@ -573,11 +615,6 @@ def standard_parameters(
     Warning:
         Participation rates greater than ~2500 may cause errors.
     """
-    if Nt is None:
-        Nt = 100
-    if T is None:
-        T = Nt * 50
-
     r = abs(participation_rate)
     D = 0.5
     Ipt = np.sqrt(2 * r * D * T)
@@ -593,13 +630,14 @@ def standard_parameters(
         xmin = min(np.sqrt(r) * xmin, -boundary_distance)
 
     Nx = int(xmax - xmin)
-    X = max(abs(xmin), abs(xmax))
+    if Nx < 100:
+        Nx = 100
     dx = (xmax - xmin) / Nx
     L = 10 / (dx * dx)
 
     if r == float("inf"):
         D = 0.0
-        m0 = (L * X) / (5 * T)
+        m0 = (L * max(abs(xmin), abs(xmax))) / (5 * T)
     else:
         D = 0.5
         m0 = D * L * participation_rate
@@ -612,7 +650,7 @@ def standard_parameters(
         "xmin": xmin,
         "xmax": xmax,
         "D": D,
-        "metaorder": [m0],
         "L": L,
         "nu": 0,
+        "metaorder": [m0],
     }

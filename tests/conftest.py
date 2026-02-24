@@ -77,8 +77,8 @@ def simulation_params(small_grid: dict) -> dict:
     """Ready-to-use Simulation parameters."""
     return {
         "model_type": "discrete",
-        "T": 100,
-        "Nt": 10,
+        "T": 100.0,  # Physical time
+        "Nt": 10,    # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,
@@ -92,8 +92,8 @@ def continuous_simulation_params(small_grid: dict) -> dict:
     """Simulation parameters for continuous model."""
     return {
         "model_type": "continuous",
-        "T": 100,
-        "Nt": 10,
+        "T": 100.0,  # Physical time
+        "Nt": 10,    # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,

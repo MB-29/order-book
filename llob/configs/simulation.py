@@ -13,6 +13,13 @@ class SimulationConfig(BaseModel):
     """Configuration for LLOB simulation.
 
     Orchestrates order book simulation with metaorder execution and price tracking.
+
+    Time convention:
+        - T: Physical simulation time (in arbitrary units)
+        - Nt: Number of output frames/measurements
+        - dt = T / Nt: Time between output frames
+        - dt_diff = dx² / (2D): Elementary diffusion timestep
+        - n_diff = int(dt / dt_diff): Diffusion steps per output frame
     """
 
     model_type: Literal["discrete", "continuous"] = Field(
@@ -27,19 +34,19 @@ class SimulationConfig(BaseModel):
         default=0.0,
         description="Cancellation rate. Scalar or list matching L for multi-actor",
     )
-    T: int = Field(default=1, gt=0, description="Total number of time steps")
-    Nt: int = Field(default=100, gt=0, description="Number of output time points")
+    T: float = Field(default=100.0, gt=0, description="Total physical simulation time")
+    Nt: int = Field(default=100, gt=0, description="Number of output frames")
     metaorder: list[float] | None = Field(
         default=None,
-        description="Metaorder intensity over time. If length 1, expanded to T with n_start/n_end",
+        description="Metaorder intensity over time. If length 1, expanded to Nt with n_start/n_end",
     )
     n_start: int | None = Field(
         default=None,
-        description="Time index when metaorder starts. Defaults to 0",
+        description="Frame index when metaorder starts. Defaults to 0",
     )
     n_end: int | None = Field(
         default=None,
-        description="Time index when metaorder ends. Defaults to Nt",
+        description="Frame index when metaorder ends. Defaults to Nt",
     )
     price_formula: Literal["middle", "best_ask", "best_bid", "vwap"] = Field(
         default="middle",
@@ -80,9 +87,9 @@ class SimulationConfig(BaseModel):
 
         # Validate metaorder length if provided and not length 1
         if self.metaorder is not None and len(self.metaorder) > 1:
-            if len(self.metaorder) != self.T:
+            if len(self.metaorder) != self.Nt:
                 raise ValueError(
-                    f"metaorder length ({len(self.metaorder)}) must equal T ({self.T}) "
+                    f"metaorder length ({len(self.metaorder)}) must equal Nt ({self.Nt}) "
                     "or be length 1"
                 )
 
@@ -119,8 +126,18 @@ class SimulationConfig(BaseModel):
 
     @property
     def dt(self) -> float:
-        """Time step for numerical stability."""
+        """Time between output frames (physical time / number of frames)."""
+        return self.T / self.Nt
+
+    @property
+    def dt_diff(self) -> float:
+        """Elementary diffusion timestep for numerical stability."""
         return self.grid.dx**2 / (2 * self.D)
+
+    @property
+    def n_diff(self) -> int:
+        """Number of diffusion steps per output frame."""
+        return int(self.dt / self.dt_diff)
 
     @property
     def J(self) -> float:
@@ -128,13 +145,13 @@ class SimulationConfig(BaseModel):
         return self.D * self.L_max
 
     def get_full_metaorder(self) -> npt.NDArray[np.float64]:
-        """Expand metaorder to full length T array."""
+        """Expand metaorder to full length Nt array."""
         if self.metaorder is None:
-            return np.zeros(self.T, dtype=np.float64)
+            return np.zeros(self.Nt, dtype=np.float64)
 
         metaorder_arr = np.asarray(self.metaorder, dtype=np.float64)
         if len(metaorder_arr) == 1:
-            full = np.zeros(self.T, dtype=np.float64)
+            full = np.zeros(self.Nt, dtype=np.float64)
             full[self.effective_n_start : self.effective_n_end] = metaorder_arr[0]
             return full
         return metaorder_arr
@@ -147,7 +164,7 @@ class SimulationConfig(BaseModel):
         xmin: float | None = None,
         xmax: float | None = None,
         Nt: int | None = None,
-        T: int | None = None,
+        T: float | None = None,
         **kwargs,
     ) -> "SimulationConfig":
         """Create config from a participation rate.
@@ -161,8 +178,8 @@ class SimulationConfig(BaseModel):
             model_type: Either 'discrete' or 'continuous'.
             xmin: Lower bound of price interval. Default computed from participation_rate.
             xmax: Upper bound of price interval. Default computed from participation_rate.
-            Nt: Number of output time points. Default: 100.
-            T: Total time steps. Default: Nt.
+            Nt: Number of output frames. Default: 100.
+            T: Total physical simulation time. Default: 100.0.
             **kwargs: Additional parameters to override.
 
         Returns:
@@ -178,7 +195,7 @@ class SimulationConfig(BaseModel):
         if Nt is None:
             Nt = 100
         if T is None:
-            T = Nt
+            T = 100.0
 
         impact_estimate = np.sqrt(2 * abs(m0) * T / L) if L > 0 else 10.0
         default_boundary = max(5 * impact_estimate, 50.0)

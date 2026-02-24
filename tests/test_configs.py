@@ -63,29 +63,29 @@ class TestSimulationConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
         )
         assert config.model_type == "discrete"
         assert config.D == 1.0
         assert config.L == 1.0
 
     def test_metaorder_expansion(self):
-        """Test that single-value metaorder is expanded."""
+        """Test that single-value metaorder is expanded to Nt length."""
         grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
             metaorder=[0.5],
             n_start=10,
             n_end=90,
         )
         full = config.get_full_metaorder()
-        assert len(full) == 100
+        assert len(full) == 100  # Length is Nt
         assert full[0] == 0.0
         assert full[10] == 0.5
         assert full[89] == 0.5
@@ -100,8 +100,8 @@ class TestSimulationConfig:
             D=1.0,
             L=[1.0, 2.0],
             nu=[0.1, 0.2],
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
         )
         assert config.is_multi_book
         assert config.L_max == 2.0
@@ -153,8 +153,8 @@ class TestMonteCarloConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -163,7 +163,7 @@ class TestMonteCarloConfig:
             simulation=sim_config,
         )
         assert mc_config.N_samples == 10
-        assert mc_config.T == 100
+        assert mc_config.T == 100.0
         assert mc_config.Nt == 100
 
     def test_to_simulation_args(self):
@@ -174,8 +174,8 @@ class TestMonteCarloConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -185,7 +185,7 @@ class TestMonteCarloConfig:
         )
         args = mc_config.to_simulation_args()
         assert args["model_type"] == "discrete"
-        assert args["T"] == 100
+        assert args["T"] == 100.0
         assert args["D"] == 1.0
 
 
@@ -275,15 +275,15 @@ class TestSimulationFromConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)
         assert sim.model_type == "discrete"
         assert sim.D == 1.0
         assert sim.L == 1.0
-        assert sim.T == 100
+        assert sim.T == 100.0
 
     def test_from_config_continuous(self):
         """Test creating continuous simulation from config."""
@@ -293,8 +293,8 @@ class TestSimulationFromConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100,
-            Nt=100,
+            T=100.0,  # Physical time
+            Nt=100,   # Number of frames
         )
         sim = Simulation.from_config(config)
         assert sim.model_type == "continuous"
@@ -307,8 +307,8 @@ class TestSimulationFromConfig:
             grid=grid,
             D=1.0,
             L=1.0,
-            T=50,
-            Nt=50,
+            T=50.0,  # Physical time
+            Nt=50,   # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)

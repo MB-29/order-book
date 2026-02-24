@@ -1,10 +1,9 @@
 """
 Reproduce the execution animation from demo/execution.gif.
 
-Uses standard_parameters with modifications to get visible price impact.
-The key issue is that the new code's T parameter is the number of internal
-timesteps, not physical time. We use n_end=T to have metaorder active
-throughout the simulation.
+Uses standard_parameters to generate well-behaved simulation parameters.
+Now that T is physical time and Nt is number of frames, the metaorder
+array has length Nt and represents intensity at each output frame.
 """
 
 import numpy as np
@@ -19,14 +18,6 @@ model_type = "discrete"
 
 # Get standard parameters
 params = standard_parameters(participation_rate, model_type)
-
-# Set metaorder active for entire simulation (not just first Nt steps)
-# This is needed because in the new code, metaorder array has length T
-params["n_end"] = params["T"]
-
-# Reduce Nx for faster animation (original had Nx=501, but let's use less)
-# Also adjust bounds to be closer to the original demo
-params["Nx"] = 200  # Fewer points for speed
 
 print(f"Parameters: {params}")
 
@@ -75,18 +66,11 @@ ax_price.set_ylim(-0.2 * sim.impact_th, 1.2 * sim.impact_th)
 ax_price.set_title("Price evolution")
 ax_price.legend(loc="upper right")
 
-# For animation, we iterate over Nt frames, each representing T/Nt timesteps
-Nt = sim.Nt
-T = sim.T
-steps_per_frame = T // Nt
-
 # Arrays to store frame-level results
+Nt = sim.Nt
 prices = np.zeros(Nt)
 asks_arr = np.zeros(Nt)
 bids_arr = np.zeros(Nt)
-
-# Track current step
-current_step = [0]
 
 
 def init():
@@ -107,13 +91,19 @@ def update(frame):
     if frame % 10 == 0:
         print(f"Frame {frame}/{Nt}")
 
-    # Advance simulation by steps_per_frame elementary steps
-    for _ in range(steps_per_frame):
-        step = current_step[0]
-        if step < T:
-            volume = sim.metaorder[step] * sim.dt
-            sim.book.timestep(sim.dt, volume)
-            current_step[0] += 1
+    # Execute metaorder volume for this frame
+    # Volume = intensity * dt (time interval per frame)
+    dq = sim.metaorder[frame] * sim.dt
+
+    # Advance the book by one frame (dt time, with n_diff internal steps)
+    if sim.model_type == "continuous":
+        sim.book.timestep(sim.dt, dq)
+    else:
+        sim.book.execute_metaorder(dq)
+        for _ in range(sim.n_diff):
+            sim.book.stochastic_timestep()
+            sim.book.order_reaction()
+            sim.book.update_price()
 
     # Record prices at this frame
     asks_arr[frame] = sim.book.best_ask

@@ -32,7 +32,7 @@ class MonteCarlo:
     def __init__(
         self,
         N_samples: int,
-        T: int,
+        T: float,
         Nt: int,
         m0: float,
         m1: float,
@@ -50,8 +50,8 @@ class MonteCarlo:
 
         Args:
             N_samples: Number of Monte Carlo samples.
-            T: Total time steps.
-            Nt: Number of output time points.
+            T: Total physical simulation time.
+            Nt: Number of output frames.
             m0: Mean metaorder intensity.
             m1: Metaorder noise standard deviation.
             hurst: Hurst exponent for fractional Gaussian noise.
@@ -73,15 +73,15 @@ class MonteCarlo:
         self.measurement_slice = measurement_slice
         self.sample_measurements = sample_measurements
 
-        # Noise arrays
-        self.noise = np.zeros((T, N_samples))
-        self.noisy_metaorders = np.zeros((T, N_samples))
+        # Noise arrays (sized by Nt = number of output frames)
+        self.noise = np.zeros((Nt, N_samples))
+        self.noisy_metaorders = np.zeros((Nt, N_samples))
         self.scale = m1
 
-        # Output arrays
-        self.price_samples = np.zeros((T, N_samples))
-        self.ask_samples = np.zeros((T, N_samples))
-        self.bid_samples = np.zeros((T, N_samples))
+        # Output arrays (sized by Nt = number of output frames)
+        self.price_samples = np.zeros((Nt, N_samples))
+        self.ask_samples = np.zeros((Nt, N_samples))
+        self.bid_samples = np.zeros((Nt, N_samples))
 
         # Measurement storage
         self.measured_samples: dict[str, list[Any]] = {
@@ -89,12 +89,12 @@ class MonteCarlo:
         }
 
         # Statistics (computed after run)
-        self.price_mean: npt.NDArray[np.float64] = np.zeros(T)
-        self.price_variance: npt.NDArray[np.float64] = np.zeros(T)
-        self.ask_mean: npt.NDArray[np.float64] = np.zeros(T)
-        self.ask_variance: npt.NDArray[np.float64] = np.zeros(T)
-        self.bid_mean: npt.NDArray[np.float64] = np.zeros(T)
-        self.bid_variance: npt.NDArray[np.float64] = np.zeros(T)
+        self.price_mean: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.price_variance: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.ask_mean: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.ask_variance: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.bid_mean: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.bid_variance: npt.NDArray[np.float64] = np.zeros(Nt)
         self.measurement_means: dict[str, npt.NDArray[np.float64]] = {}
         self.measurement_vars: dict[str, npt.NDArray[np.float64]] = {}
 
@@ -179,14 +179,15 @@ class MonteCarlo:
 
     def generate_noise(self) -> None:
         """Generate fractional Gaussian noise metaorder samples."""
-        self.noisy_metaorders = np.full((self.T, self.N_samples), self.m0, dtype=float)
+        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0, dtype=float)
 
         if self.m1 == 0:
             return
 
         # Generate standard fractional Gaussian noise for each sample
+        # n=Nt samples over physical time T
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] = fgn(n=self.T, hurst=self.hurst, length=self.T)
+            self.noise[:, sample_index] = fgn(n=self.Nt, hurst=self.hurst, length=self.T)
 
         # Scale and add to mean
         self.scale = self.m1

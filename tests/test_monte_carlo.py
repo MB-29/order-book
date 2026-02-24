@@ -48,7 +48,7 @@ class TestMonteCarloConstruction:
     def test_output_array_shapes(self, simulation_params: dict):
         """Output arrays should have correct shapes."""
         N_samples = 5
-        T = simulation_params["T"]
+        Nt = simulation_params["Nt"]  # Arrays sized by Nt (frames), not T (time)
 
         mc = MonteCarlo.from_params(
             N_samples=N_samples,
@@ -56,10 +56,10 @@ class TestMonteCarloConstruction:
             simulation_args=simulation_params,
         )
 
-        assert mc.price_samples.shape == (T, N_samples)
-        assert mc.ask_samples.shape == (T, N_samples)
-        assert mc.bid_samples.shape == (T, N_samples)
-        assert mc.noise.shape == (T, N_samples)
+        assert mc.price_samples.shape == (Nt, N_samples)
+        assert mc.ask_samples.shape == (Nt, N_samples)
+        assert mc.bid_samples.shape == (Nt, N_samples)
+        assert mc.noise.shape == (Nt, N_samples)
 
 
 class TestMonteCarloNoiseGeneration:
@@ -68,7 +68,7 @@ class TestMonteCarloNoiseGeneration:
     def test_generate_noise_shape(self, simulation_params: dict, seed_random):
         """generate_noise should create arrays of correct shape."""
         N_samples = 5
-        T = simulation_params["T"]
+        Nt = simulation_params["Nt"]  # Arrays sized by Nt (frames), not T (time)
 
         mc = MonteCarlo.from_params(
             N_samples=N_samples,
@@ -77,7 +77,7 @@ class TestMonteCarloNoiseGeneration:
         )
         mc.generate_noise()
 
-        assert mc.noisy_metaorders.shape == (T, N_samples)
+        assert mc.noisy_metaorders.shape == (Nt, N_samples)
 
     def test_generate_noise_mean_approx_m0(self, simulation_params: dict, seed_random):
         """Generated noise should have mean approximately m0."""
@@ -132,9 +132,9 @@ class TestMonteCarloRunning:
         )
         mc.run()
 
-        # Statistics should be computed
-        assert len(mc.price_mean) == mc.T
-        assert len(mc.price_variance) == mc.T
+        # Statistics should be computed (sized by Nt)
+        assert len(mc.price_mean) == mc.Nt
+        assert len(mc.price_variance) == mc.Nt
 
     def test_run_sets_simulation_reference(self, simulation_params: dict, seed_random):
         """run should set simulation reference."""
@@ -227,15 +227,15 @@ class TestMonteCarloMeasurements:
         """Measured quantities should be recorded for each sample."""
         params = {
             "model_type": "discrete",
-            "T": 50,
-            "Nt": 5,
+            "T": 50.0,  # Physical time
+            "Nt": 10,   # Number of frames
             **small_grid,
             "D": 0.5,
             "L": 10.0,
             "nu": 0.0,
             "metaorder": [1.0],
             "measured_quantities": ["best_ask", "best_bid"],
-            "measurement_indices": [10, 30],
+            "measurement_indices": [2, 8],  # Within Nt range
         }
         mc = MonteCarlo.from_params(
             N_samples=2,

@@ -63,8 +63,8 @@ class MonteCarloConfig(BaseModel):
         return self
 
     @property
-    def T(self) -> int:
-        """Total time steps (from simulation config)."""
+    def T(self) -> float:
+        """Total physical simulation time (from simulation config)."""
         return self.simulation.T
 
     @property
