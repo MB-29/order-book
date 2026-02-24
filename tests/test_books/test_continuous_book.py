@@ -18,12 +18,12 @@ class TestLinearContinuousBookConstruction:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
         assert linear_params["D"] == book.D
         assert linear_params["L"] == book.L
-        assert book.Nx == linear_params["Nx"]
+        assert book.n_grid == linear_params["n_grid"]
 
     def test_from_params_computes_grid(self, linear_params: dict):
         """from_params should compute the price grid correctly."""
@@ -32,10 +32,10 @@ class TestLinearContinuousBookConstruction:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
-        assert len(book.X) == linear_params["Nx"]
+        assert len(book.X) == linear_params["n_grid"]
         assert book.X[0] == linear_params["xmin"]
         assert book.X[-1] == linear_params["xmax"]
         assert book.dx > 0
@@ -75,8 +75,8 @@ class TestLinearContinuousBookPriceTracking:
 
         assert continuous_book.best_ask_index >= 0
         assert continuous_book.best_bid_index >= 0
-        assert continuous_book.best_ask_index < continuous_book.Nx
-        assert continuous_book.best_bid_index < continuous_book.Nx
+        assert continuous_book.best_ask_index < continuous_book.n_grid
+        assert continuous_book.best_bid_index < continuous_book.n_grid
 
     def test_best_ask_best_bid_symmetric(self, linear_params: dict):
         """For symmetric initial density, best ask and bid should be symmetric."""
@@ -87,7 +87,7 @@ class TestLinearContinuousBookPriceTracking:
             L=linear_params["L"],
             xmin=-xmax,
             xmax=xmax,
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
         # Best ask and bid should be symmetric around 0
@@ -126,7 +126,7 @@ class TestLinearContinuousBookTimeEvolution:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
         initial_density = book.density.copy()
 
@@ -170,7 +170,7 @@ class TestLinearContinuousBookTimeEvolution:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
         # Try to buy more than available
@@ -184,7 +184,7 @@ class TestLinearContinuousBookTimeEvolution:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
         # Try to sell more than available
@@ -221,12 +221,12 @@ class TestLinearContinuousBookDensity:
 
     def test_density_shape_matches_grid(self, continuous_book: LinearContinuousBook):
         """Density array should match grid size."""
-        assert len(continuous_book.density) == continuous_book.Nx
+        assert len(continuous_book.density) == continuous_book.n_grid
 
     def test_density_negative_on_ask_side(self, continuous_book: LinearContinuousBook):
         """Density should be negative on ask side (positive x)."""
         # For linear density -L*x, positive x gives negative density (asks)
-        mid_idx = continuous_book.Nx // 2
+        mid_idx = continuous_book.n_grid // 2
         # Ask side is at higher indices (positive x)
         ask_side_density = continuous_book.density[mid_idx + 5 :]
         assert np.all(ask_side_density < 0)
@@ -234,7 +234,7 @@ class TestLinearContinuousBookDensity:
     def test_density_positive_on_bid_side(self, continuous_book: LinearContinuousBook):
         """Density should be positive on bid side (negative x)."""
         # For linear density -L*x, negative x gives positive density (bids)
-        mid_idx = continuous_book.Nx // 2
+        mid_idx = continuous_book.n_grid // 2
         # Bid side is at lower indices (negative x)
         bid_side_density = continuous_book.density[: mid_idx - 5]
         assert np.all(bid_side_density > 0)
@@ -246,7 +246,7 @@ class TestLinearContinuousBookDensity:
             L=linear_params["L"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
         )
 
         expected = linear_params["L"] * book.dx**2

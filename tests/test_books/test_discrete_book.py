@@ -17,7 +17,7 @@ class TestDiscreteBookConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             nu=linear_params["nu"],
             lambd=linear_params["lambd"],
@@ -34,7 +34,7 @@ class TestDiscreteBookConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             nu=0.0,
             lambd=0.0,
@@ -49,7 +49,7 @@ class TestDiscreteBookConstruction:
             D=nonlinear_params["D"],
             xmin=nonlinear_params["xmin"],
             xmax=nonlinear_params["xmax"],
-            Nx=nonlinear_params["Nx"],
+            n_grid=nonlinear_params["n_grid"],
             L=nonlinear_params["L"],
             nu=nonlinear_params["nu"],
             lambd=nonlinear_params["lambd"],
@@ -60,7 +60,7 @@ class TestDiscreteBookConstruction:
 
     def test_grid_properties(self, discrete_book: DiscreteBook):
         """DiscreteBook should have correct grid properties."""
-        assert len(discrete_book.X) == discrete_book.Nx
+        assert len(discrete_book.X) == discrete_book.n_grid
         assert discrete_book.X[0] == discrete_book.xmin
         assert discrete_book.X[-1] == discrete_book.xmax
         assert discrete_book.dx > 0
@@ -75,8 +75,8 @@ class TestDiscreteBookPriceTracking:
 
         assert discrete_book.best_ask_index >= 0
         assert discrete_book.best_bid_index >= 0
-        assert discrete_book.best_ask_index < discrete_book.Nx
-        assert discrete_book.best_bid_index < discrete_book.Nx
+        assert discrete_book.best_ask_index < discrete_book.n_grid
+        assert discrete_book.best_bid_index < discrete_book.n_grid
 
     def test_best_ask_index_greater_than_best_bid_index(
         self, linear_discrete_book: LinearDiscreteBook
@@ -102,14 +102,14 @@ class TestDiscreteBookPriceTracking:
         volumes = discrete_book.get_ask_volumes()
 
         assert isinstance(volumes, np.ndarray)
-        assert len(volumes) == discrete_book.Nx
+        assert len(volumes) == discrete_book.n_grid
 
     def test_get_bid_volumes_returns_array(self, discrete_book: DiscreteBook):
         """get_bid_volumes should return numpy array."""
         volumes = discrete_book.get_bid_volumes()
 
         assert isinstance(volumes, np.ndarray)
-        assert len(volumes) == discrete_book.Nx
+        assert len(volumes) == discrete_book.n_grid
 
 
 class TestDiscreteBookTimeEvolution:
@@ -159,7 +159,7 @@ class TestDiscreteBookTimeEvolution:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             nu=linear_params["nu"],
             lambd=linear_params["lambd"],
@@ -167,7 +167,7 @@ class TestDiscreteBookTimeEvolution:
         )
 
         # Manually set up crossed orders
-        mid = linear_params["Nx"] // 2
+        mid = linear_params["n_grid"] // 2
         book.ask_orders.volumes[mid - 2] = 10  # Ask at low price
         book.bid_orders.volumes[mid + 2] = 10  # Bid at high price
         book.update_price()
@@ -275,7 +275,7 @@ class TestLinearDiscreteBookConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
         )
 
@@ -288,7 +288,7 @@ class TestLinearDiscreteBookConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
         )
 
@@ -303,13 +303,13 @@ class TestLinearDiscreteBookConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
         )
 
         # Linear density means volume proportional to distance from center
         # Check that volumes increase away from center
-        mid = linear_params["Nx"] // 2
+        mid = linear_params["n_grid"] // 2
         # Ask side should have increasing volume towards high prices
         assert np.sum(book.get_ask_volumes()[mid:]) > 0
 

@@ -67,7 +67,7 @@ ax_price.set_title("Price evolution")
 ax_price.legend(loc="upper right")
 
 # Arrays to store frame-level results
-Nt = sim.Nt
+Nt = sim.n_frames
 prices = np.zeros(Nt)
 asks_arr = np.zeros(Nt)
 bids_arr = np.zeros(Nt)

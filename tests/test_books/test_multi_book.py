@@ -17,7 +17,7 @@ class TestMultiDiscreteBookConstruction:
             D=multi_book_params["D"],
             xmin=multi_book_params["xmin"],
             xmax=multi_book_params["xmax"],
-            Nx=multi_book_params["Nx"],
+            n_grid=multi_book_params["n_grid"],
             L_list=multi_book_params["L_list"],
             nu_list=multi_book_params["nu_list"],
             lambd_list=multi_book_params["lambd_list"],
@@ -33,7 +33,7 @@ class TestMultiDiscreteBookConstruction:
                 D=0.5,
                 xmin=small_grid["xmin"],
                 xmax=small_grid["xmax"],
-                Nx=small_grid["Nx"],
+                n_grid=small_grid["n_grid"],
                 L_list=[5.0, 5.0],
                 nu_list=[0.0],  # Wrong length
                 lambd_list=[0.0, 0.0],
@@ -47,7 +47,7 @@ class TestMultiDiscreteBookConstruction:
             D=multi_book_params["D"],
             xmin=multi_book_params["xmin"],
             xmax=multi_book_params["xmax"],
-            Nx=multi_book_params["Nx"],
+            n_grid=multi_book_params["n_grid"],
             L_list=multi_book_params["L_list"],
             nu_list=[0.0, 0.0],
             lambd_list=[0.0, 0.0],
@@ -62,7 +62,7 @@ class TestMultiDiscreteBookConstruction:
             D=0.5,
             xmin=small_grid["xmin"],
             xmax=small_grid["xmax"],
-            Nx=small_grid["Nx"],
+            n_grid=small_grid["n_grid"],
             L_list=[5.0],
             nu_list=[0.1],
             lambd_list=[0.5],
@@ -79,7 +79,7 @@ class TestMultiDiscreteBookConstruction:
             D=0.5,
             xmin=small_grid["xmin"],
             xmax=small_grid["xmax"],
-            Nx=small_grid["Nx"],
+            n_grid=small_grid["n_grid"],
             L_list=[5.0, 5.0],
             nu_list=[0.0, 0.1],  # First linear, second nonlinear
             lambd_list=[0.0, 0.5],
@@ -90,7 +90,7 @@ class TestMultiDiscreteBookConstruction:
 
     def test_grid_properties(self, multi_book: MultiDiscreteBook):
         """MultiDiscreteBook should have correct grid properties."""
-        assert len(multi_book.X) == multi_book.Nx
+        assert len(multi_book.X) == multi_book.n_grid
         assert multi_book.X[0] == multi_book.xmin
         assert multi_book.X[-1] == multi_book.xmax
         assert multi_book.dx > 0
@@ -155,8 +155,8 @@ class TestMultiDiscreteBookPriceTracking:
 
         assert multi_book.best_ask_index >= 0
         assert multi_book.best_bid_index >= 0
-        assert multi_book.best_ask_index < multi_book.Nx
-        assert multi_book.best_bid_index < multi_book.Nx
+        assert multi_book.best_ask_index < multi_book.n_grid
+        assert multi_book.best_bid_index < multi_book.n_grid
 
     def test_update_price_updates_all_actor_books(self, multi_book: MultiDiscreteBook):
         """update_price should update prices in all actor books."""

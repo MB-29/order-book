@@ -63,7 +63,7 @@ class LinearContinuousBook:
         self.resolution_volume = resolution_volume
 
         # Derived values
-        self.Nx = len(X)
+        self.n_grid = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
         self.price_range = (self.xmax - self.xmin) / 2
@@ -97,7 +97,7 @@ class LinearContinuousBook:
         L: float,
         xmin: float,
         xmax: float,
-        Nx: int = 1000,
+        n_grid: int = 1000,
     ) -> Self:
         """
         Create a LinearContinuousBook from raw parameters.
@@ -107,13 +107,13 @@ class LinearContinuousBook:
             L: Order density slope (latent liquidity).
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
-            Nx: Number of price grid points.
+            n_grid: Number of price grid points.
 
         Returns:
             Configured LinearContinuousBook instance.
         """
         # Compute grid
-        X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
+        X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
@@ -156,7 +156,7 @@ class LinearContinuousBook:
         bid_indices = np.where(self.density * self.dx > self.resolution_volume)[0]
         ask_indices = np.where(self.density * self.dx < -self.resolution_volume)[0]
 
-        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.Nx - 1
+        self.best_ask_index = ask_indices[0] if ask_indices.size > 0 else self.n_grid - 1
         self.best_bid_index = bid_indices[-1] if bid_indices.size > 0 else 0
 
         self.best_ask = float(self.X[self.best_ask_index - 1])
@@ -191,7 +191,7 @@ class LinearContinuousBook:
                 self.density[self.best_ask_index] = 0
                 self.best_ask_index += 1
                 dq -= liquidity
-                if self.best_ask_index > self.Nx - 1:
+                if self.best_ask_index > self.n_grid - 1:
                     raise ValueError("Market lacks ask liquidity")
         else:
             while dq < 0:

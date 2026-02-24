@@ -11,7 +11,7 @@ class GridConfig(BaseModel):
 
     xmin: float = Field(description="Lower bound of the price interval")
     xmax: float = Field(description="Upper bound of the price interval")
-    Nx: int = Field(gt=0, description="Number of spatial grid points")
+    n_grid: int = Field(gt=0, description="Number of spatial grid points")
 
     model_config = {"frozen": True}
 
@@ -29,4 +29,4 @@ class GridConfig(BaseModel):
     @property
     def dx(self) -> float:
         """Spatial step size."""
-        return self.price_range / self.Nx
+        return self.price_range / self.n_grid

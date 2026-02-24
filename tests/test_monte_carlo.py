@@ -31,8 +31,8 @@ class TestMonteCarloConstruction:
             simulation_args=simulation_params,
         )
 
-        assert simulation_params["T"] == mc.T
-        assert mc.Nt == simulation_params["Nt"]
+        assert simulation_params["duration"] == mc.duration
+        assert mc.n_frames == simulation_params["n_frames"]
 
     def test_from_params_defaults(self, simulation_params: dict):
         """from_params should use default m0=0, m1=0 when not specified."""
@@ -48,7 +48,7 @@ class TestMonteCarloConstruction:
     def test_output_array_shapes(self, simulation_params: dict):
         """Output arrays should have correct shapes."""
         N_samples = 5
-        Nt = simulation_params["Nt"]  # Arrays sized by Nt (frames), not T (time)
+        Nt = simulation_params["n_frames"]  # Arrays sized by Nt (frames), not T (time)
 
         mc = MonteCarlo.from_params(
             N_samples=N_samples,
@@ -68,7 +68,7 @@ class TestMonteCarloNoiseGeneration:
     def test_generate_noise_shape(self, simulation_params: dict, seed_random):
         """generate_noise should create arrays of correct shape."""
         N_samples = 5
-        Nt = simulation_params["Nt"]  # Arrays sized by Nt (frames), not T (time)
+        Nt = simulation_params["n_frames"]  # Arrays sized by Nt (frames), not T (time)
 
         mc = MonteCarlo.from_params(
             N_samples=N_samples,
@@ -133,8 +133,8 @@ class TestMonteCarloRunning:
         mc.run()
 
         # Statistics should be computed (sized by Nt)
-        assert len(mc.price_mean) == mc.Nt
-        assert len(mc.price_variance) == mc.Nt
+        assert len(mc.price_mean) == mc.n_frames
+        assert len(mc.price_variance) == mc.n_frames
 
     def test_run_sets_simulation_reference(self, simulation_params: dict, seed_random):
         """run should set simulation reference."""
@@ -227,8 +227,8 @@ class TestMonteCarloMeasurements:
         """Measured quantities should be recorded for each sample."""
         params = {
             "model_type": "discrete",
-            "T": 50.0,  # Physical time
-            "Nt": 10,   # Number of frames
+            "duration":  50.0,  # Physical time
+            "n_frames":  10,   # Number of frames
             **small_grid,
             "D": 0.5,
             "L": 10.0,

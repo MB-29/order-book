@@ -25,7 +25,7 @@ def small_grid() -> dict:
     return {
         "xmin": -10.0,
         "xmax": 10.0,
-        "Nx": 20,
+        "n_grid":  20,
     }
 
 
@@ -35,7 +35,7 @@ def standard_grid() -> dict:
     return {
         "xmin": -50.0,
         "xmax": 50.0,
-        "Nx": 100,
+        "n_grid":  100,
     }
 
 
@@ -77,8 +77,8 @@ def simulation_params(small_grid: dict) -> dict:
     """Ready-to-use Simulation parameters."""
     return {
         "model_type": "discrete",
-        "T": 100.0,  # Physical time
-        "Nt": 10,    # Number of output frames
+        "duration":  100.0,  # Physical time
+        "n_frames":  10,    # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,
@@ -92,8 +92,8 @@ def continuous_simulation_params(small_grid: dict) -> dict:
     """Simulation parameters for continuous model."""
     return {
         "model_type": "continuous",
-        "T": 100.0,  # Physical time
-        "Nt": 10,    # Number of output frames
+        "duration":  100.0,  # Physical time
+        "n_frames":  10,    # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,
@@ -129,7 +129,7 @@ def limit_orders_ask(linear_params: dict) -> LimitOrders:
         D=linear_params["D"],
         xmin=linear_params["xmin"],
         xmax=linear_params["xmax"],
-        Nx=linear_params["Nx"],
+        n_grid=linear_params["n_grid"],
         L=linear_params["L"],
         initial_density="linear",
         boundary_conditions="linear",
@@ -146,7 +146,7 @@ def limit_orders_bid(linear_params: dict) -> LimitOrders:
         D=linear_params["D"],
         xmin=linear_params["xmin"],
         xmax=linear_params["xmax"],
-        Nx=linear_params["Nx"],
+        n_grid=linear_params["n_grid"],
         L=linear_params["L"],
         initial_density="linear",
         boundary_conditions="linear",
@@ -163,7 +163,7 @@ def limit_orders_nonlinear(nonlinear_params: dict) -> LimitOrders:
         D=nonlinear_params["D"],
         xmin=nonlinear_params["xmin"],
         xmax=nonlinear_params["xmax"],
-        Nx=nonlinear_params["Nx"],
+        n_grid=nonlinear_params["n_grid"],
         L=nonlinear_params["L"],
         initial_density="stationary",
         boundary_conditions="flat",
@@ -182,7 +182,7 @@ def discrete_book(linear_params: dict) -> DiscreteBook:
         D=linear_params["D"],
         xmin=linear_params["xmin"],
         xmax=linear_params["xmax"],
-        Nx=linear_params["Nx"],
+        n_grid=linear_params["n_grid"],
         L=linear_params["L"],
         nu=linear_params["nu"],
         lambd=linear_params["lambd"],
@@ -198,7 +198,7 @@ def nonlinear_discrete_book(nonlinear_params: dict) -> DiscreteBook:
         D=nonlinear_params["D"],
         xmin=nonlinear_params["xmin"],
         xmax=nonlinear_params["xmax"],
-        Nx=nonlinear_params["Nx"],
+        n_grid=nonlinear_params["n_grid"],
         L=nonlinear_params["L"],
         nu=nonlinear_params["nu"],
         lambd=nonlinear_params["lambd"],
@@ -214,7 +214,7 @@ def linear_discrete_book(linear_params: dict) -> LinearDiscreteBook:
         D=linear_params["D"],
         xmin=linear_params["xmin"],
         xmax=linear_params["xmax"],
-        Nx=linear_params["Nx"],
+        n_grid=linear_params["n_grid"],
         L=linear_params["L"],
     )
 
@@ -227,7 +227,7 @@ def continuous_book(linear_params: dict) -> LinearContinuousBook:
         L=linear_params["L"],
         xmin=linear_params["xmin"],
         xmax=linear_params["xmax"],
-        Nx=linear_params["Nx"],
+        n_grid=linear_params["n_grid"],
     )
 
 
@@ -238,7 +238,7 @@ def multi_book(multi_book_params: dict) -> MultiDiscreteBook:
         D=multi_book_params["D"],
         xmin=multi_book_params["xmin"],
         xmax=multi_book_params["xmax"],
-        Nx=multi_book_params["Nx"],
+        n_grid=multi_book_params["n_grid"],
         L_list=multi_book_params["L_list"],
         nu_list=multi_book_params["nu_list"],
         lambd_list=multi_book_params["lambd_list"],

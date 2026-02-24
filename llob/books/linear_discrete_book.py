@@ -28,7 +28,7 @@ class LinearDiscreteBook(DiscreteBook):
         D: float,
         xmin: float,
         xmax: float,
-        Nx: int,
+        n_grid: int,
         L: float,
     ) -> Self:
         """
@@ -38,7 +38,7 @@ class LinearDiscreteBook(DiscreteBook):
             D: Diffusion constant.
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
-            Nx: Number of price grid points.
+            n_grid: Number of price grid points.
             L: Order density slope (latent liquidity).
 
         Returns:
@@ -47,7 +47,7 @@ class LinearDiscreteBook(DiscreteBook):
         # Use parent's from_params with linear settings
         import numpy as np
 
-        X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
+        X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
@@ -58,7 +58,7 @@ class LinearDiscreteBook(DiscreteBook):
             D=D,
             xmin=xmin,
             xmax=xmax,
-            Nx=Nx,
+            n_grid=n_grid,
             L=L,
             initial_density="linear",
             boundary_conditions="linear",
@@ -70,7 +70,7 @@ class LinearDiscreteBook(DiscreteBook):
             D=D,
             xmin=xmin,
             xmax=xmax,
-            Nx=Nx,
+            n_grid=n_grid,
             L=L,
             initial_density="linear",
             boundary_conditions="linear",

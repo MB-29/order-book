@@ -63,14 +63,14 @@ class MonteCarloConfig(BaseModel):
         return self
 
     @property
-    def T(self) -> float:
+    def duration(self) -> float:
         """Total physical simulation time (from simulation config)."""
-        return self.simulation.T
+        return self.simulation.duration
 
     @property
-    def Nt(self) -> int:
+    def n_frames(self) -> int:
         """Number of output time points (from simulation config)."""
-        return self.simulation.Nt
+        return self.simulation.n_frames
 
     def to_noise_args(self) -> dict:
         """Convert noise config to legacy noise_args dict."""
@@ -87,16 +87,16 @@ class MonteCarloConfig(BaseModel):
         """
         return {
             "model_type": self.simulation.model_type,
-            "T": self.simulation.T,
-            "Nt": self.simulation.Nt,
+            "duration": self.simulation.duration,
+            "n_frames": self.simulation.n_frames,
             "xmin": self.simulation.grid.xmin,
             "xmax": self.simulation.grid.xmax,
-            "Nx": self.simulation.grid.Nx,
+            "n_grid": self.simulation.grid.n_grid,
             "D": self.simulation.D,
             "L": self.simulation.L,
             "nu": self.simulation.nu,
-            "n_start": self.simulation.effective_n_start,
-            "n_end": self.simulation.effective_n_end,
+            "frame_start": self.simulation.effective_frame_start,
+            "frame_end": self.simulation.effective_frame_end,
             "price_formula": self.simulation.price_formula,
             "measured_quantities": self.simulation.measured_quantities,
             "measurement_indices": self.simulation.measurement_indices,

@@ -32,8 +32,8 @@ class MonteCarlo:
     def __init__(
         self,
         N_samples: int,
-        T: float,
-        Nt: int,
+        duration: float,
+        n_frames: int,
         m0: float,
         m1: float,
         hurst: float,
@@ -50,8 +50,8 @@ class MonteCarlo:
 
         Args:
             N_samples: Number of Monte Carlo samples.
-            T: Total physical simulation time.
-            Nt: Number of output frames.
+            duration: Total physical simulation time.
+            n_frames: Number of output frames.
             m0: Mean metaorder intensity.
             m1: Metaorder noise standard deviation.
             hurst: Hurst exponent for fractional Gaussian noise.
@@ -62,8 +62,8 @@ class MonteCarlo:
             sample_measurements: Names of sample-level measurements.
         """
         self.N_samples = N_samples
-        self.T = T
-        self.Nt = Nt
+        self.duration = duration
+        self.n_frames = n_frames
         self.m0 = m0
         self.m1 = m1
         self.hurst = hurst
@@ -73,15 +73,15 @@ class MonteCarlo:
         self.measurement_slice = measurement_slice
         self.sample_measurements = sample_measurements
 
-        # Noise arrays (sized by Nt = number of output frames)
-        self.noise = np.zeros((Nt, N_samples))
-        self.noisy_metaorders = np.zeros((Nt, N_samples))
+        # Noise arrays (sized by n_frames = number of output frames)
+        self.noise = np.zeros((n_frames, N_samples))
+        self.noisy_metaorders = np.zeros((n_frames, N_samples))
         self.scale = m1
 
-        # Output arrays (sized by Nt = number of output frames)
-        self.price_samples = np.zeros((Nt, N_samples))
-        self.ask_samples = np.zeros((Nt, N_samples))
-        self.bid_samples = np.zeros((Nt, N_samples))
+        # Output arrays (sized by n_frames = number of output frames)
+        self.price_samples = np.zeros((n_frames, N_samples))
+        self.ask_samples = np.zeros((n_frames, N_samples))
+        self.bid_samples = np.zeros((n_frames, N_samples))
 
         # Measurement storage
         self.measured_samples: dict[str, list[Any]] = {
@@ -89,12 +89,12 @@ class MonteCarlo:
         }
 
         # Statistics (computed after run)
-        self.price_mean: npt.NDArray[np.float64] = np.zeros(Nt)
-        self.price_variance: npt.NDArray[np.float64] = np.zeros(Nt)
-        self.ask_mean: npt.NDArray[np.float64] = np.zeros(Nt)
-        self.ask_variance: npt.NDArray[np.float64] = np.zeros(Nt)
-        self.bid_mean: npt.NDArray[np.float64] = np.zeros(Nt)
-        self.bid_variance: npt.NDArray[np.float64] = np.zeros(Nt)
+        self.price_mean: npt.NDArray[np.float64] = np.zeros(n_frames)
+        self.price_variance: npt.NDArray[np.float64] = np.zeros(n_frames)
+        self.ask_mean: npt.NDArray[np.float64] = np.zeros(n_frames)
+        self.ask_variance: npt.NDArray[np.float64] = np.zeros(n_frames)
+        self.bid_mean: npt.NDArray[np.float64] = np.zeros(n_frames)
+        self.bid_variance: npt.NDArray[np.float64] = np.zeros(n_frames)
         self.measurement_means: dict[str, npt.NDArray[np.float64]] = {}
         self.measurement_vars: dict[str, npt.NDArray[np.float64]] = {}
 
@@ -120,13 +120,13 @@ class MonteCarlo:
                 - m1: Metaorder noise std (default: 0)
                 - hurst: Hurst exponent (required)
             simulation_args: Arguments passed to Simulation.from_params.
-                Must include T and Nt.
+                Must include duration and n_frames.
 
         Returns:
             Configured MonteCarlo instance.
         """
-        T = simulation_args["T"]
-        Nt = simulation_args["Nt"]
+        duration = simulation_args["duration"]
+        n_frames = simulation_args["n_frames"]
         m0 = noise_args.get("m0", 0.0)
         m1 = noise_args.get("m1", 0.0)
         hurst = noise_args["hurst"]
@@ -138,8 +138,8 @@ class MonteCarlo:
 
         return cls(
             N_samples=N_samples,
-            T=T,
-            Nt=Nt,
+            duration=duration,
+            n_frames=n_frames,
             m0=m0,
             m1=m1,
             hurst=hurst,
@@ -165,8 +165,8 @@ class MonteCarlo:
         """
         return cls(
             N_samples=config.N_samples,
-            T=config.T,
-            Nt=config.Nt,
+            duration=config.duration,
+            n_frames=config.n_frames,
             m0=config.noise.m0,
             m1=config.noise.m1,
             hurst=config.noise.hurst,
@@ -179,15 +179,15 @@ class MonteCarlo:
 
     def generate_noise(self) -> None:
         """Generate fractional Gaussian noise metaorder samples."""
-        self.noisy_metaorders = np.full((self.Nt, self.N_samples), self.m0, dtype=float)
+        self.noisy_metaorders = np.full((self.n_frames, self.N_samples), self.m0, dtype=float)
 
         if self.m1 == 0:
             return
 
         # Generate standard fractional Gaussian noise for each sample
-        # n=Nt samples over physical time T
+        # n=n_frames samples over physical time duration
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] = fgn(n=self.Nt, hurst=self.hurst, length=self.T)
+            self.noise[:, sample_index] = fgn(n=self.n_frames, hurst=self.hurst, length=self.duration)
 
         # Scale and add to mean
         self.scale = self.m1

@@ -76,7 +76,7 @@ class LimitOrders:
         self.boundary_flow = boundary_flow
 
         # Derived constants
-        self.Nx = len(X)
+        self.n_grid = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
         self.sign = -1 if side == "ask" else 1
@@ -98,7 +98,7 @@ class LimitOrders:
         D: float,
         xmin: float,
         xmax: float,
-        Nx: int,
+        n_grid: int,
         L: Optional[float] = None,
         initial_density: Literal["stationary", "linear", "empty"] = "stationary",
         boundary_conditions: Literal["flat", "linear"] = "flat",
@@ -113,7 +113,7 @@ class LimitOrders:
             D: Diffusion constant.
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
-            Nx: Number of price grid points.
+            n_grid: Number of price grid points.
             L: Order density slope. If None, computed from lambd/(sqrt(nu*D)).
             initial_density: Initial density profile type.
             boundary_conditions: Boundary condition type.
@@ -125,7 +125,7 @@ class LimitOrders:
             ValueError: If L is None and nu*D <= 0.
         """
         # Compute grid
-        X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
+        X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
@@ -206,20 +206,20 @@ class LimitOrders:
 
         # Number of arrival points for a given side
         if self.side == "ask":
-            size = self.Nx - self.best_price_index % self.Nx
+            size = self.n_grid - self.best_price_index % self.n_grid
         else:
             size = self.best_price_index + 1
 
         if spread > 0:
             size += spread // 2
-        padding_size = size - self.Nx if self.side == "ask" else self.Nx - size
+        padding_size = size - self.n_grid if self.side == "ask" else self.n_grid - size
 
         if USE_NUMBA:
             self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
             return
 
         arrivals = np.random.poisson(lam=lam, size=size)
-        padding = (self.Nx - size, 0) if self.side == "ask" else (0, self.Nx - size)
+        padding = (self.n_grid - size, 0) if self.side == "ask" else (0, self.n_grid - size)
         arrivals = np.pad(arrivals, padding, mode="constant", constant_values=0)
         self.volumes += arrivals
 
@@ -276,7 +276,7 @@ class LimitOrders:
             )
             return
 
-        jumps = np.zeros((self.Nx, 2), dtype=int)
+        jumps = np.zeros((self.n_grid, 2), dtype=int)
         for index, order_volume in enumerate(self.volumes):
             jumps_left = np.random.binomial(order_volume, 0.5)
             jumps[index, :] = [jumps_left, order_volume - jumps_left]
@@ -327,7 +327,7 @@ class LimitOrders:
         """
         if volume == 0:
             return
-        if self.best_price_index in {0, self.Nx}:
+        if self.best_price_index in {0, self.n_grid}:
             raise ValueError(f"Market lacks {self.side} liquidity")
 
         index_increment = -self.sign
@@ -343,7 +343,7 @@ class LimitOrders:
             self.best_price_index += index_increment
             trade_volume -= liquidity
 
-            if self.best_price_index > self.Nx - 1 or self.best_price_index < 0:
+            if self.best_price_index > self.n_grid - 1 or self.best_price_index < 0:
                 raise ValueError(f"Market lacks {self.side} liquidity")
 
     def execute_orders(

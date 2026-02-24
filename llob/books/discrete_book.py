@@ -62,7 +62,7 @@ class DiscreteBook:
         self.D = D
 
         # Derived values
-        self.Nx = len(X)
+        self.n_grid = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
         self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
@@ -98,7 +98,7 @@ class DiscreteBook:
         D: float,
         xmin: float,
         xmax: float,
-        Nx: int,
+        n_grid: int,
         lambd: float = 0.0,
         nu: float = 0.0,
         L: Optional[float] = None,
@@ -112,7 +112,7 @@ class DiscreteBook:
             D: Diffusion constant.
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
-            Nx: Number of price grid points.
+            n_grid: Number of price grid points.
             lambd: Deposition intensity parameter.
             nu: Cancellation rate parameter.
             L: Order density slope. If None, computed from lambd/(sqrt(nu*D)).
@@ -123,7 +123,7 @@ class DiscreteBook:
             Configured DiscreteBook instance.
         """
         # Compute grid
-        X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
+        X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
@@ -135,7 +135,7 @@ class DiscreteBook:
             D=D,
             xmin=xmin,
             xmax=xmax,
-            Nx=Nx,
+            n_grid=n_grid,
             L=L,
             initial_density=initial_density,
             boundary_conditions=boundary_conditions,
@@ -147,7 +147,7 @@ class DiscreteBook:
             D=D,
             xmin=xmin,
             xmax=xmax,
-            Nx=Nx,
+            n_grid=n_grid,
             L=L,
             initial_density=initial_density,
             boundary_conditions=boundary_conditions,
@@ -259,7 +259,7 @@ class DiscreteBook:
 
         self.volume_ax = fig.add_subplot(2, 1, 1)
 
-        width = max((self.xmax - self.xmin) / self.Nx, 0.02)
+        width = max((self.xmax - self.xmin) / self.n_grid, 0.02)
         self.ask_bars = self.volume_ax.bar(
             self.X,
             self.get_ask_volumes(),
@@ -328,7 +328,7 @@ class DiscreteBook:
 
         self.timestep(tstep, volume)
 
-        for index in range(self.Nx):
+        for index in range(self.n_grid):
             self.ask_bars[index].set_height(self.get_ask_volumes()[index])
             self.bid_bars[index].set_height(self.get_bid_volumes()[index])
 

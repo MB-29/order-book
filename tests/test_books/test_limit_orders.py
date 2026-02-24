@@ -20,15 +20,15 @@ class TestLimitOrdersConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
         )
 
         assert orders.side == "ask"
         assert linear_params["D"] == orders.D
         assert linear_params["L"] == orders.L
-        assert orders.Nx == linear_params["Nx"]
-        assert len(orders.volumes) == linear_params["Nx"]
+        assert orders.n_grid == linear_params["n_grid"]
+        assert len(orders.volumes) == linear_params["n_grid"]
 
     def test_from_params_computes_L_when_none(self):
         """from_params should compute L from lambd, nu, D when L is None."""
@@ -44,7 +44,7 @@ class TestLimitOrdersConstruction:
             D=D,
             xmin=-10,
             xmax=10,
-            Nx=20,
+            n_grid=20,
             L=None,
         )
 
@@ -60,7 +60,7 @@ class TestLimitOrdersConstruction:
                 D=linear_params["D"],
                 xmin=linear_params["xmin"],
                 xmax=linear_params["xmax"],
-                Nx=linear_params["Nx"],
+                n_grid=linear_params["n_grid"],
                 L=linear_params["L"],
             )
 
@@ -73,14 +73,14 @@ class TestLimitOrdersConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             initial_density="linear",
         )
 
         # For ask side with linear density, volumes should be nonzero for x > 0
         # (asks are on positive price side)
-        mid_idx = linear_params["Nx"] // 2
+        mid_idx = linear_params["n_grid"] // 2
         # Ask orders should be on the positive price side (x > 0)
         assert np.sum(orders.volumes[mid_idx:]) > 0  # Some volume on positive side
 
@@ -93,7 +93,7 @@ class TestLimitOrdersConstruction:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             initial_density="empty",
         )
@@ -131,7 +131,7 @@ class TestLimitOrdersPriceTracking:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             initial_density="empty",
         )
@@ -218,7 +218,7 @@ class TestLimitOrdersExecution:
             D=linear_params["D"],
             xmin=linear_params["xmin"],
             xmax=linear_params["xmax"],
-            Nx=linear_params["Nx"],
+            n_grid=linear_params["n_grid"],
             L=linear_params["L"],
             initial_density="empty",
         )
@@ -232,7 +232,7 @@ class TestLimitOrdersExecution:
         self, limit_orders_ask: LimitOrders
     ):
         """execute_orders should not execute more than available at each level."""
-        requested = np.full(limit_orders_ask.Nx, 1000.0)
+        requested = np.full(limit_orders_ask.n_grid, 1000.0)
         original_volumes = limit_orders_ask.volumes.copy()
 
         executed = limit_orders_ask.execute_orders(requested)
@@ -246,7 +246,7 @@ class TestLimitOrdersExecution:
         best_idx = limit_orders_ask.best_price_index
         target_idx = best_idx + 5  # A few levels away
 
-        if target_idx < limit_orders_ask.Nx:
+        if target_idx < limit_orders_ask.n_grid:
             available = limit_orders_ask.get_available_volume(target_idx)
             expected = np.sum(
                 limit_orders_ask.volumes[

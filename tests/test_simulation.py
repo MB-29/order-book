@@ -36,8 +36,8 @@ class TestSimulationConstruction:
         """from_params should create multi-book simulation."""
         params = {
             "model_type": "discrete",
-            "T": 100,
-            "Nt": 10,
+            "duration":  100,
+            "n_frames":  10,
             **small_grid,
             "D": 0.5,
             "L": np.array([5.0, 5.0]),
@@ -61,7 +61,7 @@ class TestSimulationConstruction:
         sim = Simulation.from_params(**simulation_params)
 
         # Metaorder should be expanded to Nt length (number of frames)
-        assert len(sim.metaorder) == sim.Nt
+        assert len(sim.metaorder) == sim.n_frames
 
     def test_from_params_accepts_full_metaorder(self, small_grid: dict):
         """Full metaorder array should be accepted."""
@@ -69,8 +69,8 @@ class TestSimulationConstruction:
         metaorder = np.random.randn(Nt)
         params = {
             "model_type": "discrete",
-            "T": 100.0,  # Physical time
-            "Nt": Nt,    # Number of frames
+            "duration":  100.0,  # Physical time
+            "n_frames":  Nt,    # Number of frames
             **small_grid,
             "D": 0.5,
             "L": 10.0,
@@ -91,13 +91,13 @@ class TestSimulationParameterHandling:
         params = standard_parameters(
             participation_rate=1.0,
             model_type="discrete",
-            T=50.0,
-            Nt=10,
+            duration=50.0,
+            n_frames=10,
         )
         sim = Simulation.from_params(**params)
 
-        assert sim.T >= 1.0  # Physical time
-        assert sim.Nt >= 1   # Number of frames
+        assert sim.duration >= 1.0  # Physical time
+        assert sim.n_frames >= 1   # Number of frames
         assert sim.nu == 0
         # standard_parameters sets price_formula based on model_type
         assert sim.price_formula in ["middle", "best_ask", "best_bid", "vwap"]
@@ -170,15 +170,15 @@ class TestSimulationRunning:
 
         # Arrays should have values
         assert np.any(simulation.prices != 0) or np.all(simulation.prices == 0)
-        assert len(simulation.prices) == simulation.Nt  # Sized by Nt (frames)
+        assert len(simulation.prices) == simulation.n_frames  # Sized by Nt (frames)
 
     def test_run_executes_all_timesteps(self, simulation: Simulation):
         """run should execute Nt frames."""
         simulation.run()
 
         # Price should have been tracked for all frames
-        assert len(simulation.asks) == simulation.Nt
-        assert len(simulation.bids) == simulation.Nt
+        assert len(simulation.asks) == simulation.n_frames
+        assert len(simulation.bids) == simulation.n_frames
 
     def test_run_with_metaorder_moves_price(self):
         """Running with metaorder should cause price movement."""
@@ -186,8 +186,8 @@ class TestSimulationRunning:
         params = standard_parameters(
             participation_rate=10.0,
             model_type="discrete",
-            T=100.0,
-            Nt=20,
+            duration=100.0,
+            n_frames=20,
         )
         sim = Simulation.from_params(**params)
         initial_price = sim.prices[0] if len(sim.prices) > 0 else 0.0
@@ -203,8 +203,8 @@ class TestSimulationRunning:
         measurement_indices = [10, 50, 90]
         sim = Simulation.from_params(
             model_type="discrete",
-            T=100.0,  # Physical time
-            Nt=Nt,    # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=Nt,    # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -231,8 +231,8 @@ class TestSimulationUtilities:
             model_type="discrete",
         )
 
-        assert "T" in params
-        assert "Nt" in params
+        assert "duration" in params
+        assert "n_frames" in params
         assert "D" in params
         assert "L" in params
         assert "xmin" in params
@@ -253,14 +253,14 @@ class TestSimulationUtilities:
         params = standard_parameters(
             participation_rate=1.0,
             model_type="discrete",
-            T=50.0,
-            Nt=10,
+            duration=50.0,
+            n_frames=10,
         )
         sim = Simulation.from_params(**params)
         sim.run()
 
         # Should complete without error (prices sized by Nt)
-        assert len(sim.prices) == params["Nt"]
+        assert len(sim.prices) == params["n_frames"]
 
     def test_get_density(self, simulation: Simulation):
         """get_density should return dict with bid and ask."""
@@ -268,22 +268,22 @@ class TestSimulationUtilities:
 
         assert "bid" in density
         assert "ask" in density
-        assert len(density["bid"]) == simulation.Nx
-        assert len(density["ask"]) == simulation.Nx
+        assert len(density["bid"]) == simulation.n_grid
+        assert len(density["ask"]) == simulation.n_grid
 
     def test_get_growth_th(self, simulation: Simulation):
         """get_growth_th should return theoretical impact profile."""
         growth = simulation.get_growth_th()
 
         # Should span from n_start to n_end
-        expected_len = simulation.n_end - simulation.n_start
+        expected_len = simulation.frame_end - simulation.frame_start
         assert len(growth) == expected_len
 
     def test_str_representation(self, simulation: Simulation):
         """__str__ should return informative string."""
         s = str(simulation)
 
-        assert "T =" in s
+        assert "duration =" in s
         assert "D =" in s
         assert "L =" in s
 
@@ -295,8 +295,8 @@ class TestSimulationBookTypes:
         """Linear regime (nu=0) should use LinearDiscreteBook."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=100,
-            Nt=10,
+            duration=100,
+            n_frames=10,
             **small_grid,
             D=0.5,
             L=10.0,
@@ -310,8 +310,8 @@ class TestSimulationBookTypes:
         """Nonlinear regime (nu>0) should use DiscreteBook."""
         sim = Simulation.from_params(
             model_type="discrete",
-            T=100,
-            Nt=10,
+            duration=100,
+            n_frames=10,
             **small_grid,
             D=0.5,
             L=10.0,
@@ -326,8 +326,8 @@ class TestSimulationBookTypes:
         """Continuous model should use LinearContinuousBook."""
         sim = Simulation.from_params(
             model_type="continuous",
-            T=100,
-            Nt=10,
+            duration=100,
+            n_frames=10,
             **small_grid,
             D=0.5,
             L=10.0,

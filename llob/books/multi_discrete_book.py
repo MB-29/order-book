@@ -57,7 +57,7 @@ class MultiDiscreteBook:
 
         # Derived values
         self.N_actors = len(books)
-        self.Nx = len(X)
+        self.n_grid = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
         self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
@@ -90,7 +90,7 @@ class MultiDiscreteBook:
         D: float,
         xmin: float,
         xmax: float,
-        Nx: int,
+        n_grid: int,
         L_list: list[float],
         nu_list: list[float],
         lambd_list: list[float],
@@ -102,7 +102,7 @@ class MultiDiscreteBook:
             D: Diffusion constant (shared by all actors).
             xmin: Price interval lower bound.
             xmax: Price interval upper bound.
-            Nx: Number of price grid points.
+            n_grid: Number of price grid points.
             L_list: List of latent liquidity values, one per actor.
             nu_list: List of cancellation rates, one per actor.
             lambd_list: List of deposition intensities, one per actor.
@@ -115,7 +115,7 @@ class MultiDiscreteBook:
         ), "L_list, nu_list, and lambd_list must have the same length"
 
         # Compute grid
-        X, dx = np.linspace(xmin, xmax, num=Nx, retstep=True)
+        X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
@@ -128,7 +128,7 @@ class MultiDiscreteBook:
                     D=D,
                     xmin=xmin,
                     xmax=xmax,
-                    Nx=Nx,
+                    n_grid=n_grid,
                     L=L,
                 )
             else:
@@ -136,7 +136,7 @@ class MultiDiscreteBook:
                     D=D,
                     xmin=xmin,
                     xmax=xmax,
-                    Nx=Nx,
+                    n_grid=n_grid,
                     L=L,
                     nu=nu,
                     lambd=lambd,
@@ -327,7 +327,7 @@ class MultiDiscreteBook:
         self.volume_ax = fig.add_subplot(2, 1, 1)
         self.volume_ax.set_ylim((0, self.y_max))
         self.volume_ax.set_title("Order volumes")
-        width = max((self.xmax - self.xmin) / self.Nx, 0.02)
+        width = max((self.xmax - self.xmin) / self.n_grid, 0.02)
 
         # Lines
         self.volume_ax.plot(
@@ -373,14 +373,14 @@ class MultiDiscreteBook:
         result: list[Any] = []
 
         for actor_index in range(min(1, self.N_actors)):
-            for x_index in range(self.Nx):
+            for x_index in range(self.n_grid):
                 bar = self.ask_bars[actor_index][x_index]
                 bar.set_y(0)
                 bar.set_height(0)
                 result.append(bar)
 
         for actor_index in range(min(1, self.N_actors)):
-            for x_index in range(self.Nx):
+            for x_index in range(self.n_grid):
                 bar = self.bid_bars[actor_index][x_index]
                 bar.set_y(0)
                 bar.set_height(0)
@@ -396,10 +396,10 @@ class MultiDiscreteBook:
         result: list[Any] = []
 
         # Update ask bars
-        heights = np.zeros(self.Nx)
+        heights = np.zeros(self.n_grid)
         for actor_index in range(self.N_actors):
             actor_ask_bars = self.ask_bars[actor_index]
-            for x_index in range(self.Nx):
+            for x_index in range(self.n_grid):
                 bar = actor_ask_bars[x_index]
                 bar.set_y(heights[x_index] + padding)
                 bar.set_height(self.books[actor_index].get_ask_volumes()[x_index])
@@ -407,10 +407,10 @@ class MultiDiscreteBook:
                 result.append(bar)
 
         # Update bid bars
-        heights = np.zeros(self.Nx)
+        heights = np.zeros(self.n_grid)
         for actor_index in range(self.N_actors):
             actor_bid_bars = self.bid_bars[actor_index]
-            for x_index in range(self.Nx):
+            for x_index in range(self.n_grid):
                 bar = actor_bid_bars[x_index]
                 bar.set_y(heights[x_index] + padding)
                 bar.set_height(self.books[actor_index].get_bid_volumes()[x_index])

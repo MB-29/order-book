@@ -24,30 +24,30 @@ class TestGridConfig:
 
     def test_basic_creation(self):
         """Test basic grid config creation."""
-        grid = GridConfig(xmin=-10.0, xmax=10.0, Nx=20)
+        grid = GridConfig(xmin=-10.0, xmax=10.0, n_grid=20)
         assert grid.xmin == -10.0
         assert grid.xmax == 10.0
-        assert grid.Nx == 20
+        assert grid.n_grid == 20
 
     def test_computed_properties(self):
         """Test computed grid properties."""
-        grid = GridConfig(xmin=-10.0, xmax=10.0, Nx=20)
+        grid = GridConfig(xmin=-10.0, xmax=10.0, n_grid=20)
         assert grid.price_range == 20.0
         assert grid.dx == 1.0
 
     def test_validation_xmin_xmax(self):
         """Test that xmin must be less than xmax."""
         with pytest.raises(ValueError, match="xmin.*must be less than xmax"):
-            GridConfig(xmin=10.0, xmax=-10.0, Nx=20)
+            GridConfig(xmin=10.0, xmax=-10.0, n_grid=20)
 
     def test_validation_nx_positive(self):
         """Test that Nx must be positive."""
         with pytest.raises(ValueError):
-            GridConfig(xmin=-10.0, xmax=10.0, Nx=0)
+            GridConfig(xmin=-10.0, xmax=10.0, n_grid=0)
 
     def test_immutability(self):
         """Test that config is frozen."""
-        grid = GridConfig(xmin=-10.0, xmax=10.0, Nx=20)
+        grid = GridConfig(xmin=-10.0, xmax=10.0, n_grid=20)
         with pytest.raises(Exception):
             grid.xmin = -20.0
 
@@ -57,14 +57,14 @@ class TestSimulationConfig:
 
     def test_basic_creation(self):
         """Test basic simulation config creation."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
         )
         assert config.model_type == "discrete"
         assert config.D == 1.0
@@ -72,17 +72,17 @@ class TestSimulationConfig:
 
     def test_metaorder_expansion(self):
         """Test that single-value metaorder is expanded to Nt length."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
             metaorder=[0.5],
-            n_start=10,
-            n_end=90,
+            frame_start=10,
+            frame_end=90,
         )
         full = config.get_full_metaorder()
         assert len(full) == 100  # Length is Nt
@@ -93,15 +93,15 @@ class TestSimulationConfig:
 
     def test_multi_book_config(self):
         """Test multi-actor configuration."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=[1.0, 2.0],
             nu=[0.1, 0.2],
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
         )
         assert config.is_multi_book
         assert config.L_max == 2.0
@@ -147,14 +147,14 @@ class TestMonteCarloConfig:
 
     def test_basic_creation(self):
         """Test basic Monte Carlo config creation."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         sim_config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -163,19 +163,19 @@ class TestMonteCarloConfig:
             simulation=sim_config,
         )
         assert mc_config.N_samples == 10
-        assert mc_config.T == 100.0
-        assert mc_config.Nt == 100
+        assert mc_config.duration == 100.0
+        assert mc_config.n_frames == 100
 
     def test_to_simulation_args(self):
         """Test conversion to legacy simulation args."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         sim_config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -185,7 +185,7 @@ class TestMonteCarloConfig:
         )
         args = mc_config.to_simulation_args()
         assert args["model_type"] == "discrete"
-        assert args["T"] == 100.0
+        assert args["duration"] == 100.0
         assert args["D"] == 1.0
 
 
@@ -194,7 +194,7 @@ class TestBookConfigs:
 
     def test_limit_orders_config(self):
         """Test LimitOrdersConfig."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = LimitOrdersConfig(
             grid=grid,
             side="ask",
@@ -209,7 +209,7 @@ class TestBookConfigs:
 
     def test_discrete_book_config(self):
         """Test DiscreteBookConfig."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = DiscreteBookConfig(
             grid=grid,
             D=1.0,
@@ -221,7 +221,7 @@ class TestBookConfigs:
 
     def test_linear_discrete_book_config(self):
         """Test LinearDiscreteBookConfig."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = LinearDiscreteBookConfig(
             grid=grid,
             D=1.0,
@@ -231,7 +231,7 @@ class TestBookConfigs:
 
     def test_linear_continuous_book_config(self):
         """Test LinearContinuousBookConfig."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = LinearContinuousBookConfig(
             grid=grid,
             D=1.0,
@@ -241,7 +241,7 @@ class TestBookConfigs:
 
     def test_multi_discrete_book_config(self):
         """Test MultiDiscreteBookConfig."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = MultiDiscreteBookConfig(
             grid=grid,
             D=1.0,
@@ -253,7 +253,7 @@ class TestBookConfigs:
 
     def test_multi_book_list_length_validation(self):
         """Test that list lengths must match."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         with pytest.raises(ValueError, match="nu_list length"):
             MultiDiscreteBookConfig(
                 grid=grid,
@@ -269,46 +269,46 @@ class TestSimulationFromConfig:
 
     def test_from_config_discrete(self):
         """Test creating simulation from config."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)
         assert sim.model_type == "discrete"
         assert sim.D == 1.0
         assert sim.L == 1.0
-        assert sim.T == 100.0
+        assert sim.duration == 100.0
 
     def test_from_config_continuous(self):
         """Test creating continuous simulation from config."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="continuous",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=100.0,  # Physical time
-            Nt=100,   # Number of frames
+            duration=100.0,  # Physical time
+            n_frames=100,   # Number of frames
         )
         sim = Simulation.from_config(config)
         assert sim.model_type == "continuous"
 
     def test_from_config_runs(self):
         """Test that simulation from config actually runs."""
-        grid = GridConfig(xmin=-50.0, xmax=50.0, Nx=100)
+        grid = GridConfig(xmin=-50.0, xmax=50.0, n_grid=100)
         config = SimulationConfig(
             model_type="discrete",
             grid=grid,
             D=1.0,
             L=1.0,
-            T=50.0,  # Physical time
-            Nt=50,   # Number of frames
+            duration=50.0,  # Physical time
+            n_frames=50,   # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)
