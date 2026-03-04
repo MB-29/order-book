@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from llob import (
     GridConfig,
@@ -12,9 +13,9 @@ from llob import (
 )
 from llob.configs import (
     DiscreteBookConfig,
+    LimitOrdersConfig,
     LinearContinuousBookConfig,
     LinearDiscreteBookConfig,
-    LimitOrdersConfig,
     MultiDiscreteBookConfig,
 )
 
@@ -48,7 +49,7 @@ class TestGridConfig:
     def test_immutability(self):
         """Test that config is frozen."""
         grid = GridConfig(xmin=-10.0, xmax=10.0, n_grid=20)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             grid.xmin = -20.0
 
 
@@ -64,7 +65,7 @@ class TestSimulationConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
         )
         assert config.model_type == "discrete"
         assert config.D == 1.0
@@ -79,7 +80,7 @@ class TestSimulationConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
             metaorder=[0.5],
             frame_start=10,
             frame_end=90,
@@ -101,7 +102,7 @@ class TestSimulationConfig:
             L=[1.0, 2.0],
             nu=[0.1, 0.2],
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
         )
         assert config.is_multi_book
         assert config.L_max == 2.0
@@ -154,7 +155,7 @@ class TestMonteCarloConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -175,7 +176,7 @@ class TestMonteCarloConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
         )
         noise_config = NoiseConfig(m0=0.5, m1=0.1, hurst=0.7)
         mc_config = MonteCarloConfig(
@@ -217,7 +218,7 @@ class TestBookConfigs:
             lambd=0.5,
         )
         L = config.compute_L()
-        assert L == pytest.approx(0.5 / np.sqrt(0.1 * 1.0))
+        assert pytest.approx(0.5 / np.sqrt(0.1 * 1.0)) == L
 
     def test_linear_discrete_book_config(self):
         """Test LinearDiscreteBookConfig."""
@@ -276,7 +277,7 @@ class TestSimulationFromConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)
@@ -294,7 +295,7 @@ class TestSimulationFromConfig:
             D=1.0,
             L=1.0,
             duration=100.0,  # Physical time
-            n_frames=100,   # Number of frames
+            n_frames=100,  # Number of frames
         )
         sim = Simulation.from_config(config)
         assert sim.model_type == "continuous"
@@ -308,7 +309,7 @@ class TestSimulationFromConfig:
             D=1.0,
             L=1.0,
             duration=50.0,  # Physical time
-            n_frames=50,   # Number of frames
+            n_frames=50,  # Number of frames
             metaorder=[0.5],
         )
         sim = Simulation.from_config(config)

@@ -1,4 +1,3 @@
-
 """
 Multi-actor order book in the LLOB framework.
 """
@@ -110,9 +109,9 @@ class MultiDiscreteBook:
         Returns:
             Configured MultiDiscreteBook instance.
         """
-        assert (
-            len(L_list) == len(nu_list) == len(lambd_list)
-        ), "L_list, nu_list, and lambd_list must have the same length"
+        assert len(L_list) == len(nu_list) == len(lambd_list), (
+            "L_list, nu_list, and lambd_list must have the same length"
+        )
 
         # Compute grid
         X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
@@ -330,9 +329,7 @@ class MultiDiscreteBook:
         width = max((self.xmax - self.xmin) / self.n_grid, 0.02)
 
         # Lines
-        self.volume_ax.plot(
-            [0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed"
-        )
+        self.volume_ax.plot([0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed")
         (self.best_ask_axis,) = self.volume_ax.plot(
             [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )

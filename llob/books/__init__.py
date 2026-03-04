@@ -8,6 +8,7 @@ This module contains:
 - MultiDiscreteBook: Multi-actor order book
 - LimitOrders: Order dynamics for one side of the book
 """
+
 from .diffusion_schemes import theta_scheme_iteration
 from .discrete_book import DiscreteBook
 from .limit_orders import LimitOrders

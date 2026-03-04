@@ -84,9 +84,7 @@ class MonteCarlo:
         self.bid_samples = np.zeros((n_frames, N_samples))
 
         # Measurement storage
-        self.measured_samples: dict[str, list[Any]] = {
-            q: [] for q in measured_quantities
-        }
+        self.measured_samples: dict[str, list[Any]] = {q: [] for q in measured_quantities}
 
         # Statistics (computed after run)
         self.price_mean: npt.NDArray[np.float64] = np.zeros(n_frames)
@@ -187,7 +185,9 @@ class MonteCarlo:
         # Generate standard fractional Gaussian noise for each sample
         # n=n_frames samples over physical time duration
         for sample_index in range(self.N_samples):
-            self.noise[:, sample_index] = fgn(n=self.n_frames, hurst=self.hurst, length=self.duration)
+            self.noise[:, sample_index] = fgn(
+                n=self.n_frames, hurst=self.hurst, length=self.duration
+            )
 
         # Scale and add to mean
         self.scale = self.m1
@@ -195,9 +195,7 @@ class MonteCarlo:
 
         order_mean = float(self.noisy_metaorders.mean())
         order_var = float(self.noisy_metaorders.var(axis=1).mean())
-        print(
-            f"Generated meta-order has mean {order_mean:.2f} and variance {order_var:.2f}"
-        )
+        print(f"Generated meta-order has mean {order_mean:.2f} and variance {order_var:.2f}")
 
     def run(self) -> None:
         """Run all Monte Carlo samples."""

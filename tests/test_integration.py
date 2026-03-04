@@ -15,7 +15,7 @@ class TestSimulationIntegration:
         sim = Simulation.from_params(
             model_type="discrete",
             duration=100.0,  # Physical time
-            n_frames=10,    # Number of frames
+            n_frames=10,  # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -35,7 +35,7 @@ class TestSimulationIntegration:
         sim = Simulation.from_params(
             model_type="continuous",
             duration=100.0,  # Physical time
-            n_frames=10,    # Number of frames
+            n_frames=10,  # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -54,8 +54,8 @@ class TestSimulationIntegration:
         """Nonlinear discrete simulation (nu > 0) should run."""
         sim = Simulation.from_params(
             model_type="discrete",
-            duration=50.0,   # Physical time
-            n_frames=10,    # Number of frames
+            duration=50.0,  # Physical time
+            n_frames=10,  # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -71,8 +71,8 @@ class TestSimulationIntegration:
         """Multi-book simulation should run."""
         sim = Simulation.from_params(
             model_type="discrete",
-            duration=50.0,   # Physical time
-            n_frames=10,    # Number of frames
+            duration=50.0,  # Physical time
+            n_frames=10,  # Number of frames
             **small_grid,
             D=0.5,
             L=np.array([5.0, 5.0]),
@@ -158,7 +158,7 @@ class TestPhysicalProperties:
         sim = Simulation.from_params(
             model_type="discrete",
             duration=100.0,  # Physical time
-            n_frames=10,    # Number of frames
+            n_frames=10,  # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,
@@ -198,11 +198,11 @@ class TestPhysicalProperties:
             n_frames=20,
         )
         common_params = {
-            "duration":  params["duration"],
-            "n_frames":  params["n_frames"],
+            "duration": params["duration"],
+            "n_frames": params["n_frames"],
             "xmin": params["xmin"],
             "xmax": params["xmax"],
-            "n_grid":  params["n_grid"],
+            "n_grid": params["n_grid"],
             "D": params["D"],
             "L": params["L"],
             "nu": 0.0,
@@ -210,9 +210,7 @@ class TestPhysicalProperties:
         }
 
         sim_discrete = Simulation.from_params(model_type="discrete", **common_params)
-        sim_continuous = Simulation.from_params(
-            model_type="continuous", **common_params
-        )
+        sim_continuous = Simulation.from_params(model_type="continuous", **common_params)
 
         sim_discrete.run()
         sim_continuous.run()

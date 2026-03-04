@@ -6,8 +6,8 @@ Now that T is physical time and Nt is number of frames, the metaorder
 array has length Nt and represents intensity at each output frame.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from llob import Simulation, standard_parameters

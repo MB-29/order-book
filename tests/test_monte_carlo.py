@@ -91,9 +91,7 @@ class TestMonteCarloNoiseGeneration:
         mean = np.mean(mc.noisy_metaorders)
         assert np.isclose(mean, 5.0, atol=1.0)  # Within 1.0 of m0
 
-    def test_generate_noise_zero_m1_deterministic(
-        self, simulation_params: dict, seed_random
-    ):
+    def test_generate_noise_zero_m1_deterministic(self, simulation_params: dict, seed_random):
         """With m1=0, noise should be deterministic (all m0)."""
         mc = MonteCarlo.from_params(
             N_samples=5,
@@ -177,9 +175,7 @@ class TestMonteCarloStatistics:
         expected_var = mc.price_samples.var(axis=1)
         np.testing.assert_array_almost_equal(mc.price_variance, expected_var)
 
-    def test_gather_results_contains_all_keys(
-        self, simulation_params: dict, seed_random
-    ):
+    def test_gather_results_contains_all_keys(self, simulation_params: dict, seed_random):
         """gather_results should return dict with all expected keys."""
         mc = MonteCarlo.from_params(
             N_samples=2,
@@ -227,8 +223,8 @@ class TestMonteCarloMeasurements:
         """Measured quantities should be recorded for each sample."""
         params = {
             "model_type": "discrete",
-            "duration":  50.0,  # Physical time
-            "n_frames":  10,   # Number of frames
+            "duration": 50.0,  # Physical time
+            "n_frames": 10,  # Number of frames
             **small_grid,
             "D": 0.5,
             "L": 10.0,

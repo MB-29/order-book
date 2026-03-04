@@ -58,18 +58,13 @@ class TestLinearContinuousBookConstruction:
     def test_derived_values_computed(self, continuous_book: LinearContinuousBook):
         """Constructor should compute derived values."""
         assert continuous_book.J == continuous_book.D * continuous_book.L
-        assert (
-            continuous_book.price_range
-            == (continuous_book.xmax - continuous_book.xmin) / 2
-        )
+        assert continuous_book.price_range == (continuous_book.xmax - continuous_book.xmin) / 2
 
 
 class TestLinearContinuousBookPriceTracking:
     """Tests for price tracking functionality."""
 
-    def test_update_prices_sets_best_ask_bid(
-        self, continuous_book: LinearContinuousBook
-    ):
+    def test_update_prices_sets_best_ask_bid(self, continuous_book: LinearContinuousBook):
         """update_prices should set best ask and bid."""
         continuous_book.update_prices()
 
@@ -135,9 +130,7 @@ class TestLinearContinuousBookTimeEvolution:
         # With D=0 and no metaorder, density should be unchanged
         np.testing.assert_array_equal(book.density, initial_density)
 
-    def test_execute_metaorder_consumes_density(
-        self, continuous_book: LinearContinuousBook
-    ):
+    def test_execute_metaorder_consumes_density(self, continuous_book: LinearContinuousBook):
         """execute_metaorder should consume density at best price."""
         initial_best_ask_idx = continuous_book.best_ask_index
         initial_density_at_best = continuous_book.density[initial_best_ask_idx]
@@ -147,15 +140,11 @@ class TestLinearContinuousBookTimeEvolution:
 
         # Density at or near best ask should have increased (less negative)
         # or index should have moved
-        density_changed = (
-            continuous_book.density[initial_best_ask_idx] != initial_density_at_best
-        )
+        density_changed = continuous_book.density[initial_best_ask_idx] != initial_density_at_best
         index_moved = continuous_book.best_ask_index != initial_best_ask_idx
         assert density_changed or index_moved
 
-    def test_execute_metaorder_zero_is_noop(
-        self, continuous_book: LinearContinuousBook
-    ):
+    def test_execute_metaorder_zero_is_noop(self, continuous_book: LinearContinuousBook):
         """execute_metaorder with volume=0 should be a no-op."""
         initial_density = continuous_book.density.copy()
 
@@ -202,9 +191,7 @@ class TestLinearContinuousBookTimeEvolution:
         # Best ask should have moved up (higher price)
         assert continuous_book.best_ask >= initial_best_ask
 
-    def test_sell_order_moves_bid_price_down(
-        self, continuous_book: LinearContinuousBook
-    ):
+    def test_sell_order_moves_bid_price_down(self, continuous_book: LinearContinuousBook):
         """Selling should move the best bid price down."""
         initial_best_bid = continuous_book.best_bid
 

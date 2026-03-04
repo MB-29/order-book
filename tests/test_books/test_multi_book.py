@@ -39,9 +39,7 @@ class TestMultiDiscreteBookConstruction:
                 lambd_list=[0.0, 0.0],
             )
 
-    def test_from_params_creates_linear_books_when_nu_zero(
-        self, multi_book_params: dict
-    ):
+    def test_from_params_creates_linear_books_when_nu_zero(self, multi_book_params: dict):
         """from_params should create LinearDiscreteBook when nu=0."""
         book = MultiDiscreteBook.from_params(
             D=multi_book_params["D"],
@@ -170,9 +168,7 @@ class TestMultiDiscreteBookPriceTracking:
 class TestMultiDiscreteBookTimeEvolution:
     """Tests for time evolution functionality."""
 
-    def test_timestep_updates_all_actors(
-        self, multi_book: MultiDiscreteBook, seed_random
-    ):
+    def test_timestep_updates_all_actors(self, multi_book: MultiDiscreteBook, seed_random):
         """timestep should update all actor books."""
         # Record initial state
         initial_volumes = [
@@ -185,21 +181,15 @@ class TestMultiDiscreteBookTimeEvolution:
         # At least one book should have changed
         any_changed = False
         for i, book in enumerate(multi_book.books):
-            ask_changed = not np.array_equal(
-                book.get_ask_volumes(), initial_volumes[i][0]
-            )
-            bid_changed = not np.array_equal(
-                book.get_bid_volumes(), initial_volumes[i][1]
-            )
+            ask_changed = not np.array_equal(book.get_ask_volumes(), initial_volumes[i][0])
+            bid_changed = not np.array_equal(book.get_bid_volumes(), initial_volumes[i][1])
             if ask_changed or bid_changed:
                 any_changed = True
                 break
 
         assert any_changed
 
-    def test_stochastic_timestep_runs_all_books(
-        self, multi_book: MultiDiscreteBook, seed_random
-    ):
+    def test_stochastic_timestep_runs_all_books(self, multi_book: MultiDiscreteBook, seed_random):
         """stochastic_timestep should run dynamics for all actor books."""
         # Just ensure no errors
         multi_book.stochastic_timestep()

@@ -1,4 +1,3 @@
-
 """
 Limit orders implementation for one side of an order book.
 """
@@ -139,16 +138,13 @@ class LimitOrders:
         dt = dx**2 / (2 * D) if D > 0 else float("inf")
         if dt * nu >= 1:
             warnings.warn(
-                "Elementary timestep is too large to guarantee "
-                "multiplicative cancellation rate.",
+                "Elementary timestep is too large to guarantee multiplicative cancellation rate.",
                 stacklevel=2,
             )
 
         # Compute initial volumes
         sign = -1 if side == "ask" else 1
-        volumes = _compute_initial_volumes(
-            X, dx, L, nu, D, lambd, sign, initial_density
-        )
+        volumes = _compute_initial_volumes(X, dx, L, nu, D, lambd, sign, initial_density)
 
         # Compute boundary flow
         boundary_flow = L if boundary_conditions == "linear" else 0.0
@@ -240,9 +236,7 @@ class LimitOrders:
             self.volumes = substract_cancellations(self.volumes, scale, self.dt)
             return
 
-        get_cancellation_vec = np.vectorize(
-            lambda volume: self._get_cancellation(volume, scale)
-        )
+        get_cancellation_vec = np.vectorize(lambda volume: self._get_cancellation(volume, scale))
         cancellations = get_cancellation_vec(self.volumes)
         self.volumes = self.volumes - cancellations
 
@@ -271,9 +265,7 @@ class LimitOrders:
         left or right (Smoluchowski dynamics).
         """
         if USE_NUMBA:
-            self.volumes = add_flow(
-                self.volumes, self.dx, self.boundary_index, self.boundary_flow
-            )
+            self.volumes = add_flow(self.volumes, self.dx, self.boundary_index, self.boundary_flow)
             return
 
         jumps = np.zeros((self.n_grid, 2), dtype=int)
@@ -281,9 +273,7 @@ class LimitOrders:
             jumps_left = np.random.binomial(order_volume, 0.5)
             jumps[index, :] = [jumps_left, order_volume - jumps_left]
 
-        boundary_volume = (
-            self.volumes[self.boundary_index] + self.boundary_flow * self.dx**2
-        )
+        boundary_volume = self.volumes[self.boundary_index] + self.boundary_flow * self.dx**2
         boundary_jumps = np.random.binomial(int(boundary_volume), 0.5)
 
         boundary_jumps_left = boundary_jumps if self.side == "ask" else 0
@@ -346,9 +336,7 @@ class LimitOrders:
             if self.best_price_index > self.n_grid - 1 or self.best_price_index < 0:
                 raise ValueError(f"Market lacks {self.side} liquidity")
 
-    def execute_orders(
-        self, volumes: npt.NDArray[np.float64]
-    ) -> npt.NDArray[np.float64]:
+    def execute_orders(self, volumes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """
         Execute given order volumes up to available liquidity at each price.
 

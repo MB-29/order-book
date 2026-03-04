@@ -155,9 +155,7 @@ class TestLimitOrdersPriceTracking:
         expected = limit_orders_ask.L * x_correct_side
         assert np.isclose(density_correct, expected)
 
-    def test_stationary_density_nonlinear_regime(
-        self, limit_orders_nonlinear: LimitOrders
-    ):
+    def test_stationary_density_nonlinear_regime(self, limit_orders_nonlinear: LimitOrders):
         """In nonlinear regime, stationary_density should follow exponential formula."""
         # For ask side (sign=-1), density is nonzero only for x > 0
         x = 5.0  # On the correct side for ask (positive prices)
@@ -188,14 +186,9 @@ class TestLimitOrdersExecution:
             limit_orders_ask.execute_best_orders(execute_volume)
 
             # Volume at best price should decrease
-            assert (
-                limit_orders_ask.volumes[limit_orders_ask.best_price_index]
-                < initial_volume
-            )
+            assert limit_orders_ask.volumes[limit_orders_ask.best_price_index] < initial_volume
 
-    def test_execute_best_orders_walks_price_levels(
-        self, limit_orders_ask: LimitOrders
-    ):
+    def test_execute_best_orders_walks_price_levels(self, limit_orders_ask: LimitOrders):
         """execute_best_orders should walk through price levels if volume exceeds best."""
         initial_best_idx = limit_orders_ask.best_price_index
         total_volume = np.sum(limit_orders_ask.volumes)
@@ -228,9 +221,7 @@ class TestLimitOrdersExecution:
         with pytest.raises(ValueError, match="liquidity"):
             orders.execute_best_orders(1000.0)
 
-    def test_execute_orders_respects_available_volume(
-        self, limit_orders_ask: LimitOrders
-    ):
+    def test_execute_orders_respects_available_volume(self, limit_orders_ask: LimitOrders):
         """execute_orders should not execute more than available at each level."""
         requested = np.full(limit_orders_ask.n_grid, 1000.0)
         original_volumes = limit_orders_ask.volumes.copy()
@@ -249,9 +240,7 @@ class TestLimitOrdersExecution:
         if target_idx < limit_orders_ask.n_grid:
             available = limit_orders_ask.get_available_volume(target_idx)
             expected = np.sum(
-                limit_orders_ask.volumes[
-                    min(best_idx, target_idx) : max(best_idx, target_idx) + 1
-                ]
+                limit_orders_ask.volumes[min(best_idx, target_idx) : max(best_idx, target_idx) + 1]
             )
             assert available == expected
 
@@ -259,9 +248,7 @@ class TestLimitOrdersExecution:
 class TestLimitOrdersStochasticDynamics:
     """Tests for stochastic dynamics (deposition, cancellation, jumps)."""
 
-    def test_deposition_increases_volume(
-        self, limit_orders_nonlinear: LimitOrders, seed_random
-    ):
+    def test_deposition_increases_volume(self, limit_orders_nonlinear: LimitOrders, seed_random):
         """Deposition should generally increase total volume."""
         initial_total = np.sum(limit_orders_nonlinear.volumes)
 
@@ -274,9 +261,7 @@ class TestLimitOrdersStochasticDynamics:
         # With positive lambd, total should increase (probabilistically)
         assert final_total >= initial_total
 
-    def test_cancellation_decreases_volume(
-        self, limit_orders_nonlinear: LimitOrders, seed_random
-    ):
+    def test_cancellation_decreases_volume(self, limit_orders_nonlinear: LimitOrders, seed_random):
         """Cancellation should generally decrease total volume."""
         # Ensure we have volume to cancel
         limit_orders_nonlinear.volumes[:] = 100
@@ -289,9 +274,7 @@ class TestLimitOrdersStochasticDynamics:
         # With positive nu, total should decrease
         assert final_total <= initial_total
 
-    def test_jumps_approximately_conserves_volume(
-        self, limit_orders_ask: LimitOrders, seed_random
-    ):
+    def test_jumps_approximately_conserves_volume(self, limit_orders_ask: LimitOrders, seed_random):
         """Jumps should approximately conserve total volume (ignoring boundary)."""
         # Set uniform volumes away from boundary
         limit_orders_ask.volumes[5:-5] = 10

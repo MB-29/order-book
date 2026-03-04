@@ -1,4 +1,3 @@
-
 """
 Discrete order book in the LLOB framework.
 """
@@ -203,12 +202,8 @@ class DiscreteBook:
         self.best_bid_index = self.bid_orders.best_price_index
         self.best_ask = float(self.X[self.best_ask_index - 1])
         self.best_bid = float(self.X[self.best_bid_index + 1])
-        self.best_ask_volume = int(
-            self.get_ask_volumes()[self.ask_orders.best_price_index]
-        )
-        self.best_bid_volume = int(
-            self.get_bid_volumes()[self.bid_orders.best_price_index]
-        )
+        self.best_ask_volume = int(self.get_ask_volumes()[self.ask_orders.best_price_index])
+        self.best_bid_volume = int(self.get_bid_volumes()[self.bid_orders.best_price_index])
 
     def order_reaction(self) -> None:
         """Execute matched orders where bid and ask cross."""
@@ -279,9 +274,7 @@ class DiscreteBook:
             animated=True,
         )
 
-        self.volume_ax.plot(
-            [0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed"
-        )
+        self.volume_ax.plot([0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed")
         (self.best_ask_axis,) = self.volume_ax.plot(
             [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
@@ -335,8 +328,4 @@ class DiscreteBook:
         self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, self.y_max])
         self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, self.y_max])
 
-        return (
-            list(self.ask_bars)
-            + list(self.bid_bars)
-            + [self.best_ask_axis, self.best_bid_axis]
-        )
+        return list(self.ask_bars) + list(self.bid_bars) + [self.best_ask_axis, self.best_bid_axis]
