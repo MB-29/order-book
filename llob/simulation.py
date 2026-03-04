@@ -199,7 +199,7 @@ class Simulation:
         frame_end = kwargs.get("frame_end", n_frames)
         measured_quantities = kwargs.get("measured_quantities", [])
         measurement_indices = kwargs.get("measurement_indices", [])
-        seed = kwargs.get("seed", None)
+        seed = kwargs.get("seed")
 
         # Set random seed for reproducibility
         if seed is not None:
@@ -335,7 +335,14 @@ class Simulation:
             else:
                 lambd = L_scalar * np.sqrt(nu * D)
                 return DiscreteBook.from_params(
-                    D=D, xmin=xmin, xmax=xmax, n_grid=n_grid, L=L_scalar, nu=nu, lambd=lambd, alpha=alpha
+                    D=D,
+                    xmin=xmin,
+                    xmax=xmax,
+                    n_grid=n_grid,
+                    L=L_scalar,
+                    nu=nu,
+                    lambd=lambd,
+                    alpha=alpha,
                 )
         else:  # continuous
             return LinearContinuousBook.from_params(

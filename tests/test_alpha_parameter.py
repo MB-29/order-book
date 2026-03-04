@@ -37,7 +37,6 @@ class TestLimitOrdersAlpha:
             alpha=0.0,
         )
         # Run some deposition steps
-        initial_vol1 = orders1.volumes.copy()
         orders1.deposition(spread=5)
         vol_after1 = orders1.volumes.copy()
 
@@ -177,7 +176,7 @@ class TestLimitOrdersAlpha:
 
         # The effective lambda is used to compute lam = effective_lambd * dt * dx
         # We can verify by checking the expected Poisson rate
-        expected_lam = expected_effective_lambd * orders.dt * orders.dx
+        _ = expected_effective_lambd * orders.dt * orders.dx
 
         # Just verify alpha is stored correctly
         assert orders.alpha == alpha
@@ -401,19 +400,19 @@ class TestSimulationAlpha:
 
         Expected: Two simulations with same seed have identical prices.
         """
-        params = dict(
-            model_type="discrete",
-            duration=50.0,
-            n_frames=10,
-            xmin=-20.0,
-            xmax=20.0,
-            n_grid=40,
-            D=0.5,
-            L=10.0,
-            nu=0.1,
-            metaorder=[1.0],
-            alpha=0.1,
-        )
+        params = {
+            "model_type": "discrete",
+            "duration": 50.0,
+            "n_frames": 10,
+            "xmin": -20.0,
+            "xmax": 20.0,
+            "n_grid": 40,
+            "D": 0.5,
+            "L": 10.0,
+            "nu": 0.1,
+            "metaorder": [1.0],
+            "alpha": 0.1,
+        }
 
         sim1 = Simulation.from_params(**params, seed=42)
         sim1.run()
@@ -437,18 +436,18 @@ class TestSpreadStabilization:
         Expected: Final spread with alpha > 0 is smaller than with alpha = 0.
         """
         # Common parameters - use moderate noise that would cause spread growth
-        common_params = dict(
-            model_type="discrete",
-            duration=200.0,  # Longer duration to see effect
-            n_frames=50,
-            xmin=-50.0,
-            xmax=50.0,
-            n_grid=100,
-            D=0.5,
-            L=10.0,
-            nu=0.1,
-            metaorder=[0.0],  # No metaorder, just noise from deposition/cancellation
-        )
+        common_params = {
+            "model_type": "discrete",
+            "duration": 200.0,  # Longer duration to see effect
+            "n_frames": 50,
+            "xmin": -50.0,
+            "xmax": 50.0,
+            "n_grid": 100,
+            "D": 0.5,
+            "L": 10.0,
+            "nu": 0.1,
+            "metaorder": [0.0],  # No metaorder, just noise from deposition/cancellation
+        }
 
         # Run without alpha (spread may grow)
         np.random.seed(123)
@@ -459,11 +458,6 @@ class TestSpreadStabilization:
         np.random.seed(123)
         sim_with_alpha = Simulation.from_params(**common_params, alpha=0.5)
         sim_with_alpha.run()
-
-        # With alpha > 0, average spread should be smaller or equal
-        # (In practice this requires longer runs and higher noise to see the effect)
-        avg_spread_no_alpha = np.mean(sim_no_alpha.spreads)
-        avg_spread_with_alpha = np.mean(sim_with_alpha.spreads)
 
         # This is a weak test - we just verify both ran without error
         # The real physics test needs longer runs and higher noise

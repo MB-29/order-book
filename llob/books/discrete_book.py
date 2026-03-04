@@ -206,12 +206,8 @@ class DiscreteBook:
         self.best_bid_index = self.bid_orders.best_price_index
         self.best_ask = float(self.X[self.best_ask_index])
         self.best_bid = float(self.X[self.best_bid_index])
-        self.best_ask_volume = int(
-            self.get_ask_volumes()[self.ask_orders.best_price_index]
-        )
-        self.best_bid_volume = int(
-            self.get_bid_volumes()[self.bid_orders.best_price_index]
-        )
+        self.best_ask_volume = int(self.get_ask_volumes()[self.ask_orders.best_price_index])
+        self.best_bid_volume = int(self.get_bid_volumes()[self.bid_orders.best_price_index])
 
     def order_reaction(self) -> None:
         """Execute matched orders where bid and ask cross.
