@@ -43,12 +43,14 @@ width = (sim.xmax - sim.xmin) / Nx
 y_max = sim.book.y_max
 
 ask_bars = ax_vol.bar(X, sim.book.get_ask_volumes(), align="edge", label="Ask",
-                       color="blue", width=width)
+                      color="blue", width=width)
 bid_bars = ax_vol.bar(X, sim.book.get_bid_volumes(), align="edge", label="Bid",
-                       color="red", width=-width)
+                      color="red", width=-width)
 ax_vol.axvline(0, color="black", lw=0.5, ls="dashed")
-best_ask_line, = ax_vol.plot([], [], color="blue", ls="dashed", lw=1, label="best ask")
-best_bid_line, = ax_vol.plot([], [], color="red", ls="dashed", lw=1, label="best bid")
+best_ask_line, = ax_vol.plot(
+    [], [], color="blue", ls="dashed", lw=1, label="best ask")
+best_bid_line, = ax_vol.plot(
+    [], [], color="red", ls="dashed", lw=1, label="best bid")
 ax_vol.set_xlim(sim.xmin, sim.xmax)
 ax_vol.set_ylim(0, y_max)
 ax_vol.set_title("Order volumes")
@@ -56,8 +58,10 @@ ax_vol.legend(loc="upper right")
 
 # Setup price plot (right) - scale y-axis to expected impact
 time_interval = sim.time_interval
-price_line, = ax_price.plot([], [], label="Price (middle)", color="yellow", lw=2)
-ask_price_line, = ax_price.plot([], [], label="Best Ask", color="blue", ls="--")
+price_line, = ax_price.plot(
+    [], [], label="Price (middle)", color="yellow", lw=2)
+ask_price_line, = ax_price.plot(
+    [], [], label="Best Ask", color="blue", ls="--")
 bid_price_line, = ax_price.plot([], [], label="Best Bid", color="red", ls="--")
 ax_price.axhline(0, color="black", lw=0.5, ls="dashed")
 ax_price.set_xlim(0, time_interval[-1])
@@ -84,7 +88,7 @@ def init():
     best_ask_line.set_data([], [])
     best_bid_line.set_data([], [])
     return list(ask_bars) + list(bid_bars) + [price_line, ask_price_line, bid_price_line,
-                                               best_ask_line, best_bid_line]
+                                              best_ask_line, best_bid_line]
 
 
 def update(frame):
@@ -100,7 +104,7 @@ def update(frame):
         sim.book.timestep(sim.dt, dq)
     else:
         sim.book.execute_metaorder(dq)
-        for _ in range(sim.n_diff):
+        for _ in range(sim.steps_per_frame):
             sim.book.stochastic_timestep()
             sim.book.order_reaction()
             sim.book.update_price()
@@ -128,9 +132,10 @@ def update(frame):
     bid_price_line.set_data(time_interval[:frame+1], bids_arr[:frame+1])
 
     return list(ask_bars) + list(bid_bars) + [price_line, ask_price_line, bid_price_line,
-                                               best_ask_line, best_bid_line]
+                                              best_ask_line, best_bid_line]
 
 
-ani = FuncAnimation(fig, update, init_func=init, frames=Nt, blit=True, repeat=False)
+ani = FuncAnimation(fig, update, init_func=init,
+                    frames=Nt, blit=True, repeat=False)
 plt.tight_layout()
 plt.show()
