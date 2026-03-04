@@ -92,19 +92,21 @@ class SimulationConfig(BaseModel):
             raise ValueError(f"frame_start ({frame_start}) must be < frame_end ({frame_end})")
 
         # Validate metaorder length if provided and not length 1
-        if self.metaorder is not None and len(self.metaorder) > 1:
-            if len(self.metaorder) != self.n_frames:
-                raise ValueError(
-                    f"metaorder length ({len(self.metaorder)}) must equal n_frames ({self.n_frames}) "
-                    "or be length 1"
-                )
+        if (
+            self.metaorder is not None
+            and len(self.metaorder) > 1
+            and len(self.metaorder) != self.n_frames
+        ):
+            raise ValueError(
+                f"metaorder length ({len(self.metaorder)}) must equal n_frames ({self.n_frames}) "
+                "or be length 1"
+            )
 
         # Validate L and nu consistency for multi-actor
-        if isinstance(self.L, list):
-            if isinstance(self.nu, list) and len(self.nu) != len(self.L):
-                raise ValueError(
-                    f"nu list length ({len(self.nu)}) must match L list length ({len(self.L)})"
-                )
+        if isinstance(self.L, list) and isinstance(self.nu, list) and len(self.nu) != len(self.L):
+            raise ValueError(
+                f"nu list length ({len(self.nu)}) must match L list length ({len(self.L)})"
+            )
 
         return self
 

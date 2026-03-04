@@ -66,13 +66,12 @@ class LimitOrdersConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_and_compute_L(self) -> "LimitOrdersConfig":
-        if self.L is None:
-            if self.nu * self.D <= 0:
-                raise ValueError(
-                    "Cannot compute L without nu*D > 0. Provide L explicitly or set nu > 0."
-                )
-            # We can't modify frozen model, so this validation just checks
-            # The actual computation happens in the class using this config
+        if self.L is None and self.nu * self.D <= 0:
+            raise ValueError(
+                "Cannot compute L without nu*D > 0. Provide L explicitly or set nu > 0."
+            )
+        # We can't modify frozen model, so this validation just checks
+        # The actual computation happens in the class using this config
         return self
 
     def compute_L(self) -> float:

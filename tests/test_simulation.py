@@ -36,8 +36,8 @@ class TestSimulationConstruction:
         """from_params should create multi-book simulation."""
         params = {
             "model_type": "discrete",
-            "duration":  100,
-            "n_frames":  10,
+            "duration": 100,
+            "n_frames": 10,
             **small_grid,
             "D": 0.5,
             "L": np.array([5.0, 5.0]),
@@ -69,8 +69,8 @@ class TestSimulationConstruction:
         metaorder = np.random.randn(Nt)
         params = {
             "model_type": "discrete",
-            "duration":  100.0,  # Physical time
-            "n_frames":  Nt,    # Number of frames
+            "duration": 100.0,  # Physical time
+            "n_frames": Nt,  # Number of frames
             **small_grid,
             "D": 0.5,
             "L": 10.0,
@@ -97,7 +97,7 @@ class TestSimulationParameterHandling:
         sim = Simulation.from_params(**params)
 
         assert sim.duration >= 1.0  # Physical time
-        assert sim.n_frames >= 1   # Number of frames
+        assert sim.n_frames >= 1  # Number of frames
         assert sim.nu == 0
         # standard_parameters sets price_formula based on model_type
         assert sim.price_formula in ["middle", "best_ask", "best_bid", "vwap"]
@@ -204,7 +204,7 @@ class TestSimulationRunning:
         sim = Simulation.from_params(
             model_type="discrete",
             duration=100.0,  # Physical time
-            n_frames=Nt,    # Number of frames
+            n_frames=Nt,  # Number of frames
             **small_grid,
             D=0.5,
             L=10.0,

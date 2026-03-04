@@ -1,4 +1,3 @@
-
 """
 Discrete order book in the LLOB framework.
 """
@@ -307,9 +306,7 @@ class DiscreteBook:
             animated=True,
         )
 
-        self.volume_ax.plot(
-            [0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed"
-        )
+        self.volume_ax.plot([0, 0], [-self.y_max, self.y_max], color="black", lw=0.5, ls="dashed")
         (self.best_ask_axis,) = self.volume_ax.plot(
             [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
@@ -363,8 +360,4 @@ class DiscreteBook:
         self.best_ask_axis.set_data([self.best_ask, self.best_ask], [0, self.y_max])
         self.best_bid_axis.set_data([self.best_bid, self.best_bid], [0, self.y_max])
 
-        return (
-            list(self.ask_bars)
-            + list(self.bid_bars)
-            + [self.best_ask_axis, self.best_bid_axis]
-        )
+        return list(self.ask_bars) + list(self.bid_bars) + [self.best_ask_axis, self.best_bid_axis]

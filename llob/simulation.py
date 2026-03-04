@@ -114,9 +114,7 @@ class Simulation:
         self.J = D * float(np.max(L))
 
         # Metaorder stats
-        self.m0 = (
-            float(np.mean(metaorder[metaorder != 0])) if np.any(metaorder != 0) else 0.0
-        )
+        self.m0 = float(np.mean(metaorder[metaorder != 0])) if np.any(metaorder != 0) else 0.0
         self.t_start = frame_start * self.dt
         self.t_end = frame_end * self.dt
         self.time_interval_shifted = self.time_interval - self.t_start
@@ -215,7 +213,9 @@ class Simulation:
             full_metaorder = np.zeros(n_frames, dtype=np.float64)
             full_metaorder[frame_start:frame_end] = metaorder_arr[0]
         else:
-            assert len(metaorder_arr) == n_frames, f"metaorder length {len(metaorder_arr)} != n_frames={n_frames}"
+            assert len(metaorder_arr) == n_frames, (
+                f"metaorder length {len(metaorder_arr)} != n_frames={n_frames}"
+            )
             full_metaorder = metaorder_arr
 
         # Create the appropriate book
@@ -493,12 +493,8 @@ class Simulation:
 
         self.price_ax = fig.add_subplot(2, 1, 2)
         self.price_ax.set_title("Price evolution")
-        (self.best_ask_line,) = self.price_ax.plot(
-            [], [], label="Best Ask", color="blue", ls="--"
-        )
-        (self.best_bid_line,) = self.price_ax.plot(
-            [], [], label="Best Bid", color="red", ls="--"
-        )
+        (self.best_ask_line,) = self.price_ax.plot([], [], label="Best Ask", color="blue", ls="--")
+        (self.best_bid_line,) = self.price_ax.plot([], [], label="Best Bid", color="red", ls="--")
         (self.price_line,) = self.price_ax.plot(
             [], [], label=f"Price ({self.price_formula})", color="yellow"
         )
@@ -509,11 +505,7 @@ class Simulation:
 
     def _init_animation(self) -> list[Any]:
         """Initialize animation frame."""
-        if (
-            self.price_line is None
-            or self.best_bid_line is None
-            or self.best_ask_line is None
-        ):
+        if self.price_line is None or self.best_bid_line is None or self.best_ask_line is None:
             return []
         self.price_line.set_data([], [])
         self.best_bid_line.set_data([], [])
@@ -526,11 +518,7 @@ class Simulation:
 
     def _update_animation(self, n: int) -> list[Any]:
         """Update animation for frame n."""
-        if (
-            self.price_line is None
-            or self.best_bid_line is None
-            or self.best_ask_line is None
-        ):
+        if self.price_line is None or self.best_bid_line is None or self.best_ask_line is None:
             return []
 
         if n % 10 == 0:

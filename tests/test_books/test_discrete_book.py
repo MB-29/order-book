@@ -92,9 +92,7 @@ class TestDiscreteBookPriceTracking:
         """Spread in index space should be positive."""
         linear_discrete_book.update_price()
 
-        spread = (
-            linear_discrete_book.best_ask_index - linear_discrete_book.best_bid_index
-        )
+        spread = linear_discrete_book.best_ask_index - linear_discrete_book.best_bid_index
         assert spread > 0
 
     def test_get_ask_volumes_returns_array(self, discrete_book: DiscreteBook):
@@ -115,9 +113,7 @@ class TestDiscreteBookPriceTracking:
 class TestDiscreteBookTimeEvolution:
     """Tests for time evolution functionality."""
 
-    def test_timestep_executes_metaorder(
-        self, linear_discrete_book: LinearDiscreteBook
-    ):
+    def test_timestep_executes_metaorder(self, linear_discrete_book: LinearDiscreteBook):
         """timestep should execute the given metaorder volume."""
         initial_ask_total = np.sum(linear_discrete_book.get_ask_volumes())
 
@@ -336,9 +332,7 @@ class TestLinearDiscreteBookDynamics:
         # Should be approximately conserved (within boundary effects)
         assert abs(final_total - initial_total) < initial_total * 0.3
 
-    def test_inherits_from_discrete_book(
-        self, linear_discrete_book: LinearDiscreteBook
-    ):
+    def test_inherits_from_discrete_book(self, linear_discrete_book: LinearDiscreteBook):
         """LinearDiscreteBook should inherit DiscreteBook methods."""
         # Should have all DiscreteBook methods
         assert hasattr(linear_discrete_book, "timestep")

@@ -1,4 +1,3 @@
-
 """
 Continuous order book using PDE discretization in the LLOB framework.
 """
@@ -220,9 +219,7 @@ class LinearContinuousBook:
         self.execute_metaorder(volume)
         self.update_prices()
         if self.D != 0:
-            self.density = theta_scheme_iteration(
-                self.density, self.dx, tstep, self.D, self.L
-            )
+            self.density = theta_scheme_iteration(self.density, self.dx, tstep, self.D, self.L)
         self.update_prices()
 
     # ================== ANIMATION ==================
@@ -240,21 +237,15 @@ class LinearContinuousBook:
 
         self.density_ax = fig.add_subplot(2, 1, 1)
         self.density_ax.set_xlim(xlims)
-        (self.density_line,) = self.density_ax.plot(
-            [], [], label="Density", color="gray"
-        )
+        (self.density_line,) = self.density_ax.plot([], [], label="Density", color="gray")
         (self.best_ask_axis,) = self.density_ax.plot(
             [], [], color="blue", ls="dashed", lw=1, label="best ask"
         )
         (self.best_bid_axis,) = self.density_ax.plot(
             [], [], color="red", ls="dashed", lw=1, label="best bid"
         )
-        self.density_ax.plot(
-            [self.xmin, self.xmax], [0, 0], color="black", lw=0.5, ls="dashed"
-        )
-        self.density_ax.plot(
-            [0, 0], [-y_max, y_max], color="black", lw=0.5, ls="dashed"
-        )
+        self.density_ax.plot([self.xmin, self.xmax], [0, 0], color="black", lw=0.5, ls="dashed")
+        self.density_ax.plot([0, 0], [-y_max, y_max], color="black", lw=0.5, ls="dashed")
         self.density_ax.set_title("Algebraic order density")
         self.density_ax.legend(loc="center left", bbox_to_anchor=(-0.3, 0.5))
         self.density_ax.set_ylim(-y_max, y_max)
@@ -277,11 +268,7 @@ class LinearContinuousBook:
         Returns:
             List of artists that were modified.
         """
-        if (
-            self.density_line is None
-            or self.best_ask_axis is None
-            or self.best_bid_axis is None
-        ):
+        if self.density_line is None or self.best_ask_axis is None or self.best_bid_axis is None:
             return []
 
         y_max = 1.5 * self.xmax * self.L

@@ -25,7 +25,7 @@ def small_grid() -> dict:
     return {
         "xmin": -10.0,
         "xmax": 10.0,
-        "n_grid":  20,
+        "n_grid": 20,
     }
 
 
@@ -35,7 +35,7 @@ def standard_grid() -> dict:
     return {
         "xmin": -50.0,
         "xmax": 50.0,
-        "n_grid":  100,
+        "n_grid": 100,
     }
 
 
@@ -77,8 +77,8 @@ def simulation_params(small_grid: dict) -> dict:
     """Ready-to-use Simulation parameters."""
     return {
         "model_type": "discrete",
-        "duration":  100.0,  # Physical time
-        "n_frames":  10,    # Number of output frames
+        "duration": 100.0,  # Physical time
+        "n_frames": 10,  # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,
@@ -92,8 +92,8 @@ def continuous_simulation_params(small_grid: dict) -> dict:
     """Simulation parameters for continuous model."""
     return {
         "model_type": "continuous",
-        "duration":  100.0,  # Physical time
-        "n_frames":  10,    # Number of output frames
+        "duration": 100.0,  # Physical time
+        "n_frames": 10,  # Number of output frames
         **small_grid,
         "D": 0.5,
         "L": 10.0,

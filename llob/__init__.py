@@ -27,6 +27,7 @@ Using pydantic configs (preferred):
     sim = Simulation.from_config(config)
     sim.run()
 """
+
 from .books import (
     DiscreteBook,
     LimitOrders,
