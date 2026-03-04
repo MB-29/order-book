@@ -1,83 +1,207 @@
-# Order Book model simulations
+# LLOB: Locally Linear Order Book Simulations
 
-## Linearized Latent Order book simulations
-Parent page of all the LLOB projects at  [the EconophysiX page](https://econophysix-confluence.atlassian.net/wiki/spaces/RES/pages/43679790/LLOBs).
+Implementation of the Locally Linear Order Book model for market microstructure research, as introduced by Donier *et al.* in [A fully consistent, minimal model for non-linear market impact](https://arxiv.org/abs/1412.0141).
 
+This codebase accompanies the article *"Market impact in a multiple metaorder landscape"* by Blanke, Moran, Crépin, Bouchaud, and Benzaquen.
 
-The code in this page contains scripts for simulating the LLOB.
+## Installation
 
+### Prerequisites
 
-An implementation of the Locally Linear Order Book model as introduced by Donier *et al.* in the paper [A fully consistent, minimal model for non-linear market impact ](https://https://arxiv.org/abs/1412.0141).
-
-Our code aims at modelling both the coarse-grained, *discrete* model, and the *continuous model* where the variable solved for is the algebraic order density.
-
-## Structure of the code
-
-Depending on the model, a locally linear order book is represented by an instance of either class `DiscreteBook` from `discrete_book.py` or class `ContinuousBook` from `continuous_book.py`.
-
-A simulation can be created with class `Simulation` from `simulation.py` by inputting the model type and various simulation parameters.
-
-Run the simulation with method `simulation.run()`. Display a `matplotlib` animation by setting argument `animation=True` and save it by setting `save=True`.
-
-For noisy metaorders, Monte Carlo simulations can be performed with class MonteCarlo from `monte_carlo.py`.
-
-## Discrete Order Book
-
-An instance of `DiscreteBook` has two `orders` attributes which are instances of class `LimitOrders` and represent ASK and BUY orders respectively.
-Class `LinearDiscreteBook` inherits from `DiscreteBook` and may be initialized with latent liquidity constant *L* instead of order deposition and cancellation constants.
-
-## Continuous Order Book
-
-This part of the code aims at solving order density reaction-diffusion equation under the assumptions of infinite memory.
-
-Numerical scheme functions for diffusion equation are imported from `diffusion_schemes.py`.
-
-## Simulation parameters
-
-An instance of class `Simulation` is created with the following arguments
-```python
-{
-	"model_type": model_type,
-	"T": T,
-	"Nt": Nt,
-	"price_formula": price_formula,
-	"Nx": Nx,
-	"xmin": xmin,
-	"xmax": xmax,
-	"L": L,
-	"D": D,
-	"metaorder": [m0],
-	"n_start" : n_start,
-	"n_end" : n_end.
-}
-```
-
-Class `Simulation` provides a function `standard_parameters` that generates standard parameters given a participation rate and a model type.
-
-## Meta-orders
-Input meta-order by setting the field `metaorder` in the previous parameters with an array. The array may either be of size Nt, or of size one, in which case its value is understood as that of a constant metaoroder.
-
-## Run a sample simulation
-Set parameters in `run.py` then run
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Install uv first:
 
 ```bash
-cd Python
-python run.py
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with Homebrew (macOS)
+brew install uv
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Automatic parameters settings
+After installation, restart your terminal or run `source ~/.bashrc` (or equivalent for your shell).
 
-Function `standard_parameters` from `simulation.py` returns a dictionary of 'standard' parameters for one given participation rate r and one model type.
+### Setting up the project
 
+Clone the repository and install dependencies:
 
-## Run a Monte Carlo simulation with a noisy meta-order
+```bash
+git clone <repository-url>
+cd order-book
 
-Perform a Monte Carlo simulation with an instance of class `MonteCarlo` from `monte_carlo.py`.
+# Install all dependencies (creates a virtual environment automatically)
+uv sync
 
-```Python
-noisy_simulation = MonteCarlo(N_samples, noise_args, simulation_args)
-noisy_simulation.run()
-output = noisy_simulation.gather_results()
+# Or with dev dependencies (pytest, ruff, sphinx)
+uv sync --group dev
+```
+
+That's it! `uv sync` creates a `.venv` directory and installs all dependencies.
+
+## Running Scripts
+
+Use `uv run` to execute Python scripts. This automatically uses the correct virtual environment:
+
+```bash
+# Run a paper figure script
+uv run python paper/scripts/fig2.py
+
+# Run experiments
+uv run python depletion_scripts/exp1_sqrtimpact.py
+uv run python depletion_scripts/exp2_density_profile.py --noise
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check llob/
+```
+
+You don't need to activate any virtual environment - `uv run` handles this automatically.
+
+## Quick Start
+
+### Basic simulation
+
+```python
+from llob import Simulation, standard_parameters
+
+# Create simulation with standard parameters
+params = standard_parameters(participation_rate=1.0, model_type='discrete')
+sim = Simulation.from_params(**params)
+sim.run()
+
+print(f"Final price: {sim.prices[-1]}")
+print(f"Final spread: {sim.spreads[-1]}")
+```
+
+### Using pydantic configs (preferred)
+
+```python
+from llob import Simulation, SimulationConfig, GridConfig
+
+config = SimulationConfig(
+    model_type='discrete',
+    grid=GridConfig(xmin=-50, xmax=50, n_grid=100),
+    D=1.0,
+    L=1.0,
+    duration=100.0,
+    n_frames=100,
+    metaorder=[0.5],  # Constant metaorder
+)
+sim = Simulation.from_config(config)
+sim.run()
+```
+
+### Using from_params directly
+
+```python
+from llob import Simulation
+
+sim = Simulation.from_params(
+    model_type='discrete',
+    duration=1000.0,
+    n_frames=100,
+    n_grid=1000,
+    xmin=-500.0,
+    xmax=500.0,
+    D=0.5,
+    L=10.0,
+    nu=0.1,
+    metaorder=[50],  # Constant metaorder m0=50
+)
+sim.run()
+```
+
+### Monte Carlo simulations
+
+```python
+from llob import MonteCarlo
+
+mc = MonteCarlo(
+    N_samples=100,
+    noise_args={'m1': 50, 'hurst': 0.7},
+    simulation_args={...},
+)
+mc.run()
+results = mc.gather_results()
+```
+
+## Project Structure
+
+```
+order-book/
+├── llob/                    # Main Python package
+│   ├── __init__.py          # Public API exports
+│   ├── simulation.py        # Simulation class
+│   ├── monte_carlo.py       # Monte Carlo simulations
+│   ├── books/               # Order book implementations
+│   │   ├── discrete_book.py
+│   │   ├── linear_discrete_book.py
+│   │   ├── linear_continuous_book.py
+│   │   └── multi_discrete_book.py
+│   └── configs/             # Pydantic configuration classes
+│       ├── simulation.py
+│       ├── book.py
+│       └── grid.py
+├── paper/                   # Paper manuscript and figures
+│   └── scripts/             # Figure generation scripts
+├── depletion_scripts/       # Experiment scripts for depletion analysis
+├── tests/                   # Test suite
+├── pyproject.toml           # Project configuration
+└── uv.lock                  # Locked dependencies
+```
+
+## Key Classes
+
+| Class | Description |
+|-------|-------------|
+| `Simulation` | Main simulation orchestrator |
+| `MonteCarlo` | Ensemble simulations with fractional Gaussian noise |
+| `DiscreteBook` | Discrete order book with explicit limit orders |
+| `LinearDiscreteBook` | Discrete book initialized with latent liquidity L |
+| `LinearContinuousBook` | Continuous density approximation |
+| `MultiDiscreteBook` | Multiple interacting order books |
+
+## Simulation Parameters
+
+Key parameters for `Simulation.from_params()`:
+
+| Parameter | Description |
+|-----------|-------------|
+| `model_type` | `'discrete'` or `'continuous'` |
+| `D` | Diffusion coefficient |
+| `L` | Latent liquidity (scalar or list for multi-actor) |
+| `nu` | Cancellation rate (default: 0). Required for spread-dependent deposition |
+| `alpha` | Spread-dependent deposition sensitivity (default: 0) |
+| `duration` | Total physical simulation time |
+| `n_frames` | Number of output frames |
+| `xmin`, `xmax` | Price grid boundaries |
+| `n_grid` | Number of spatial grid points |
+| `metaorder` | Array of metaorder intensities (length 1 for constant, or length n_frames) |
+| `frame_start`, `frame_end` | Frame indices when metaorder is active |
+| `price_formula` | `'middle'`, `'best_ask'`, `'best_bid'`, or `'vwap'` |
+
+### Time convention
+
+- `duration`: Physical simulation time (in arbitrary units)
+- `n_frames`: Number of output frames/measurements
+- `dt = duration / n_frames`: Time between output frames
+- `dt_step = dx² / (2D)`: Elementary diffusion timestep (internal)
+
+## Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_simulation.py
 ```
 
 ## Output
@@ -85,44 +209,12 @@ output = noisy_simulation.gather_results()
 ### Discrete book animation
 ![Discrete book animation](demo/execution.gif)
 
-
 ## Requirements
-* Python 3
-* Modules numpy and matplotlib
 
+- Python >= 3.11
+- Dependencies managed via `uv` (see `pyproject.toml`)
 
-The code for all types of simulations should be stored in a `.py` file defining the objects, such as classes with:
+## Authors
 
-```python
-class Simulation(object):
-
-	def __init__(params):
-		...... 
-
-
-    def do_stuff():
-		....
-        
-def helper_function(...):
-    ...
-```
-
-
-So that simple simulation test and execution scripts can be written in a **separate file**, i.e.
-
-```python
-from object_definitions import Simulation, helper_function
-
-def test_function(*params):
-	sim = Simulation(*params)
-	sim.do_stuff()
-	measures = sim.gather_measures()
-	return measures
-
-params = ....
-test = test_function(*params)
-```
-and then the results can be analyzed.
-
-Test results, as well as parameters, can be stored on `pkl` files with the Pickle module.
-
+- Matthieu Blanke
+- Jose Moran
