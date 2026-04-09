@@ -196,29 +196,57 @@ class LimitOrders:
         """
         Process order deposition stochastic step.
 
-        Orders arrive via Poisson process with intensity:
-            effective_lambd = lambd * (1 + alpha * spread)
-        where spread is measured in grid units (ticks).
-
-        When alpha > 0, deposition rate increases with spread, providing
-        a stabilizing feedback that prevents unbounded spread growth in
-        high-participation regimes. The parameter alpha is dimensionless
-        and represents the fractional boost to deposition per tick of spread.
-
-        Note:
-            update_best_price() should be called before this method
-            to ensure the deposition price range is correct.
+        Orders arrive at base rate on the book side, and at a boosted rate
+        (proportional to alpha * spread) in the gap only.
 
         Args:
             spread: Current spread in grid units (best_ask_index - best_bid_index).
         """
-        # Compute spread-dependent deposition rate
-        # alpha is dimensionless: fraction of extra deposition per tick of spread
-        # spread is in grid units (number of ticks)
+        lam = self.lambd * self.dt * self.dx
+
+        # Number of arrival points on the book side (outside the gap)
+        if self.side == "ask":
+            base_size = self.n_grid - self.best_price_index % self.n_grid
+        else:
+            base_size = self.best_price_index + 1
+
+        # Extend into the gap with boosted rate
+        gap_size = spread // 2 if spread > 0 else 0
+        boosted_lam = self.lambd * (1.0 + self.alpha * spread) * self.dt * self.dx
+
+        size = base_size + gap_size
+        padding_size = size - self.n_grid if self.side == "ask" else self.n_grid - size
+
+        if USE_NUMBA:
+            self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
+            return
+
+        arrivals_base = np.random.poisson(lam=lam, size=base_size)
+        arrivals_gap = np.random.poisson(lam=boosted_lam, size=gap_size) if gap_size > 0 else np.array([], dtype=int)
+
+        if self.side == "ask":
+            arrivals = np.concatenate([arrivals_gap, arrivals_base])
+        else:
+            arrivals = np.concatenate([arrivals_base, arrivals_gap])
+
+        padding = (self.n_grid - size, 0) if self.side == "ask" else (0, self.n_grid - size)
+        arrivals = np.pad(arrivals, padding, mode="constant", constant_values=0)
+        self.volumes += arrivals
+
+    def deposition_uniform_boost(self, spread: int) -> None:
+        """
+        Process order deposition with uniform rate boost across all levels.
+
+        Orders arrive via Poisson process with intensity:
+            effective_lambd = lambd * (1 + alpha * spread)
+        applied uniformly to the entire deposition range (book side + gap).
+
+        Args:
+            spread: Current spread in grid units (best_ask_index - best_bid_index).
+        """
         effective_lambd = self.lambd * (1.0 + self.alpha * spread)
         lam = effective_lambd * self.dt * self.dx
 
-        # Number of arrival points for a given side
         if self.side == "ask":
             size = self.n_grid - self.best_price_index % self.n_grid
         else:
