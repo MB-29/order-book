@@ -184,6 +184,10 @@ class DiscreteBook:
         """
         self.update_price()
         self.execute_metaorder(volume)
+        self.reaction_diffusion_step()
+
+    def reaction_diffusion_step(self) -> None:
+        """One full diffusion step: stochastic dynamics, price update, order matching."""
         self.stochastic_timestep()
         self.update_price()
         self.order_reaction()
@@ -210,37 +214,16 @@ class DiscreteBook:
         self.best_bid_volume = int(self.get_bid_volumes()[self.bid_orders.best_price_index])
 
     def order_reaction(self) -> None:
-        """Execute matched orders where bid and ask cross.
+        """Annihilate overlapping bid and ask volumes at every price level.
 
-        When best_ask_index <= best_bid_index (ask price is at or below bid price),
-        orders should be matched until the spread is non-negative.
+        After diffusion, orders from either side can end up at any price.
+        At each grid point, the minimum of ask and bid volume is removed
+        from both sides (instantaneous reaction).
         """
-        # Keep matching until no more crossing (with safety limit)
-        for _ in range(self.n_grid):  # Safety limit to prevent infinite loop
-            if self.best_ask_index > self.best_bid_index:
-                break  # No crossing
-
-            # Get volumes at the best prices
-            ask_vol = self.ask_orders.volumes[self.best_ask_index]
-            bid_vol = self.bid_orders.volumes[self.best_bid_index]
-
-            # If either side has no volume at best price, just break
-            # (this shouldn't happen if update_best_price works correctly)
-            if ask_vol == 0 or bid_vol == 0:
-                break
-
-            # Match the minimum volume between best ask and best bid
-            match_vol = min(ask_vol, bid_vol)
-
-            # Remove matched volume from both sides
-            self.ask_orders.volumes[self.best_ask_index] -= match_vol
-            self.bid_orders.volumes[self.best_bid_index] -= match_vol
-
-            # Update best prices after matching
-            self.ask_orders.update_best_price()
-            self.bid_orders.update_best_price()
-            self.best_ask_index = self.ask_orders.best_price_index
-            self.best_bid_index = self.bid_orders.best_price_index
+        reaction_volumes = np.minimum(
+            self.ask_orders.volumes, self.bid_orders.volumes)
+        self.ask_orders.volumes -= reaction_volumes
+        self.bid_orders.volumes -= reaction_volumes
 
     def execute_metaorder(self, volume: float) -> None:
         """
