@@ -2,14 +2,12 @@
 Limit orders implementation for one side of an order book.
 """
 
-import warnings
 from typing import Literal, Optional, Self
 
 import numpy as np
 import numpy.typing as npt
 from numba import float64, int64, njit
 
-# Module-level flags for runtime behavior
 USE_NUMBA = False
 DETERMINISTIC = False
 
@@ -18,19 +16,10 @@ class LimitOrders:
     """
     Order volumes for one side (bid or ask) with stochastic dynamics.
 
-    Models the dynamics of limit orders on one side of the book, including:
-    - Deposition: new orders arrive via Poisson process
-    - Cancellation: orders expire with exponential lifetime
-    - Jumps: orders diffuse via random walk (Smoluchowski dynamics)
-
-    Attributes:
-        volumes: Order volumes at each price level.
-        X: Price grid array.
-        dx: Price grid spacing.
-        dt: Elementary timestep for Smoluchowski dynamics.
-        best_price: Current best price on this side.
-        best_price_index: Index of best price in the grid.
-        best_price_volume: Volume at the best price.
+    Models limit-order dynamics on one side of the book: deposition (Poisson
+    arrivals), cancellation (exponential lifetime), and jumps (Smoluchowski
+    random walk). The timestep is supplied per call by the caller — this class
+    holds no notion of dt.
     """
 
     def __init__(
@@ -46,25 +35,6 @@ class LimitOrders:
         boundary_flow: float,
         alpha: float = 0.0,
     ) -> None:
-        """
-        Initialize a LimitOrders instance with pre-computed values.
-
-        Use `from_params` classmethod for convenient construction from
-        raw parameters.
-
-        Args:
-            side: Order side, either 'ask' or 'bid'.
-            lambd: Deposition intensity parameter (base rate).
-            nu: Cancellation rate parameter.
-            D: Diffusion constant.
-            L: Order density slope (latent liquidity).
-            X: Price grid array.
-            dx: Price grid spacing.
-            volumes: Initial order volumes at each price level.
-            boundary_flow: Flow at the boundary for diffusion.
-            alpha: Spread-sensitivity coefficient for deposition rate (dimensionless).
-                   Effective rate = lambd * (1 + alpha * spread_ticks).
-        """
         assert side in ("ask", "bid"), f"side must be 'ask' or 'bid', got {side}"
 
         self.side = side
@@ -78,15 +48,12 @@ class LimitOrders:
         self.boundary_flow = boundary_flow
         self.alpha = alpha
 
-        # Derived constants
         self.n_grid = len(X)
         self.xmin = float(X[0])
         self.xmax = float(X[-1])
         self.sign = -1 if side == "ask" else 1
         self.boundary_index = -1 if side == "ask" else 0
-        self.dt = dx**2 / (2 * D) if D > 0 else float("inf")
 
-        # Initialize price tracking
         self.best_price_index: int = 0
         self.best_price: float = 0.0
         self.best_price_volume: int = 0
@@ -107,52 +74,17 @@ class LimitOrders:
         boundary_conditions: Literal["flat", "linear"] = "flat",
         alpha: float = 0.0,
     ) -> Self:
-        """
-        Create a LimitOrders instance from raw parameters.
-
-        Args:
-            side: Order side, either 'ask' or 'bid'.
-            lambd: Deposition intensity parameter (base rate).
-            nu: Cancellation rate parameter.
-            D: Diffusion constant.
-            xmin: Price interval lower bound.
-            xmax: Price interval upper bound.
-            n_grid: Number of price grid points.
-            L: Order density slope. If None, computed from lambd/(sqrt(nu*D)).
-            initial_density: Initial density profile type.
-            boundary_conditions: Boundary condition type.
-            alpha: Spread-sensitivity coefficient for deposition rate.
-
-        Returns:
-            Configured LimitOrders instance.
-
-        Raises:
-            ValueError: If L is None and nu*D <= 0.
-        """
-        # Compute grid
         X, dx = np.linspace(xmin, xmax, num=n_grid, retstep=True)
         X = np.asarray(X)
         dx = float(dx)
 
-        # Compute L if not provided
         if L is None:
             if nu * D <= 0:
                 raise ValueError("Cannot compute L: nu * D must be positive")
             L = lambd / np.sqrt(nu * D)
 
-        # Compute dt for stability check
-        dt = dx**2 / (2 * D) if D > 0 else float("inf")
-        if dt * nu >= 1:
-            warnings.warn(
-                "Elementary timestep is too large to guarantee multiplicative cancellation rate.",
-                stacklevel=2,
-            )
-
-        # Compute initial volumes
         sign = -1 if side == "ask" else 1
         volumes = _compute_initial_volumes(X, dx, L, nu, D, lambd, sign, initial_density)
-
-        # Compute boundary flow
         boundary_flow = L if boundary_conditions == "linear" else 0.0
 
         return cls(
@@ -169,50 +101,29 @@ class LimitOrders:
         )
 
     def stationary_density(self, x: float) -> float:
-        """
-        Compute the stationary order density at price x.
-
-        For linear book (nu=0): density = L * |x| on the correct side.
-        For nonlinear book: density = (lambd/nu) * (1 - exp(-|x|/x_crit))
-
-        Args:
-            x: Price level.
-
-        Returns:
-            Order density at price x.
-        """
         if self.sign * x > 0:
             return 0.0
-
         if self.nu == 0:
             return self.L * x
-
         x_crit = np.sqrt(self.D / self.nu)
         return (self.lambd / self.nu) * (1 - np.exp(-abs(x) / x_crit))
 
     # ================== TIME EVOLUTION ==================
 
-    def deposition(self, spread: int) -> None:
+    def deposition(self, dt: float, spread: int) -> None:
         """
-        Process order deposition stochastic step.
-
-        Orders arrive at base rate on the book side, and at a boosted rate
-        (proportional to alpha * spread) in the gap only.
-
-        Args:
-            spread: Current spread in grid units (best_ask_index - best_bid_index).
+        Poisson arrivals on the book side at base rate ``lambd``, extended
+        halfway into the spread at a boosted rate ``lambd * (1 + alpha * spread)``.
         """
-        lam = self.lambd * self.dt * self.dx
+        lam = self.lambd * dt * self.dx
 
-        # Number of arrival points on the book side (outside the gap)
         if self.side == "ask":
             base_size = self.n_grid - self.best_price_index % self.n_grid
         else:
             base_size = self.best_price_index + 1
 
-        # Extend into the gap with boosted rate
         gap_size = spread // 2 if spread > 0 else 0
-        boosted_lam = self.lambd * (1.0 + self.alpha * spread) * self.dt * self.dx
+        boosted_lam = self.lambd * (1.0 + self.alpha * spread) * dt * self.dx
 
         size = base_size + gap_size
         padding_size = size - self.n_grid if self.side == "ask" else self.n_grid - size
@@ -222,7 +133,11 @@ class LimitOrders:
             return
 
         arrivals_base = np.random.poisson(lam=lam, size=base_size)
-        arrivals_gap = np.random.poisson(lam=boosted_lam, size=gap_size) if gap_size > 0 else np.array([], dtype=int)
+        arrivals_gap = (
+            np.random.poisson(lam=boosted_lam, size=gap_size)
+            if gap_size > 0
+            else np.array([], dtype=int)
+        )
 
         if self.side == "ask":
             arrivals = np.concatenate([arrivals_gap, arrivals_base])
@@ -233,83 +148,32 @@ class LimitOrders:
         arrivals = np.pad(arrivals, padding, mode="constant", constant_values=0)
         self.volumes += arrivals
 
-    def deposition_uniform_boost(self, spread: int) -> None:
-        """
-        Process order deposition with uniform rate boost across all levels.
-
-        Orders arrive via Poisson process with intensity:
-            effective_lambd = lambd * (1 + alpha * spread)
-        applied uniformly to the entire deposition range (book side + gap).
-
-        Args:
-            spread: Current spread in grid units (best_ask_index - best_bid_index).
-        """
-        effective_lambd = self.lambd * (1.0 + self.alpha * spread)
-        lam = effective_lambd * self.dt * self.dx
-
-        if self.side == "ask":
-            size = self.n_grid - self.best_price_index % self.n_grid
-        else:
-            size = self.best_price_index + 1
-
-        if spread > 0:
-            size += spread // 2
-        padding_size = size - self.n_grid if self.side == "ask" else self.n_grid - size
-
-        if USE_NUMBA:
-            self.volumes = add_arrivals(self.volumes, lam, size, padding_size)
-            return
-
-        arrivals = np.random.poisson(lam=lam, size=size)
-        padding = (self.n_grid - size, 0) if self.side == "ask" else (0, self.n_grid - size)
-        arrivals = np.pad(arrivals, padding, mode="constant", constant_values=0)
-        self.volumes += arrivals
-
-    def cancellation(self) -> None:
-        """
-        Process order cancellation stochastic step.
-
-        Orders are cancelled according to an exponential lifetime distribution
-        with scale 1/nu.
-        """
+    def cancellation(self, dt: float) -> None:
+        """Cancel orders with exponential lifetime (scale 1/nu)."""
         scale = 1 / self.nu
 
         if DETERMINISTIC:
-            self.volumes -= int(self.nu * self.volumes)
+            self.volumes -= (self.nu * dt * self.volumes).astype(self.volumes.dtype)
             return
 
         if USE_NUMBA:
-            self.volumes = substract_cancellations(self.volumes, scale, self.dt)
+            self.volumes = substract_cancellations(self.volumes, scale, dt)
             return
 
-        get_cancellation_vec = np.vectorize(lambda volume: self._get_cancellation(volume, scale))
+        get_cancellation_vec = np.vectorize(
+            lambda volume: self._get_cancellation(volume, dt, scale)
+        )
         cancellations = get_cancellation_vec(self.volumes)
         self.volumes = self.volumes - cancellations
 
-    def _get_cancellation(self, volume: int, scale: float) -> int:
-        """
-        Compute cancellations for a given volume using exponential lifetime.
-
-        Args:
-            volume: Number of orders at this price level.
-            scale: Scale parameter (1/nu) for exponential distribution.
-
-        Returns:
-            Number of orders that get cancelled.
-        """
+    def _get_cancellation(self, volume: int, dt: float, scale: float) -> int:
         if volume == 0:
             return 0
         life_times = np.random.exponential(scale=scale, size=volume)
-        cancellations = np.where(life_times < self.dt, 1, 0)
-        return int(np.sum(cancellations))
+        return int(np.sum(life_times < dt))
 
     def jumps(self) -> None:
-        """
-        Process order jumps (diffusion) stochastic step.
-
-        Orders perform a random walk with equal probability of jumping
-        left or right (Smoluchowski dynamics).
-        """
+        """One Smoluchowski random-walk step (Bernoulli left/right per order)."""
         if USE_NUMBA:
             self.volumes = add_flow(self.volumes, self.dx, self.boundary_index, self.boundary_flow)
             return
@@ -333,15 +197,6 @@ class LimitOrders:
     # ================== PRICE TRACKING ==================
 
     def update_best_price(self) -> int:
-        """
-        Update the best price for this side of the book.
-
-        For ask: best price is the leftmost nonzero volume.
-        For bid: best price is the rightmost nonzero volume.
-
-        Returns:
-            Index of the best price in the grid.
-        """
         end_index = 0 if self.side == "ask" else -1
         indices = np.nonzero(self.volumes)[0]
         if indices.size == 0:
@@ -352,15 +207,6 @@ class LimitOrders:
         return self.best_price_index
 
     def execute_best_orders(self, volume: float) -> None:
-        """
-        Execute orders at the best price, walking through price levels as needed.
-
-        Args:
-            volume: Order volume to execute (positive for ask, negative for bid).
-
-        Raises:
-            ValueError: If market lacks liquidity to fill the order.
-        """
         if volume == 0:
             return
         if self.best_price_index in {0, self.n_grid}:
@@ -383,29 +229,11 @@ class LimitOrders:
                 raise ValueError(f"Market lacks {self.side} liquidity")
 
     def execute_orders(self, volumes: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-        """
-        Execute given order volumes up to available liquidity at each price.
-
-        Args:
-            volumes: Volumes to execute at each price level.
-
-        Returns:
-            Actually executed volumes (may be less than requested).
-        """
         trade_volumes = np.minimum(volumes, self.volumes)
         self.volumes -= trade_volumes.astype(int)
         return trade_volumes
 
     def get_available_volume(self, price_index: int) -> int:
-        """
-        Compute total volume between a price index and the best price.
-
-        Args:
-            price_index: Target price index.
-
-        Returns:
-            Total volume between price_index and best_price (inclusive).
-        """
         price = self.X[price_index]
         if self.sign * (price - self.best_price) > 0:
             return 0
@@ -427,8 +255,6 @@ def _compute_initial_volumes(
     sign: int,
     initial_density: str,
 ) -> npt.NDArray[np.int64]:
-    """Compute initial order volumes based on density profile."""
-
     def stationary_density(x: float) -> float:
         if sign * x > 0:
             return 0.0
@@ -448,7 +274,6 @@ def _compute_initial_volumes(
         "linear": linear_density,
         "empty": empty_density,
     }
-
     density_func = density_funcs[initial_density]
     volumes_func = np.vectorize(lambda x: int(dx * density_func(x)))
     return volumes_func(X).astype(np.int64)
@@ -464,18 +289,6 @@ def add_flow(
     boundary_index: int,
     boundary_flow: float,
 ) -> npt.NDArray[np.int64]:
-    """
-    Numba-accelerated order jump flow computation.
-
-    Args:
-        volumes: Order volumes at each price level.
-        dx: Price grid spacing.
-        boundary_index: Boundary index (-1 for ask, 0 for bid).
-        boundary_flow: Flow at the boundary.
-
-    Returns:
-        Updated volumes array.
-    """
     Nx = len(volumes)
     jumps = np.zeros((Nx, 2), dtype=int64)
 
@@ -503,18 +316,6 @@ def add_arrivals(
     size: int,
     padding_size: int,
 ) -> npt.NDArray[np.int64]:
-    """
-    Numba-accelerated order arrival computation.
-
-    Args:
-        volumes: Order volumes at each price level.
-        lam: Poisson arrival intensity.
-        size: Size of the deposition price range.
-        padding_size: Complementary size (sign indicates padding direction).
-
-    Returns:
-        Updated volumes array.
-    """
     arrivals = np.random.poisson(lam=lam, size=size)
     padding = np.zeros(abs(padding_size), dtype=int64)
     arrays = (padding, arrivals) if padding_size < 0 else (arrivals, padding)
@@ -528,17 +329,6 @@ def substract_cancellations(
     scale: float,
     dt: float,
 ) -> npt.NDArray[np.int64]:
-    """
-    Numba-accelerated order cancellation computation.
-
-    Args:
-        volumes: Order volumes at each price level.
-        scale: Exponential lifetime scale (1/nu).
-        dt: Time step size.
-
-    Returns:
-        Updated volumes array.
-    """
     total_volume = np.sum(volumes)
     life_times = np.random.exponential(scale=scale, size=total_volume)
     cancellations = np.zeros(volumes.size, dtype=int64)

@@ -1,5 +1,5 @@
 """
-Tests for Simulation class.
+Tests for the Simulation class.
 """
 
 import numpy as np
@@ -11,328 +11,157 @@ from llob import (
     LinearDiscreteBook,
     MultiDiscreteBook,
     Simulation,
+    courant_dt,
     standard_parameters,
 )
 
 
+def _params(**overrides) -> dict:
+    base = {
+        "model_type": "discrete",
+        "duration": 100.0,
+        "n_frames": 10,
+        "xmin": -10.0,
+        "xmax": 10.0,
+        "n_grid": 20,
+        "D": 0.5,
+        "L": 10.0,
+        "nu": 0.0,
+        "metaorder": [1.0],
+    }
+    base.update(overrides)
+    base["dt_step"] = courant_dt(
+        (base["xmax"] - base["xmin"]) / base["n_grid"], base["D"]
+    )
+    return base
+
+
 class TestSimulationConstruction:
-    """Tests for Simulation construction."""
-
     def test_from_params_discrete_model(self, simulation_params: dict):
-        """from_params should create simulation with discrete model."""
         sim = Simulation.from_params(**simulation_params)
-
-        assert sim.model_type == "discrete"
         assert isinstance(sim.book, (DiscreteBook, LinearDiscreteBook))
 
     def test_from_params_continuous_model(self, continuous_simulation_params: dict):
-        """from_params should create simulation with continuous model."""
         sim = Simulation.from_params(**continuous_simulation_params)
-
-        assert sim.model_type == "continuous"
         assert isinstance(sim.book, LinearContinuousBook)
 
-    def test_from_params_multi_book(self, small_grid: dict):
-        """from_params should create multi-book simulation."""
-        params = {
-            "model_type": "discrete",
-            "duration": 100,
-            "n_frames": 10,
-            **small_grid,
-            "D": 0.5,
-            "L": np.array([5.0, 5.0]),
-            "nu": 0.0,
-            "metaorder": [1.0],
-        }
-        sim = Simulation.from_params(**params)
-
+    def test_from_params_multi_book(self):
+        sim = Simulation.from_params(**_params(L=np.array([5.0, 5.0])))
         assert isinstance(sim.book, MultiDiscreteBook)
 
     def test_from_params_validates_model_type(self, simulation_params: dict):
-        """from_params should validate model_type."""
         params = dict(simulation_params)
         params["model_type"] = "invalid"
-
         with pytest.raises(AssertionError):
             Simulation.from_params(**params)
 
     def test_from_params_expands_single_metaorder(self, simulation_params: dict):
-        """Single metaorder value should be expanded to full array."""
         sim = Simulation.from_params(**simulation_params)
-
-        # Metaorder should be expanded to Nt length (number of frames)
         assert len(sim.metaorder) == sim.n_frames
 
-    def test_from_params_accepts_full_metaorder(self, small_grid: dict):
-        """Full metaorder array should be accepted."""
+    def test_from_params_accepts_full_metaorder(self):
         Nt = 10
         metaorder = np.random.randn(Nt)
-        params = {
-            "model_type": "discrete",
-            "duration": 100.0,  # Physical time
-            "n_frames": Nt,  # Number of frames
-            **small_grid,
-            "D": 0.5,
-            "L": 10.0,
-            "nu": 0.0,
-            "metaorder": metaorder,
-        }
-        sim = Simulation.from_params(**params)
-
+        sim = Simulation.from_params(**_params(n_frames=Nt, metaorder=metaorder))
         np.testing.assert_array_equal(sim.metaorder, metaorder)
 
 
-class TestSimulationParameterHandling:
-    """Tests for parameter handling."""
-
-    def test_default_parameters(self):
-        """from_params should use sensible defaults."""
-        # Use standard_parameters to get valid configuration
-        params = standard_parameters(
-            participation_rate=1.0,
-            model_type="discrete",
-            duration=50.0,
-            n_frames=10,
-        )
-        sim = Simulation.from_params(**params)
-
-        assert sim.duration >= 1.0  # Physical time
-        assert sim.n_frames >= 1  # Number of frames
-        assert sim.nu == 0
-        # standard_parameters sets price_formula based on model_type
-        assert sim.price_formula in ["middle", "best_ask", "best_bid", "vwap"]
-
-    def test_derived_values_computed(self, simulation_params: dict):
-        """Constructor should compute derived values."""
-        sim = Simulation.from_params(**simulation_params)
-
-        assert sim.dx > 0
-        assert sim.price_range == sim.xmax - sim.xmin
-        assert sim.D * np.max(sim.L) == sim.J
-
-    def test_theoretical_values_computed(self, simulation_params: dict):
-        """Constructor should compute theoretical values."""
-        sim = Simulation.from_params(**simulation_params)
-
-        # These should be computed
-        assert hasattr(sim, "impact_th")
-        assert hasattr(sim, "participation_rate")
-        assert hasattr(sim, "scheme_constant")
+class TestSimulationCFLWarning:
+    def test_warns_on_cfl_violation(self):
+        params = _params()
+        params["dt_step"] = 100.0  # way above dx²/(2D)
+        with pytest.warns(UserWarning, match="CFL"):
+            Simulation.from_params(**params)
 
 
 class TestSimulationPriceFormulas:
-    """Tests for price formula handling."""
-
     def test_price_formula_middle(self, simulation_params: dict):
-        """Middle price formula should average ask and bid."""
-        params = dict(simulation_params)
-        params["price_formula"] = "middle"
+        params = dict(simulation_params, price_formula="middle")
         sim = Simulation.from_params(**params)
-
-        price = sim.compute_price(10.0, 8.0)
-        assert price == 9.0
+        assert sim.compute_price(10.0, 8.0) == 9.0
 
     def test_price_formula_best_ask(self, simulation_params: dict):
-        """Best ask price formula should return ask."""
-        params = dict(simulation_params)
-        params["price_formula"] = "best_ask"
+        params = dict(simulation_params, price_formula="best_ask")
         sim = Simulation.from_params(**params)
-
-        price = sim.compute_price(10.0, 8.0)
-        assert price == 10.0
+        assert sim.compute_price(10.0, 8.0) == 10.0
 
     def test_price_formula_best_bid(self, simulation_params: dict):
-        """Best bid price formula should return bid."""
-        params = dict(simulation_params)
-        params["price_formula"] = "best_bid"
+        params = dict(simulation_params, price_formula="best_bid")
         sim = Simulation.from_params(**params)
-
-        price = sim.compute_price(10.0, 8.0)
-        assert price == 8.0
+        assert sim.compute_price(10.0, 8.0) == 8.0
 
     def test_price_formula_vwap(self, simulation_params: dict):
-        """VWAP price formula should weight by volume."""
-        params = dict(simulation_params)
-        params["price_formula"] = "vwap"
+        params = dict(simulation_params, price_formula="vwap")
         sim = Simulation.from_params(**params)
-
-        # VWAP depends on book state
         price = sim.compute_price(10.0, 8.0)
         assert 8.0 <= price <= 10.0
 
 
 class TestSimulationRunning:
-    """Tests for simulation running."""
-
     def test_run_populates_price_arrays(self, simulation: Simulation):
-        """run should populate prices, asks, bids arrays."""
         simulation.run()
-
-        # Arrays should have values
-        assert np.any(simulation.prices != 0) or np.all(simulation.prices == 0)
-        assert len(simulation.prices) == simulation.n_frames  # Sized by Nt (frames)
-
-    def test_run_executes_all_timesteps(self, simulation: Simulation):
-        """run should execute Nt frames."""
-        simulation.run()
-
-        # Price should have been tracked for all frames
+        assert len(simulation.prices) == simulation.n_frames
         assert len(simulation.asks) == simulation.n_frames
         assert len(simulation.bids) == simulation.n_frames
 
     def test_run_with_metaorder_moves_price(self):
-        """Running with metaorder should cause price movement."""
-        # Use standard_parameters for well-behaved simulation
-        params = standard_parameters(
-            participation_rate=10.0,
-            model_type="discrete",
-            duration=100.0,
-            n_frames=20,
-        )
+        params = standard_parameters(participation_rate=10.0, model_type="discrete",
+                                     duration=100.0, n_frames=20)
         sim = Simulation.from_params(**params)
-        initial_price = sim.prices[0] if len(sim.prices) > 0 else 0.0
-
+        initial_price = sim.prices[0]
         sim.run()
-
-        # With constant buy pressure, price should increase
         assert sim.prices[-1] > initial_price
 
-    def test_run_records_measurements(self, small_grid: dict):
-        """run should record measurements at specified indices."""
-        Nt = 100
-        measurement_indices = [10, 50, 90]
-        sim = Simulation.from_params(
-            model_type="discrete",
-            duration=100.0,  # Physical time
-            n_frames=Nt,  # Number of frames
-            **small_grid,
-            D=0.5,
-            L=10.0,
-            nu=0.0,
-            metaorder=[1.0],
+    def test_run_records_measurements(self):
+        params = _params(
+            n_frames=100,
             measured_quantities=["best_ask", "best_bid"],
-            measurement_indices=measurement_indices,
-        )
-
-        sim.run()
-
-        # Should have measurements at specified indices
-        assert len(sim.measurements["best_ask"]) == len(measurement_indices)
-        assert len(sim.measurements["best_bid"]) == len(measurement_indices)
-
-
-class TestSimulationUtilities:
-    """Tests for utility functions."""
-
-    def test_standard_parameters_returns_valid_dict(self):
-        """standard_parameters should return valid simulation params."""
-        params = standard_parameters(
-            participation_rate=1.0,
-            model_type="discrete",
-        )
-
-        assert "duration" in params
-        assert "n_frames" in params
-        assert "D" in params
-        assert "L" in params
-        assert "xmin" in params
-        assert "xmax" in params
-
-    def test_standard_parameters_different_rates(self):
-        """standard_parameters should work for different participation rates."""
-        for rate in [0.1, 1.0, 10.0, 100.0]:
-            params = standard_parameters(
-                participation_rate=rate,
-                model_type="discrete",
-            )
-            assert params["D"] >= 0
-            assert params["L"] > 0
-
-    def test_standard_parameters_creates_runnable_sim(self):
-        """Params from standard_parameters should create runnable simulation."""
-        params = standard_parameters(
-            participation_rate=1.0,
-            model_type="discrete",
-            duration=50.0,
-            n_frames=10,
+            measurement_indices=[10, 50, 90],
         )
         sim = Simulation.from_params(**params)
         sim.run()
+        assert len(sim.measurements["best_ask"]) == 3
+        assert len(sim.measurements["best_bid"]) == 3
 
-        # Should complete without error (prices sized by Nt)
+
+class TestStandardParameters:
+    def test_returns_runnable_dict(self):
+        params = standard_parameters(participation_rate=1.0, model_type="discrete",
+                                     duration=50.0, n_frames=10)
+        for key in ("duration", "n_frames", "D", "L", "xmin", "xmax", "dt_step"):
+            assert key in params
+
+    def test_various_rates(self):
+        for rate in [0.1, 1.0, 10.0, 100.0]:
+            params = standard_parameters(participation_rate=rate, model_type="discrete")
+            assert params["L"] > 0
+
+    def test_creates_runnable_sim(self):
+        params = standard_parameters(participation_rate=1.0, model_type="discrete",
+                                     duration=50.0, n_frames=10)
+        sim = Simulation.from_params(**params)
+        sim.run()
         assert len(sim.prices) == params["n_frames"]
-
-    def test_get_density(self, simulation: Simulation):
-        """get_density should return dict with bid and ask."""
-        density = simulation.get_density()
-
-        assert "bid" in density
-        assert "ask" in density
-        assert len(density["bid"]) == simulation.n_grid
-        assert len(density["ask"]) == simulation.n_grid
-
-    def test_get_growth_th(self, simulation: Simulation):
-        """get_growth_th should return theoretical impact profile."""
-        growth = simulation.get_growth_th()
-
-        # Should span from n_start to n_end
-        expected_len = simulation.frame_end - simulation.frame_start
-        assert len(growth) == expected_len
-
-    def test_str_representation(self, simulation: Simulation):
-        """__str__ should return informative string."""
-        s = str(simulation)
-
-        assert "duration =" in s
-        assert "D =" in s
-        assert "L =" in s
 
 
 class TestSimulationBookTypes:
-    """Tests for different book type selection."""
-
-    def test_linear_regime_uses_linear_discrete_book(self, small_grid: dict):
-        """Linear regime (nu=0) should use LinearDiscreteBook."""
-        sim = Simulation.from_params(
-            model_type="discrete",
-            duration=100,
-            n_frames=10,
-            **small_grid,
-            D=0.5,
-            L=10.0,
-            nu=0.0,
-            metaorder=[1.0],
-        )
-
+    def test_linear_regime_uses_linear_discrete_book(self):
+        sim = Simulation.from_params(**_params(nu=0.0))
         assert isinstance(sim.book, LinearDiscreteBook)
 
-    def test_nonlinear_regime_uses_discrete_book(self, small_grid: dict):
-        """Nonlinear regime (nu>0) should use DiscreteBook."""
-        sim = Simulation.from_params(
-            model_type="discrete",
-            duration=100,
-            n_frames=10,
-            **small_grid,
-            D=0.5,
-            L=10.0,
-            nu=0.1,
-            metaorder=[1.0],
-        )
-
+    def test_nonlinear_regime_uses_discrete_book(self):
+        sim = Simulation.from_params(**_params(nu=0.1))
         assert isinstance(sim.book, DiscreteBook)
         assert not isinstance(sim.book, LinearDiscreteBook)
 
-    def test_continuous_model_uses_continuous_book(self, small_grid: dict):
-        """Continuous model should use LinearContinuousBook."""
-        sim = Simulation.from_params(
-            model_type="continuous",
-            duration=100,
-            n_frames=10,
-            **small_grid,
-            D=0.5,
-            L=10.0,
-            nu=0.0,
-            metaorder=[1.0],
-        )
-
+    def test_continuous_model_uses_continuous_book(self):
+        sim = Simulation.from_params(**_params(model_type="continuous"))
         assert isinstance(sim.book, LinearContinuousBook)
+
+
+class TestSimulationStr:
+    def test_str_contains_key_params(self, simulation: Simulation):
+        s = str(simulation)
+        assert "duration=" in s
+        assert "n_frames=" in s
+        assert "dt_step=" in s

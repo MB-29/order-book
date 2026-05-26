@@ -254,7 +254,7 @@ class TestLimitOrdersStochasticDynamics:
 
         # Run many depositions to see effect
         for _ in range(100):
-            limit_orders_nonlinear.deposition(spread=1)
+            limit_orders_nonlinear.deposition(dt=0.01, spread=1)
 
         final_total = np.sum(limit_orders_nonlinear.volumes)
 
@@ -267,7 +267,7 @@ class TestLimitOrdersStochasticDynamics:
         limit_orders_nonlinear.volumes[:] = 100
         initial_total = np.sum(limit_orders_nonlinear.volumes)
 
-        limit_orders_nonlinear.cancellation()
+        limit_orders_nonlinear.cancellation(dt=0.1)
 
         final_total = np.sum(limit_orders_nonlinear.volumes)
 

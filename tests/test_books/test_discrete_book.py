@@ -113,27 +113,22 @@ class TestDiscreteBookPriceTracking:
 class TestDiscreteBookTimeEvolution:
     """Tests for time evolution functionality."""
 
-    def test_timestep_executes_metaorder(self, linear_discrete_book: LinearDiscreteBook):
-        """timestep should execute the given metaorder volume."""
+    def test_evolve_executes_metaorder(self, linear_discrete_book: LinearDiscreteBook):
+        """evolve should execute the given metaorder volume."""
         initial_ask_total = np.sum(linear_discrete_book.get_ask_volumes())
 
-        # Execute a larger buy order (positive volume) to ensure measurable effect
-        linear_discrete_book.timestep(tstep=1.0, volume=50.0)
+        linear_discrete_book.evolve(dt_frame=1.0, dq=50.0, dt_step=0.1)
 
-        # Ask side should have less volume after buy
-        # (allowing for boundary effects which may add back some volume)
         final_ask_total = np.sum(linear_discrete_book.get_ask_volumes())
-        assert final_ask_total <= initial_ask_total + 20  # Allow boundary flow
+        assert final_ask_total <= initial_ask_total + 20  # boundary flow
 
     def test_stochastic_timestep_runs_dynamics_nonlinear(
         self, nonlinear_discrete_book: DiscreteBook, seed_random
     ):
         """stochastic_timestep should run all dynamics without error (nu > 0)."""
-        # Just ensure it doesn't crash (requires nu > 0 for cancellation)
-        nonlinear_discrete_book.stochastic_timestep()
+        nonlinear_discrete_book.stochastic_timestep(dt=0.01)
         nonlinear_discrete_book.update_price()
 
-        # Book should still be valid
         assert nonlinear_discrete_book.best_ask_index >= 0
         assert nonlinear_discrete_book.best_bid_index >= 0
 
@@ -141,11 +136,9 @@ class TestDiscreteBookTimeEvolution:
         self, linear_discrete_book: LinearDiscreteBook, seed_random
     ):
         """LinearDiscreteBook stochastic_timestep should only do jumps."""
-        # In linear regime, stochastic_timestep only runs jumps (no cancellation)
-        linear_discrete_book.stochastic_timestep()
+        linear_discrete_book.stochastic_timestep(dt=0.01)
         linear_discrete_book.update_price()
 
-        # Book should still be valid
         assert linear_discrete_book.best_ask_index >= 0
         assert linear_discrete_book.best_bid_index >= 0
 
@@ -317,38 +310,30 @@ class TestLinearDiscreteBookDynamics:
         self, linear_discrete_book: LinearDiscreteBook, seed_random
     ):
         """LinearDiscreteBook stochastic_timestep should only do jumps."""
-        # In linear regime, total volume is approximately conserved
-        # (except for boundary effects)
         initial_total = np.sum(linear_discrete_book.get_ask_volumes()) + np.sum(
             linear_discrete_book.get_bid_volumes()
         )
 
-        linear_discrete_book.stochastic_timestep()
+        linear_discrete_book.stochastic_timestep(dt=0.01)
 
         final_total = np.sum(linear_discrete_book.get_ask_volumes()) + np.sum(
             linear_discrete_book.get_bid_volumes()
         )
-
-        # Should be approximately conserved (within boundary effects)
         assert abs(final_total - initial_total) < initial_total * 0.3
 
     def test_inherits_from_discrete_book(self, linear_discrete_book: LinearDiscreteBook):
         """LinearDiscreteBook should inherit DiscreteBook methods."""
-        # Should have all DiscreteBook methods
-        assert hasattr(linear_discrete_book, "timestep")
+        assert hasattr(linear_discrete_book, "evolve")
         assert hasattr(linear_discrete_book, "execute_metaorder")
         assert hasattr(linear_discrete_book, "update_price")
         assert hasattr(linear_discrete_book, "get_ask_volumes")
         assert hasattr(linear_discrete_book, "get_bid_volumes")
 
-    def test_timestep_works(self, linear_discrete_book: LinearDiscreteBook):
-        """timestep should work for LinearDiscreteBook."""
+    def test_evolve_works(self, linear_discrete_book: LinearDiscreteBook):
+        """evolve should work for LinearDiscreteBook."""
         initial_ask = np.sum(linear_discrete_book.get_ask_volumes())
 
-        # Execute a larger volume to ensure measurable consumption
-        linear_discrete_book.timestep(tstep=1.0, volume=10.0)
+        linear_discrete_book.evolve(dt_frame=1.0, dq=10.0, dt_step=0.1)
 
         final_ask = np.sum(linear_discrete_book.get_ask_volumes())
-        # Volume executed should reduce ask side (though boundary flow may add some back)
-        # At minimum, check it doesn't explode and is close to initial
-        assert final_ask <= initial_ask + 100  # Allow boundary effects
+        assert final_ask <= initial_ask + 100

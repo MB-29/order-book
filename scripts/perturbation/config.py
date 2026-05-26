@@ -2,56 +2,43 @@
 Configuration for the perturbation experiment.
 
 Regime: m0 > 0, m1 > 0 (small deterministic bias + noise).
-We sweep over (m0/J, m1/J) pairs to cover:
-  - Low participation: m0, m1 << J
-  - Weak noise: m0 >> J, m1 << m0
-  - Strong noise: m1 >> J, m0 << m1
-
-Expected results (CLAUDE.md):
-  - Low participation: E[p_t] ~ r0 sqrt(Dt/pi), Var(p_t) ~ r1^2 D t^{2H-1}
-  - Weak noise: (E[p_t] - I_t)/I_t ~ -(m1/m0)^2 t^{2H-1}
-  - Strong noise: E[p_t] ~ sqrt(m0/m1) I_t
+Parameters come from named presets in :mod:`scripts.presets`.
 """
 
 from pathlib import Path
 
-# Physics
-HURST = 0.75
-D = 0.5
-L = 10.0
-NU = 0.
-# ALPHA = 0.5
-ALPHA = 0.
-J = D * L
+from scripts.presets import get_preset
 
-# Participation rate pairs (r0 = m0/J, r1 = m1/J)
-REGIMES = {
-    "low_participation": {"r0": 0.1, "r1": 0.01},
-    # "weak_noise": {"r0": 5.0, "r1": 0.5},
-    # "strong_noise": {"r0": 0.5, "r1": 5.0},
+# Local short name (key) -> canonical preset name in scripts.presets.
+# plot.py / run.py carry the short name; add e.g.
+#   "weak_noise": "impact_weak_noise" to extend the sweep.
+PRESET_NAMES = {
+    "low_participation": "perturbation_low_participation",
 }
+PRESETS = {short: get_preset(full) for short, full in PRESET_NAMES.items()}
 
-# Simulation grid
-DURATION = 200.0
-N_FRAMES = 50
-N_GRID = 200
-XMIN, XMAX = -100.0, 100.0
+# Shared physics / grid (all presets in this sweep must agree)
+_base = next(iter(PRESETS.values()))
+HURST = _base.hurst
+D = _base.D
+L = _base.L
+NU = _base.nu
+ALPHA = _base.alpha
+J = _base.J
+DURATION = _base.duration
+N_FRAMES = _base.n_frames
+N_GRID = _base.n_grid
+XMIN, XMAX = _base.xmin, _base.xmax
+DX = _base.dx
+DT_STEP = _base.dt_step
 
-# Ensemble
+# Regimes (kept under their preset names, mapping to {r0, r1})
+REGIMES = {name: {"r0": p.r0, "r1": p.r1} for name, p in PRESETS.items()}
+
+# Ensemble (override on the run-script CLI with --n-samples)
 N_SAMPLES = 500
 
-SIM_PARAMS = {
-    "model_type": "discrete",
-    "D": D,
-    "L": L,
-    "nu": NU,
-    "alpha": ALPHA,
-    "duration": DURATION,
-    "n_frames": N_FRAMES,
-    "n_grid": N_GRID,
-    "xmin": XMIN,
-    "xmax": XMAX,
-}
+SIM_PARAMS = _base.sim_params()
 
 # Output
 RESULTS_DIR = Path(__file__).parent / "results"

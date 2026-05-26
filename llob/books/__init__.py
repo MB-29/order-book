@@ -1,16 +1,7 @@
-"""
-Order book implementations for LLOB simulations.
-
-This module contains:
-- DiscreteBook: Agent-based discrete order book
-- LinearDiscreteBook: Simplified discrete book for linear regime
-- LinearContinuousBook: PDE-based continuous order book
-- MultiDiscreteBook: Multi-actor order book
-- LimitOrders: Order dynamics for one side of the book
-"""
+"""Order book implementations for LLOB simulations."""
 
 from .diffusion_schemes import theta_scheme_iteration
-from .discrete_book import DiscreteBook
+from .discrete_book import DiscreteBook, IntegerFloorWarning
 from .limit_orders import LimitOrders
 from .linear_continuous_book import LinearContinuousBook
 from .linear_discrete_book import LinearDiscreteBook
@@ -22,5 +13,6 @@ __all__ = [
     "LinearContinuousBook",
     "MultiDiscreteBook",
     "LimitOrders",
+    "IntegerFloorWarning",
     "theta_scheme_iteration",
 ]

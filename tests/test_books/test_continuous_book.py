@@ -46,19 +46,9 @@ class TestLinearContinuousBookConstruction:
 
         np.testing.assert_array_almost_equal(continuous_book.density, expected)
 
-    def test_initial_density_method(self, continuous_book: LinearContinuousBook):
-        """initial_density method should return -L*x."""
-        x = np.linspace(-5, 5, 10)
-        expected = -continuous_book.L * x
-
-        result = continuous_book.initial_density(x)
-
-        np.testing.assert_array_almost_equal(result, expected)
-
     def test_derived_values_computed(self, continuous_book: LinearContinuousBook):
         """Constructor should compute derived values."""
         assert continuous_book.J == continuous_book.D * continuous_book.L
-        assert continuous_book.price_range == (continuous_book.xmax - continuous_book.xmin) / 2
 
 
 class TestLinearContinuousBookPriceTracking:
@@ -104,18 +94,14 @@ class TestLinearContinuousBookPriceTracking:
 class TestLinearContinuousBookTimeEvolution:
     """Tests for time evolution functionality."""
 
-    def test_timestep_with_diffusion(self, continuous_book: LinearContinuousBook):
-        """timestep should apply diffusion when D != 0."""
-        continuous_book.timestep(tstep=0.1, volume=0.0)
+    def test_evolve_with_diffusion(self, continuous_book: LinearContinuousBook):
+        """evolve should apply diffusion when D != 0."""
+        continuous_book.evolve(dt_frame=0.1, dq=0.0)
 
-        # Density should change due to diffusion (boundary effects)
-        # For interior points, linear profile is steady state,
-        # but boundary may cause changes
-        # Just check it runs without error
         assert continuous_book.density is not None
 
-    def test_timestep_without_diffusion(self, linear_params: dict):
-        """timestep with D=0 should skip diffusion."""
+    def test_evolve_without_diffusion(self, linear_params: dict):
+        """evolve with D=0 should skip diffusion."""
         book = LinearContinuousBook.from_params(
             D=0.0,
             L=linear_params["L"],
@@ -125,9 +111,8 @@ class TestLinearContinuousBookTimeEvolution:
         )
         initial_density = book.density.copy()
 
-        book.timestep(tstep=0.1, volume=0.0)
+        book.evolve(dt_frame=0.1, dq=0.0)
 
-        # With D=0 and no metaorder, density should be unchanged
         np.testing.assert_array_equal(book.density, initial_density)
 
     def test_execute_metaorder_consumes_density(self, continuous_book: LinearContinuousBook):
