@@ -4,7 +4,7 @@ Tests for MonteCarlo class.
 
 import numpy as np
 
-from llob import MonteCarlo
+from llob import MonteCarlo, courant_dt
 
 
 class TestMonteCarloConstruction:
@@ -59,7 +59,7 @@ class TestMonteCarloConstruction:
         assert mc.price_samples.shape == (Nt, N_samples)
         assert mc.ask_samples.shape == (Nt, N_samples)
         assert mc.bid_samples.shape == (Nt, N_samples)
-        assert mc.noise.shape == (Nt, N_samples)
+        assert mc.noisy_metaorders.shape == (Nt, N_samples)
 
 
 class TestMonteCarloNoiseGeneration:
@@ -221,17 +221,19 @@ class TestMonteCarloMeasurements:
 
     def test_measured_quantities_recorded(self, small_grid: dict, seed_random):
         """Measured quantities should be recorded for each sample."""
+        dx = (small_grid["xmax"] - small_grid["xmin"]) / small_grid["n_grid"]
         params = {
             "model_type": "discrete",
-            "duration": 50.0,  # Physical time
-            "n_frames": 10,  # Number of frames
+            "duration": 50.0,
+            "n_frames": 10,
             **small_grid,
             "D": 0.5,
             "L": 10.0,
             "nu": 0.0,
+            "dt_step": courant_dt(dx, 0.5),
             "metaorder": [1.0],
             "measured_quantities": ["best_ask", "best_bid"],
-            "measurement_indices": [2, 8],  # Within Nt range
+            "measurement_indices": [2, 8],
         }
         mc = MonteCarlo.from_params(
             N_samples=2,

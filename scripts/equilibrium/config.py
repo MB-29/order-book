@@ -5,48 +5,49 @@ Regime: m0=0, m1>0, varying m1/J.
 Expected results (CLAUDE.md):
   - E[p_t] = 0
   - Var(p_t) ~ t^{2H-1}
+
+Parameters come from named presets in :mod:`scripts.presets`; this file
+keeps the experiment-specific bits (orderbook-profile snapshots, results
+directory) and re-exports the public constants downstream scripts use.
 """
 
 from pathlib import Path
 
-# Physics
-HURST = 0.75
-D = 0.5
-L = 10.0
-NU = 0.1
-ALPHA = 0.5
-J = D * L
+from scripts.presets import get_preset
 
-# Participation rates m1/J
-M1_OVER_J = [.5, 1.]
-# M1_OVER_J = [0.1, 0.5, 1.0]
-M1_VALUES = [r * J for r in M1_OVER_J]
+# Which presets to sweep over (one MC run per preset).
+PRESET_NAMES = ["equilibrium_m1_half_J", "equilibrium_m1_J"]
+PRESETS = [get_preset(name) for name in PRESET_NAMES]
 
-# Simulation grid
-DURATION = 100.0
-N_FRAMES = 50
-N_GRID = 200
-XMIN, XMAX = -100.0, 100.0
+# Shared physics / grid — all presets in this sweep agree on these.
+_base = PRESETS[0]
+HURST = _base.hurst
+D = _base.D
+L = _base.L
+NU = _base.nu
+ALPHA = _base.alpha
+J = _base.J
+DURATION = _base.duration
+N_FRAMES = _base.n_frames
+N_GRID = _base.n_grid
+XMIN, XMAX = _base.xmin, _base.xmax
+DX = _base.dx
+DT_STEP = _base.dt_step
 
-# Ensemble
+# Sweep axis
+M1_VALUES = [p.m1 for p in PRESETS]
+M1_OVER_J = [p.r1 for p in PRESETS]
+
+# Ensemble (override on the run-script CLI with --n-samples)
 N_SAMPLES = 500
 
-# Snapshot frames for orderbook profiles
-PROFILE_INDICES = [0, N_FRAMES // 4, N_FRAMES //
-                   2, 3 * N_FRAMES // 4, N_FRAMES - 1]
+# Snapshot frames for orderbook profiles (experiment-specific)
+PROFILE_INDICES = [0, N_FRAMES // 4, N_FRAMES // 2, 3 * N_FRAMES // 4, N_FRAMES - 1]
 
-SIM_PARAMS = {
-    "model_type": "discrete",
-    "D": D,
-    "L": L,
-    "nu": NU,
-    "alpha": ALPHA,
-    "duration": DURATION,
-    "n_frames": N_FRAMES,
-    "n_grid": N_GRID,
-    "xmin": XMIN,
-    "xmax": XMAX,
-}
+SIM_PARAMS = _base.sim_params(
+    measured_quantities=["ask_volumes", "bid_volumes"],
+    measurement_indices=PROFILE_INDICES,
+)
 
 # Output
 RESULTS_DIR = Path(__file__).parent / "results"

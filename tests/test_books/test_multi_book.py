@@ -168,15 +168,14 @@ class TestMultiDiscreteBookPriceTracking:
 class TestMultiDiscreteBookTimeEvolution:
     """Tests for time evolution functionality."""
 
-    def test_timestep_updates_all_actors(self, multi_book: MultiDiscreteBook, seed_random):
-        """timestep should update all actor books."""
-        # Record initial state
+    def test_evolve_updates_all_actors(self, multi_book: MultiDiscreteBook, seed_random):
+        """evolve should update all actor books."""
         initial_volumes = [
             (book.get_ask_volumes().copy(), book.get_bid_volumes().copy())
             for book in multi_book.books
         ]
 
-        multi_book.timestep(tstep=1.0, volume=1.0)
+        multi_book.evolve(dt_frame=1.0, dq=1.0, dt_step=0.1)
 
         # At least one book should have changed
         any_changed = False
@@ -191,8 +190,7 @@ class TestMultiDiscreteBookTimeEvolution:
 
     def test_stochastic_timestep_runs_all_books(self, multi_book: MultiDiscreteBook, seed_random):
         """stochastic_timestep should run dynamics for all actor books."""
-        # Just ensure no errors
-        multi_book.stochastic_timestep()
+        multi_book.stochastic_timestep(dt=0.01)
         multi_book.update_price()
 
         assert multi_book.best_ask_index >= 0
@@ -258,15 +256,6 @@ class TestMultiDiscreteBookMetaorderExecution:
 
 class TestMultiDiscreteBookMeasurements:
     """Tests for measurement functionality."""
-
-    def test_get_measures_returns_dict(self, multi_book: MultiDiscreteBook):
-        """get_measures should return a dictionary of measurements."""
-        measures = multi_book.get_measures()
-
-        assert isinstance(measures, dict)
-        assert "bid" in measures
-        assert "ask" in measures
-        assert "actor_trades" in measures
 
     def test_get_measure_bid_volumes(self, multi_book: MultiDiscreteBook):
         """get_measure should return bid volumes."""

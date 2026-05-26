@@ -5,74 +5,42 @@ Implementation for the article "Market impact in a multiple metaorder landscape"
 by Blanke, Moran, Crépin, Bouchaud, and Benzaquen.
 
 Example usage:
-    from llob import Simulation, standard_parameters
+    from llob import Simulation, courant_dt
 
-    params = standard_parameters(participation_rate=1.0, model_type='discrete')
-    sim = Simulation.from_params(**params)
+    book = LinearDiscreteBook.from_params(D=0.5, L=10.0, xmin=-50, xmax=50, n_grid=100)
+    sim = Simulation(
+        book=book,
+        duration=100.0,
+        n_frames=100,
+        dt_step=courant_dt(book.dx, book.D),
+        metaorder=[1.0],
+    )
     sim.run()
     print(sim.prices[-1])
-
-Using pydantic configs (preferred):
-    from llob import Simulation, SimulationConfig, GridConfig
-
-    config = SimulationConfig(
-        model_type='discrete',
-        grid=GridConfig(xmin=-50, xmax=50, Nx=100),
-        D=1.0,
-        L=1.0,
-        T=100,
-        Nt=100,
-        metaorder=[0.5],
-    )
-    sim = Simulation.from_config(config)
-    sim.run()
 """
 
 from .books import (
     DiscreteBook,
+    IntegerFloorWarning,
     LimitOrders,
     LinearContinuousBook,
     LinearDiscreteBook,
     MultiDiscreteBook,
 )
-from .configs import (
-    BookConfig,
-    DiscreteBookConfig,
-    GridConfig,
-    LimitOrdersConfig,
-    LinearContinuousBookConfig,
-    LinearDiscreteBookConfig,
-    MonteCarloConfig,
-    MultiDiscreteBookConfig,
-    NoiseConfig,
-    SimulationConfig,
-)
 from .monte_carlo import MonteCarlo
-from .simulation import Simulation, standard_parameters
+from .simulation import Simulation, courant_dt, standard_parameters
 
 __all__ = [
-    # Main entry points
     "Simulation",
     "MonteCarlo",
+    "courant_dt",
     "standard_parameters",
-    # Configuration classes
-    "GridConfig",
-    "SimulationConfig",
-    "MonteCarloConfig",
-    "NoiseConfig",
-    # Book configs
-    "BookConfig",
-    "DiscreteBookConfig",
-    "LinearDiscreteBookConfig",
-    "LinearContinuousBookConfig",
-    "MultiDiscreteBookConfig",
-    "LimitOrdersConfig",
-    # Book classes (for advanced usage)
     "DiscreteBook",
     "LinearDiscreteBook",
     "LinearContinuousBook",
     "MultiDiscreteBook",
     "LimitOrders",
+    "IntegerFloorWarning",
 ]
 __author__ = "Matthieu Blanke"
 __version__ = "1.0.0"
